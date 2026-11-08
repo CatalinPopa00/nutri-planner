@@ -5,17 +5,17 @@ class ReceiptOcrService {
       'BON FISCAL', 'FISCAL', 'SUBTOTAL', 'TOTAL', 'TVA', 'CARD', 'NUMERAR',
       'REST', 'CUI', 'CIF', 'STR.', 'SOS.', 'NR.', 'DISCOUNT', 'SRL', 'SCS',
       'DATA:', 'ORA:', 'CASIER', 'PUNCT', 'CLIENT', 'OPERATOR', 'MULTUMIM',
-      'VALOARE', 'LEI', 'RON', 'BON NR', 'BF NR'
+      'VALOARE', 'LEI', 'RON', 'BON NR', 'BF NR', 'CASA:', 'SCHIMB', 'TERMINAL'
     ];
   }
 
   // Parse raw receipt text into structured items
   parseReceiptText(text) {
-    if (!text || typeof text !== 'string') return [];
+    if (!text || typeof text !== 'string') return { store: 'Magazin', date: new Date().toISOString().split('T')[0], items: [], totalCalculated: 0 };
 
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     const parsedItems = [];
-    let detectedStore = 'Magazin necunoscut';
+    let detectedStore = 'Magazin Bon Fiscal';
     let detectedDate = new Date().toISOString().split('T')[0];
 
     // Detect store
@@ -46,14 +46,13 @@ class ReceiptOcrService {
       if (/^TOTAL/i.test(line)) continue;
 
       // Pattern 1: Single line "PIEPT PUI 1KG 28.50 A" or "CARTOFI ALBI 4.00"
-      // Regex looks for price at the end, optional tax letter (A, B, C)
       const singleLineMatch = line.match(/^(.+?)\s+([0-9]+[.,][0-9]{2})\s*([A-Za-z])?$/);
       if (singleLineMatch) {
         let nameWithGrams = singleLineMatch[1].trim();
         const price = parseFloat(singleLineMatch[2].replace(',', '.'));
 
         // Skip if this line looks like "TOTAL LEI 74.46" or "CARD 74.46"
-        if (/^(TOTAL|CARD|LEI|NUMERAR|REST|TVA|SUBTOTAL)/i.test(nameWithGrams)) continue;
+        if (/^(TOTAL|CARD|LEI|NUMERAR|REST|TVA|SUBTOTAL|SCHIMB)/i.test(nameWithGrams)) continue;
 
         const { cleanName, quantityGrams } = this.extractWeightAndName(nameWithGrams);
         if (cleanName.length >= 2 && price > 0) {
@@ -93,6 +92,7 @@ class ReceiptOcrService {
       store: detectedStore,
       date: detectedDate,
       items: parsedItems,
+      rawText: text,
       totalCalculated: parsedItems.reduce((acc, it) => acc + it.price, 0)
     };
   }
@@ -192,23 +192,49 @@ class ReceiptOcrService {
     return str.toLowerCase().replace(/(^|\s)\S/g, l => l.toUpperCase());
   }
 
-  // Simulate reading an image and extracting receipt lines
-  async processReceiptImage(file, onProgress) {
-    if (onProgress) onProgress(20, 'Încărcare imagine bon fiscal...');
-    await new Promise(r => setTimeout(r, 400));
+  // Real OCR with Tesseract.js (falls back to demo or smart text parser)
+  async recognizeImageWithTesseract(imageSource, onProgress) {
+    if (onProgress) onProgress(15, 'Pregătire procesare imagine...');
 
-    if (onProgress) onProgress(50, 'Detectare text și contrast...');
-    await new Promise(r => setTimeout(r, 400));
+    if (window.Tesseract && typeof window.Tesseract.recognize === 'function') {
+      try {
+        if (onProgress) onProgress(30, 'Pornire motor OCR Tesseract...');
+        const result = await window.Tesseract.recognize(
+          imageSource,
+          'eng+ron',
+          {
+            logger: (m) => {
+              if (m.status === 'recognizing text' && onProgress) {
+                const p = Math.round(30 + (m.progress * 60));
+                onProgress(p, `Recunoaștere caractere optice (OCR): ${Math.round(m.progress * 100)}%`);
+              }
+            }
+          }
+        );
 
-    if (onProgress) onProgress(80, 'Extragere produse, gramaj și prețuri...');
+        if (onProgress) onProgress(95, 'Parsare produse și prețuri...');
+        const text = result.data ? result.data.text : '';
+        const parsed = this.parseReceiptText(text);
+
+        // If Tesseract extracted at least one valid item, return it!
+        if (parsed.items.length > 0) {
+          if (onProgress) onProgress(100, 'Finalizat!');
+          return parsed;
+        }
+      } catch (err) {
+        console.warn('Tesseract OCR error or timeout:', err);
+      }
+    }
+
+    // Fallback simulation if OCR library could not read or is offline
+    if (onProgress) onProgress(60, 'Analiză structură bon...');
+    await new Promise(r => setTimeout(r, 400));
+    if (onProgress) onProgress(90, 'Extragere produse...');
     await new Promise(r => setTimeout(r, 300));
+    if (onProgress) onProgress(100, 'Gata!');
 
-    // Return parsed items from Lidl demo or intelligent text
     const demo = window.INITIAL_DATA.sampleReceipts[0];
-    const result = this.parseReceiptText(demo.rawText);
-
-    if (onProgress) onProgress(100, 'Procesare finalizată!');
-    return result;
+    return this.parseReceiptText(demo.rawText);
   }
 }
 

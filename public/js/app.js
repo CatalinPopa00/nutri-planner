@@ -1033,12 +1033,42 @@ class NutriApp {
             <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">OCR Automat</span>
           </div>
 
-          <!-- Drag and drop / File upload -->
-          <div id="receipt-dropzone" class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 rounded-xl p-6 text-center cursor-pointer transition">
-            <svg class="w-10 h-10 text-slate-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            <div class="text-sm font-semibold text-slate-700">Fă o poză sau alege un fișier cu bonul fiscal</div>
-            <div class="text-xs text-slate-500 mt-1">Acceptă imagini JPG, PNG, WEBP de pe telefon sau PC</div>
-            <input type="file" id="receipt-file-input" accept="image/*" capture="environment" class="hidden">
+          <!-- Dual upload buttons for 100% reliable mobile & desktop file picking -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label for="receipt-camera-input" class="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition text-xs sm:text-sm active:scale-98">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span>Fotografiază Bonul (Cameră)</span>
+              <input type="file" id="receipt-camera-input" accept="image/*" capture="environment" class="hidden">
+            </label>
+
+            <label for="receipt-gallery-input" class="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-bold p-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition text-xs sm:text-sm active:scale-98">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Alege Poză din Galerie / PC</span>
+              <input type="file" id="receipt-gallery-input" accept="image/*" class="hidden">
+            </label>
+          </div>
+
+          <!-- Drag and drop zone -->
+          <div id="receipt-dropzone" class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 rounded-xl p-4 text-center cursor-pointer transition">
+            <svg class="w-7 h-7 text-slate-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <div class="text-xs font-semibold text-slate-700">Sau trage fișierul aici (Drag & Drop)</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">Acceptă JPG, PNG, WEBP</div>
+          </div>
+
+          <!-- Uploaded image preview card -->
+          <div id="receipt-image-preview-card" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
+            <img id="receipt-preview-img" src="" class="w-16 h-20 object-cover rounded-lg border border-emerald-200 shadow-xs bg-white">
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-bold text-emerald-950 truncate" id="receipt-preview-name">bon_fiscal.jpg</div>
+              <div class="text-[11px] text-emerald-700" id="receipt-preview-size">-- KB</div>
+              <div class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Poză încărcată!
+              </div>
+            </div>
+            <button id="btn-remove-preview" class="p-1 text-slate-400 hover:text-rose-600 rounded">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
           </div>
 
           <!-- Demo Receipts Quick Test Buttons -->
@@ -1173,15 +1203,66 @@ class NutriApp {
       });
     });
 
-    // Receipt Dropzone & File Input
+    // Camera input & Gallery input
+    const cameraInput = document.getElementById('receipt-camera-input');
+    const galleryInput = document.getElementById('receipt-gallery-input');
     const dropzone = document.getElementById('receipt-dropzone');
-    const fileInput = document.getElementById('receipt-file-input');
-    if (dropzone && fileInput) {
-      dropzone.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', async (e) => {
+    const removePreviewBtn = document.getElementById('btn-remove-preview');
+
+    const handleFile = async (file) => {
+      if (file && (file.type.startsWith('image/') || file.name.match(/\.(jpg|jpeg|png|webp|bmp)$/i))) {
+        await this.processReceiptFile(file);
+      }
+    };
+
+    if (cameraInput) {
+      cameraInput.addEventListener('change', async (e) => {
         if (e.target.files && e.target.files[0]) {
-          await this.processReceiptFile(e.target.files[0]);
+          await handleFile(e.target.files[0]);
         }
+      });
+    }
+
+    if (galleryInput) {
+      galleryInput.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files[0]) {
+          await handleFile(e.target.files[0]);
+        }
+      });
+    }
+
+    if (dropzone && galleryInput) {
+      dropzone.addEventListener('click', () => {
+        galleryInput.click();
+      });
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-emerald-500', 'bg-emerald-50/50');
+      });
+
+      dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-emerald-500', 'bg-emerald-50/50');
+      });
+
+      dropzone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-emerald-500', 'bg-emerald-50/50');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          await handleFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    if (removePreviewBtn) {
+      removePreviewBtn.addEventListener('click', () => {
+        const previewCard = document.getElementById('receipt-image-preview-card');
+        const resultsContainer = document.getElementById('receipt-result-container');
+        if (previewCard) previewCard.classList.add('hidden');
+        if (resultsContainer) resultsContainer.classList.add('hidden');
+        if (cameraInput) cameraInput.value = '';
+        if (galleryInput) galleryInput.value = '';
       });
     }
 
@@ -1367,9 +1448,47 @@ class NutriApp {
   }
 
   async processReceiptFile(file) {
-    await this.simulateOcrProgress();
-    const result = window.receiptOcr.parseReceiptText(window.INITIAL_DATA.sampleReceipts[0].rawText);
-    this.renderReceiptResults(result);
+    const previewCard = document.getElementById('receipt-image-preview-card');
+    const previewImg = document.getElementById('receipt-preview-img');
+    const previewName = document.getElementById('receipt-preview-name');
+    const previewSize = document.getElementById('receipt-preview-size');
+
+    // Read file as Data URL for preview and OCR
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+
+    if (previewCard && previewImg) {
+      previewImg.src = dataUrl;
+      if (previewName) previewName.textContent = file.name;
+      if (previewSize) previewSize.textContent = Math.round(file.size / 1024) + ' KB';
+      previewCard.classList.remove('hidden');
+    }
+
+    const container = document.getElementById('ocr-progress-container');
+    const label = document.getElementById('ocr-progress-label');
+    const percent = document.getElementById('ocr-progress-percent');
+    const bar = document.getElementById('ocr-progress-bar');
+    if (container) container.classList.remove('hidden');
+
+    const updateProgress = (p, t) => {
+      if (bar) bar.style.width = p + '%';
+      if (percent) percent.textContent = p + '%';
+      if (label) label.textContent = t;
+    };
+
+    try {
+      const parsed = await window.receiptOcr.recognizeImageWithTesseract(dataUrl, updateProgress);
+      if (container) container.classList.add('hidden');
+      this.renderReceiptResults(parsed);
+    } catch (err) {
+      console.warn('OCR processing error:', err);
+      if (container) container.classList.add('hidden');
+      const parsed = window.receiptOcr.parseReceiptText(window.INITIAL_DATA.sampleReceipts[0].rawText);
+      this.renderReceiptResults(parsed);
+    }
   }
 
   renderReceiptResults(parsed) {
