@@ -1,102 +1,192 @@
 <!DOCTYPE html>
-<html lang="ro" class="h-full bg-slate-100">
+<html lang="ro" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>NutriPlanner — Calculator Rețete, Pret & Macronutrienți</title>
+  <title>NutriPlanner — Calculator Rețete, Preț & Macronutrienți</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#059669">
+  <meta name="theme-color" content="#A390F5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="NutriPlanner">
+
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit (Exact typography from Pinterest reference) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS & Theme Config -->
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            display: ['"Outfit"', '"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              lilac: '#A390F5',
+              'lilac-light': '#B8A9FD',
+              'lilac-soft': '#F1EEFE',
+              'lilac-dark': '#6D4AE8',
+              apricot: '#FFB259',
+              'apricot-light': '#FFEED1',
+              'apricot-dark': '#E68212',
+              sky: '#82CBEF',
+              'sky-light': '#E0F2FE',
+              'sky-dark': '#2B9CD8',
+              pink: '#FF6FA4',
+              'pink-light': '#FFE7F1',
+              'pink-dark': '#E53E7E',
+              mint: '#70D6A3',
+              'mint-light': '#E6FAF0',
+              'mint-dark': '#37B377',
+              obsidian: '#121319',
+              'obsidian-card': '#181924',
+              'obsidian-surface': '#202230',
+            }
+          },
+          borderRadius: {
+            '2xl': '18px',
+            '3xl': '28px',
+            '4xl': '36px',
+          },
+          boxShadow: {
+            'bento': '0 10px 25px -5px rgba(120, 110, 200, 0.08), 0 4px 10px -3px rgba(0, 0, 0, 0.03)',
+            'bento-hover': '0 18px 32px -8px rgba(135, 120, 245, 0.16), 0 6px 14px -4px rgba(0, 0, 0, 0.05)',
+            'dock': '0 20px 38px -10px rgba(18, 19, 25, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12)',
+          }
+        }
+      }
+    };
+
+    // Instant theme bootloader to avoid flash of wrong mode
+    (function() {
+      const savedTheme = localStorage.getItem('nutri_theme');
+      if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    })();
+  </script>
+
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="h-full flex flex-col text-slate-800 antialiased font-sans selection:bg-emerald-500 selection:text-white">
+<body class="h-full flex flex-col antialiased selection:bg-[#B8A9FD] selection:text-[#121319] relative">
 
-  <!-- Desktop & Tablet Header Navbar -->
-  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+  <!-- Ambient Top Glow -->
+  <div class="ambient-glow-top"></div>
+
+  <!-- Top App Header Bar -->
+  <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#121319]/80 backdrop-blur-xl border-b border-[#E5E0F5] dark:border-white/10 transition-colors">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-4">
       
-      <!-- Logo & App Title -->
+      <!-- User Greeting & Avatar (from Pinterest Screenshot 1) -->
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        <div class="relative">
+          <div class="w-11 h-11 rounded-full p-0.5 bg-gradient-to-tr from-[#B8A9FD] via-[#FFB259] to-[#FF6FA4] shadow-md">
+            <div class="w-full h-full rounded-full bg-[#121319] dark:bg-white flex items-center justify-center text-white dark:text-[#121319] font-bold text-sm overflow-hidden">
+              <svg class="w-6 h-6 text-white dark:text-[#121319]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+              </svg>
+            </div>
+          </div>
+          <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#70D6A3] border-2 border-white dark:border-[#121319]"></span>
         </div>
         <div>
-          <div class="font-extrabold text-slate-900 text-base sm:text-lg leading-tight tracking-tight flex items-center gap-2">
-            NutriPlanner
-            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Pro</span>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg leading-tight font-display tracking-tight">
+              Bună, Sandra 👋
+            </h1>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#B8A9FD]/25 text-[#6D4AE8] dark:text-[#C4B5FD] border border-[#B8A9FD]/40">
+              Pro
+            </span>
           </div>
-          <p class="text-[11px] text-slate-500 hidden sm:block">Preț & Macronutrienți per Portie</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Azi, 8 Noiembrie • NutriPlanner</p>
         </div>
       </div>
 
-      <!-- Desktop Navigation Tabs -->
-      <nav class="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200">
-        <button data-nav-tab="planner" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-emerald-600">
-          <svg class="w-4 h-4 stroke-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <!-- Desktop Navigation Tabs (Pill Capsule Design) -->
+      <nav class="hidden md:flex items-center gap-1.5 bg-slate-200/60 dark:bg-white/5 p-1.5 rounded-full border border-slate-200/80 dark:border-white/10 backdrop-blur-md">
+        <button data-nav-tab="planner" class="px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 text-[#121319] bg-white dark:bg-white dark:text-[#121319] shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           Planificator
         </button>
-        <button data-nav-tab="recipes" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <button data-nav-tab="recipes" class="px-4 py-2 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
           Rețetar
         </button>
-        <button data-nav-tab="ingredients" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-          Bază Ingrediente
+        <button data-nav-tab="scan" class="px-4 py-2 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+          Scan/Bon
         </button>
-        <button data-nav-tab="scan" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-          Scan EAN / Bon
+        <button data-nav-tab="ingredients" class="px-4 py-2 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          Ingrediente
         </button>
-        <button data-nav-tab="analytics" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        <button data-nav-tab="analytics" class="px-4 py-2 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
           Cumpărături
         </button>
       </nav>
 
-      <!-- Quick Status Badge -->
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          Conectat Google Sheet
-        </span>
+      <!-- Right Actions: Theme Switcher & Status -->
+      <div class="flex items-center gap-2.5">
+        <!-- Theme Toggle (Light / Dark - from Pinterest Screenshot 3) -->
+        <button id="btn-theme-toggle" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-white flex items-center justify-center transition border border-slate-200/60 dark:border-white/10 shadow-sm" title="Comută tema Luminos / Întunecat">
+          <svg id="theme-icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="theme-icon-moon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+
+        <!-- Connected Cloud Sheet Pill -->
+        <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#70D6A3]/15 text-[#2E8B5B] dark:text-[#70D6A3] border border-[#70D6A3]/30 shadow-2xs">
+          <span class="w-2 h-2 rounded-full bg-[#70D6A3] animate-pulse"></span>
+          Google Sheet
+        </div>
       </div>
 
     </div>
   </header>
 
   <!-- Main Scrollable App Container -->
-  <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6" id="app-main">
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 pb-28 sm:pb-32 relative z-10" id="app-main">
     <!-- Rendered dynamically by NutriApp in js/app.js -->
   </main>
 
-  <!-- Mobile Sticky Bottom Navigation Bar (Hidden on Desktop) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-lg">
-    <button data-nav-tab="planner" class="flex-1 flex flex-col items-center py-1 text-emerald-600 font-semibold transition">
-      <svg class="w-5 h-5 stroke-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-      <span class="text-[10px] mt-0.5">Planificator</span>
-    </button>
-    <button data-nav-tab="recipes" class="flex-1 flex flex-col items-center py-1 text-slate-500 transition">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-      <span class="text-[10px] mt-0.5">Rețete</span>
-    </button>
-    <button data-nav-tab="scan" class="flex-1 flex flex-col items-center py-1 text-slate-500 transition">
-      <div class="w-8 h-8 -mt-3 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-      </div>
-      <span class="text-[10px] mt-0.5">Scan/Bon</span>
-    </button>
-    <button data-nav-tab="ingredients" class="flex-1 flex flex-col items-center py-1 text-slate-500 transition">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-      <span class="text-[10px] mt-0.5">Ingrediente</span>
-    </button>
-    <button data-nav-tab="analytics" class="flex-1 flex flex-col items-center py-1 text-slate-500 transition">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-      <span class="text-[10px] mt-0.5">Cumpărături</span>
-    </button>
-  </nav>
+  <!-- Signature Floating Bottom Navigation Dock (Screenshots 1, 2, 3) -->
+  <div class="floating-dock-container" id="bottom-floating-dock-container">
+    <nav class="floating-dock" aria-label="Navigare Principală">
+      <button data-nav-tab="planner" class="dock-tab active" title="Planificator">
+        <div class="dock-tab-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        </div>
+      </button>
+      <button data-nav-tab="recipes" class="dock-tab" title="Rețetar">
+        <div class="dock-tab-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        </div>
+      </button>
+      <button data-nav-tab="scan" class="dock-tab" title="Scanare Barcode / Bon">
+        <div class="dock-tab-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+        </div>
+      </button>
+      <button data-nav-tab="ingredients" class="dock-tab" title="Bază Ingrediente">
+        <div class="dock-tab-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+      </button>
+      <button data-nav-tab="analytics" class="dock-tab" title="Listă Cumpărături">
+        <div class="dock-tab-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        </div>
+      </button>
+    </nav>
+  </div>
 
   <!-- Application Scripts -->
   <script src="js/tesseract.min.js"></script>

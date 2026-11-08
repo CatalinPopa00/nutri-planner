@@ -27,13 +27,22 @@ class NutriApp {
   }
 
   bindEvents() {
-    // Navigation Tabs
+    // Navigation Tabs (both floating dock and desktop header)
     document.querySelectorAll('[data-nav-tab]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const tab = e.currentTarget.getAttribute('data-nav-tab');
         this.switchTab(tab);
       });
     });
+
+    // Theme toggle button (Light / Dark mode from Pinterest Screenshot 3)
+    const themeBtn = document.getElementById('btn-theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('nutri_theme', isDark ? 'dark' : 'light');
+      });
+    }
 
     // Close modal on click outside or close buttons
     document.addEventListener('click', (e) => {
@@ -53,19 +62,24 @@ class NutriApp {
   switchTab(tab) {
     this.currentTab = tab;
 
-    // Update bottom nav & desktop nav active states
+    // Update bottom floating dock tabs & desktop header tabs
     document.querySelectorAll('[data-nav-tab]').forEach(el => {
       const active = el.getAttribute('data-nav-tab') === tab;
-      if (active) {
-        el.classList.add('text-emerald-600', 'font-semibold');
-        el.classList.remove('text-slate-500', 'text-slate-400');
-        const icon = el.querySelector('svg');
-        if (icon) icon.classList.add('stroke-emerald-600');
+
+      // Floating bottom dock tabs
+      if (el.classList.contains('dock-tab')) {
+        if (active) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
       } else {
-        el.classList.remove('text-emerald-600', 'font-semibold');
-        el.classList.add('text-slate-500');
-        const icon = el.querySelector('svg');
-        if (icon) icon.classList.remove('stroke-emerald-600');
+        // Desktop nav tab pills
+        if (active) {
+          el.className = 'px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 text-[#121319] bg-white dark:bg-white dark:text-[#121319] shadow-sm';
+        } else {
+          el.className = 'px-4 py-2 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2';
+        }
       }
     });
 
@@ -113,226 +127,330 @@ class NutriApp {
   // ==========================================
   renderPlannerView() {
     const weekData = window.store.calculateWeek();
-    const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+    const dayDefinitions = [
+      { id: 'Luni', short: 'Lun', dateNum: '24' },
+      { id: 'Marți', short: 'Mar', dateNum: '25' },
+      { id: 'Miercuri', short: 'Mie', dateNum: '26' },
+      { id: 'Joi', short: 'Joi', dateNum: '27' },
+      { id: 'Vineri', short: 'Vin', dateNum: '28' },
+      { id: 'Sâmbătă', short: 'Sâm', dateNum: '29' },
+      { id: 'Duminică', short: 'Dum', dateNum: '30' }
+    ];
     const activeDayData = weekData.days[this.activeDay] || { items: [], totals: { cost: 0, calories: 0, protein: 0, carbs: 0, fat: 0 } };
 
     const calPercent = Math.min(100, Math.round((activeDayData.totals.calories / this.dailyCalorieTarget) * 100));
 
     return `
-      <div class="space-y-5 pb-20">
-        <!-- Top Weekly KPI Header Banner -->
-        <div class="bg-gradient-to-br from-emerald-800 to-teal-900 text-white rounded-2xl p-5 shadow-lg border border-emerald-700/50">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-700/60 text-emerald-100 border border-emerald-500/30">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Planificator Săptămânal
+      <div class="space-y-6 pb-24">
+        <!-- Top Weekly KPI Hero Card (Inspired by Pinterest Screenshot 1 & 3) -->
+        <div class="bento-lilac-hero p-6 sm:p-7 bento-card relative">
+          <!-- 3D Clay Aesthetic Background Art -->
+          <div class="absolute right-3 -top-2 sm:right-6 sm:top-2 pointer-events-none opacity-90 clay-3d-element hidden xs:block">
+            <svg width="150" height="150" viewBox="0 0 160 160" fill="none" class="w-24 h-24 sm:w-36 sm:h-36">
+              <defs>
+                <radialGradient id="clayGold" cx="35%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#FFE082"/>
+                  <stop offset="45%" stop-color="#FFB300"/>
+                  <stop offset="100%" stop-color="#E65100"/>
+                </radialGradient>
+                <radialGradient id="claySlate" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stop-color="#475569"/>
+                  <stop offset="60%" stop-color="#1E293B"/>
+                  <stop offset="100%" stop-color="#0F172A"/>
+                </radialGradient>
+                <radialGradient id="clayPink" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stop-color="#FFA4CD"/>
+                  <stop offset="60%" stop-color="#FF6FA4"/>
+                  <stop offset="100%" stop-color="#D81B60"/>
+                </radialGradient>
+                <filter id="clayShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.25"/>
+                </filter>
+              </defs>
+              <circle cx="85" cy="50" r="32" fill="url(#clayGold)" filter="url(#clayShadow)"/>
+              <circle cx="85" cy="50" r="14" fill="#B8A9FD"/>
+              <circle cx="115" cy="100" r="24" fill="url(#clayPink)" filter="url(#clayShadow)"/>
+              <rect x="35" y="70" width="46" height="46" rx="16" fill="url(#claySlate)" transform="rotate(-15 35 70)" filter="url(#clayShadow)"/>
+              <circle cx="58" cy="93" r="8" fill="#B8A9FD"/>
+            </svg>
+          </div>
+
+          <div class="relative z-10 max-w-xl">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="pill-badge pill-badge-translucent">
+                <span class="w-2 h-2 rounded-full bg-[#121319] dark:bg-white animate-pulse"></span>
+                Provocarea Zilei
               </span>
-              <h1 class="text-xl sm:text-2xl font-bold mt-1 tracking-tight">Cost & Macronutrienți Săptămână</h1>
+              <span class="text-xs font-semibold opacity-85 hidden sm:inline">Target Săptămânal</span>
             </div>
-            <button id="btn-quick-shop" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow transition">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-              <span class="hidden sm:inline">Listă</span> Cumpărături
+
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-display leading-tight tracking-tight text-[#121319] dark:text-white">
+              Cost & Macronutrienți Săptămână
+            </h2>
+            <p class="text-xs sm:text-sm mt-1 opacity-85 text-[#121319] dark:text-white font-medium max-w-md">
+              Atinge targetul tău de proteine și calorii menținând bugetul optimizat per porție.
+            </p>
+
+            <!-- 4 Bento Metric Pills inside Hero Card -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5">
+              <div class="bg-white/75 dark:bg-black/35 backdrop-blur-md rounded-2xl p-3 border border-white/80 dark:border-white/10 text-center shadow-xs">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Cost Total</div>
+                <div class="text-lg sm:text-xl font-extrabold text-[#121319] dark:text-white mt-0.5">${weekData.totals.cost.toFixed(2)} <span class="text-xs font-semibold">RON</span></div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">${weekData.totals.avgDailyCost.toFixed(1)} RON/zi</div>
+              </div>
+              <div class="bg-white/75 dark:bg-black/35 backdrop-blur-md rounded-2xl p-3 border border-white/80 dark:border-white/10 text-center shadow-xs">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Calorii</div>
+                <div class="text-lg sm:text-xl font-extrabold text-[#121319] dark:text-white mt-0.5">${Math.round(weekData.totals.calories)} <span class="text-xs font-semibold">kcal</span></div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">${Math.round(weekData.totals.avgDailyCalories)} kcal/zi</div>
+              </div>
+              <div class="bg-white/75 dark:bg-black/35 backdrop-blur-md rounded-2xl p-3 border border-white/80 dark:border-white/10 text-center shadow-xs">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Proteine</div>
+                <div class="text-lg sm:text-xl font-extrabold text-[#E02868] dark:text-[#FFA4CD] mt-0.5">${Math.round(weekData.totals.protein)} <span class="text-xs font-semibold">g</span></div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">${Math.round(weekData.totals.avgDailyProtein)} g/zi</div>
+              </div>
+              <div class="bg-white/75 dark:bg-black/35 backdrop-blur-md rounded-2xl p-3 border border-white/80 dark:border-white/10 text-center shadow-xs">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Carbi & Grăsimi</div>
+                <div class="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-1.5">${Math.round(weekData.totals.carbs)}g C • ${Math.round(weekData.totals.fat)}g G</div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">${Math.round(weekData.totals.avgDailyCarbs)}g / ${Math.round(weekData.totals.avgDailyFat)}g</div>
+              </div>
+            </div>
+
+            <!-- Quick Action button -->
+            <div class="mt-4 flex items-center justify-between">
+              <button id="btn-quick-shop" class="btn-pill btn-pill-dark text-xs sm:text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                <span>Listă Cumpărături</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Date Selector Vertical Capsule Strip (Screenshots 1 & 3) -->
+        <div>
+          <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-2 px-1">
+            ${dayDefinitions.map(d => {
+              const isSelected = this.activeDay === d.id;
+              const dayTotals = weekData.days[d.id]?.totals || { cost: 0, calories: 0 };
+              return `
+                <button data-day-btn="${d.id}" class="day-capsule ${isSelected ? 'active' : ''}" title="${d.id}: ${dayTotals.cost > 0 ? `${dayTotals.cost.toFixed(1)} RON` : 'Liber'}">
+                  <span class="day-capsule-name">${d.short}</span>
+                  <span class="day-capsule-dot"></span>
+                  <span class="day-capsule-num">${d.dateNum}</span>
+                </button>
+              `;
+            }).join('')}
+            <button data-day-btn="ALL" class="day-capsule day-capsule-all ${this.activeDay === 'ALL' ? 'active' : ''}">
+              <span class="day-capsule-name">Toată Săpt.</span>
+              <span class="day-capsule-dot"></span>
+              <span class="text-[11px] font-extrabold mt-1">7 Zile</span>
             </button>
           </div>
-
-          <!-- Weekly Metric Grid (Matches Sheet Formulas) -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div class="bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <div class="text-xs text-emerald-200">Cost Total Săpt.</div>
-              <div class="text-lg sm:text-xl font-bold text-white mt-0.5">${weekData.totals.cost.toFixed(2)} <span class="text-xs font-normal">RON</span></div>
-              <div class="text-[11px] text-emerald-300 mt-0.5">Medie: ${weekData.totals.avgDailyCost.toFixed(2)} RON/zi</div>
-            </div>
-            <div class="bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <div class="text-xs text-emerald-200">Calorii Săptămână</div>
-              <div class="text-lg sm:text-xl font-bold text-white mt-0.5">${Math.round(weekData.totals.calories)} <span class="text-xs font-normal">kcal</span></div>
-              <div class="text-[11px] text-emerald-300 mt-0.5">Medie: ${Math.round(weekData.totals.avgDailyCalories)} kcal/zi</div>
-            </div>
-            <div class="bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <div class="text-xs text-emerald-200">Proteine Total</div>
-              <div class="text-lg sm:text-xl font-bold text-rose-300 mt-0.5">${Math.round(weekData.totals.protein)} <span class="text-xs font-normal">g</span></div>
-              <div class="text-[11px] text-emerald-300 mt-0.5">Medie: ${Math.round(weekData.totals.avgDailyProtein)} g/zi</div>
-            </div>
-            <div class="bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-              <div class="text-xs text-emerald-200">Carbi & Grăsimi</div>
-              <div class="text-sm font-semibold text-amber-200 mt-1">${Math.round(weekData.totals.carbs)}g C <span class="text-white/40">|</span> <span class="text-sky-300">${Math.round(weekData.totals.fat)}g G</span></div>
-              <div class="text-[11px] text-emerald-300 mt-0.5">Med: ${Math.round(weekData.totals.avgDailyCarbs)}g / ${Math.round(weekData.totals.avgDailyFat)}g</div>
-            </div>
-          </div>
         </div>
 
-        <!-- Day Selector Pills (Horizontal Scroll) -->
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          ${days.map(day => {
-            const isSelected = this.activeDay === day;
-            const dayTotals = weekData.days[day]?.totals || { cost: 0, calories: 0 };
-            return `
-              <button data-day-btn="${day}" class="flex-shrink-0 px-4 py-2.5 rounded-xl border transition-all text-left ${
-                isSelected
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-md'
-                  : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300'
-              }">
-                <div class="font-bold text-sm">${day}</div>
-                <div class="text-[11px] ${isSelected ? 'text-emerald-100' : 'text-slate-500'}">
-                  ${dayTotals.cost > 0 ? `${dayTotals.cost.toFixed(1)} L | ${Math.round(dayTotals.calories)} kcal` : 'Liber'}
-                </div>
-              </button>
-            `;
-          }).join('')}
-          <button data-day-btn="ALL" class="flex-shrink-0 px-4 py-2.5 rounded-xl border transition-all text-left ${
-            this.activeDay === 'ALL'
-              ? 'bg-slate-800 border-slate-800 text-white shadow-md'
-              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
-          }">
-            <div class="font-bold text-sm">Toată Săptămâna</div>
-            <div class="text-[11px] ${this.activeDay === 'ALL' ? 'text-slate-300' : 'text-slate-500'}">7 zile complete</div>
-          </button>
-        </div>
-
+        <!-- Single Day View or Overview Table -->
         ${this.activeDay === 'ALL' ? this.renderAllDaysOverview(weekData) : this.renderSingleDayView(this.activeDay, activeDayData, calPercent)}
       </div>
     `;
   }
 
   renderSingleDayView(day, dayData, calPercent) {
-    const mealCategories = [
-      { id: 'Mic Dejun', title: '🍳 Mic Dejun / Snacks', defaultCategory: 'Snacks / Mic Dejun' },
-      { id: 'Prânz', title: '🍲 Prânz', defaultCategory: 'Mese Mari' },
-      { id: 'Snack', title: '🍎 Gustare / Snack', defaultCategory: 'Snacks / Mic Dejun' },
-      { id: 'Cină', title: '🌙 Cină', defaultCategory: 'Mese Mari' }
+    const mealThemes = [
+      {
+        id: 'Mic Dejun',
+        title: 'Mic Dejun',
+        badge: 'Mic Dejun / Snacks',
+        colorClass: 'bento-apricot',
+        iconSvg: `
+          <svg class="w-8 h-8 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="5" stroke-width="2"/>
+            <path stroke-linecap="round" stroke-width="2" d="M12 2v2m0 16v2M2 12h2m16 0h2m-3.5-6.5l-1.5 1.5m-10 10l-1.5 1.5m13 0l-1.5-1.5m-10-10l-1.5-1.5"/>
+          </svg>
+        `
+      },
+      {
+        id: 'Prânz',
+        title: 'Prânz',
+        badge: 'Mese Principale',
+        colorClass: 'bento-sky',
+        iconSvg: `
+          <svg class="w-8 h-8 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        `
+      },
+      {
+        id: 'Snack',
+        title: 'Gustare / Snack',
+        badge: 'Snack & Energie',
+        colorClass: 'bento-pink',
+        iconSvg: `
+          <svg class="w-8 h-8 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        `
+      },
+      {
+        id: 'Cină',
+        title: 'Cină',
+        badge: 'Cină Ușoară',
+        colorClass: 'bento-mint',
+        iconSvg: `
+          <svg class="w-8 h-8 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        `
+      }
     ];
 
     return `
-      <!-- Active Day Card -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <!-- Day Summary Header -->
-        <div class="bg-slate-50/80 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+      <div class="space-y-6">
+        <!-- Section Header: "Planul tău" (Pinterest Screenshot 1 & 3) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
           <div>
-            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <span>Ziua: ${day}</span>
-              <span class="text-xs font-normal text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
-                ${dayData.items.length} ${dayData.items.length === 1 ? 'preparat' : 'preparate'}
+            <div class="flex items-center gap-3">
+              <h3 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
+                Planul tău
+              </h3>
+              <span class="pill-badge pill-badge-translucent">
+                ${day} • ${dayData.items.length} ${dayData.items.length === 1 ? 'preparat' : 'preparate'}
               </span>
-            </h2>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Mesele și aportul nutrițional calculate în timp real</p>
           </div>
-          <!-- Day Quick Actions -->
+
+          <!-- Quick Day Actions -->
           <div class="flex items-center gap-2">
-            <button id="btn-copy-day" class="text-xs font-medium text-slate-600 hover:text-emerald-700 bg-white border border-slate-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition">
+            <button id="btn-copy-day" class="btn-pill btn-pill-white text-xs">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
               Copiază ziua
             </button>
-            <button id="btn-clear-day" class="text-xs font-medium text-rose-600 hover:text-rose-700 bg-white border border-rose-200 hover:border-rose-300 px-2.5 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition">
+            <button id="btn-clear-day" class="btn-pill btn-pill-white text-xs text-rose-600 hover:text-rose-700">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               Golește
             </button>
           </div>
         </div>
 
-        <!-- Day Nutri Stats & Progress -->
-        <div class="p-4 border-b border-slate-100 bg-white">
-          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-center mb-3">
-            <div class="bg-emerald-50 rounded-xl p-2.5 border border-emerald-100">
-              <div class="text-[11px] font-medium text-emerald-800">Cost Total Zi</div>
-              <div class="text-base sm:text-lg font-bold text-emerald-700">${dayData.totals.cost.toFixed(2)} <span class="text-xs">RON</span></div>
+        <!-- Daily Nutri Stats Bento Card & Calorie Target Progress -->
+        <div class="bento-card bento-white p-5 border border-[#E5E0F5] dark:border-white/10">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center mb-4">
+            <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cost Zi</div>
+              <div class="text-base sm:text-lg font-extrabold text-[#218352] dark:text-[#70D6A3] mt-0.5">${dayData.totals.cost.toFixed(2)} <span class="text-xs">RON</span></div>
             </div>
-            <div class="bg-purple-50 rounded-xl p-2.5 border border-purple-100">
-              <div class="text-[11px] font-medium text-purple-800">Calorii Totale</div>
-              <div class="text-base sm:text-lg font-bold text-purple-700">${Math.round(dayData.totals.calories)} <span class="text-xs">kcal</span></div>
+            <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Calorii</div>
+              <div class="text-base sm:text-lg font-extrabold text-[#6D4AE8] dark:text-[#C4B5FD] mt-0.5">${Math.round(dayData.totals.calories)} <span class="text-xs">kcal</span></div>
             </div>
-            <div class="bg-rose-50 rounded-xl p-2.5 border border-rose-100">
-              <div class="text-[11px] font-medium text-rose-800">Proteine</div>
-              <div class="text-base sm:text-lg font-bold text-rose-600">${dayData.totals.protein.toFixed(1)} <span class="text-xs">g</span></div>
+            <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Proteine</div>
+              <div class="text-base sm:text-lg font-extrabold text-[#E02868] dark:text-[#FFA4CD] mt-0.5">${dayData.totals.protein.toFixed(1)} <span class="text-xs">g</span></div>
             </div>
-            <div class="bg-amber-50 rounded-xl p-2.5 border border-amber-100">
-              <div class="text-[11px] font-medium text-amber-800">Carbohidrați</div>
-              <div class="text-base sm:text-lg font-bold text-amber-600">${dayData.totals.carbs.toFixed(1)} <span class="text-xs">g</span></div>
+            <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Carbi</div>
+              <div class="text-base sm:text-lg font-extrabold text-[#D97706] dark:text-[#FFC480] mt-0.5">${dayData.totals.carbs.toFixed(1)} <span class="text-xs">g</span></div>
             </div>
-            <div class="bg-sky-50 rounded-xl p-2.5 border border-sky-100 col-span-2 sm:col-span-1">
-              <div class="text-[11px] font-medium text-sky-800">Grăsimi</div>
-              <div class="text-base sm:text-lg font-bold text-sky-600">${dayData.totals.fat.toFixed(1)} <span class="text-xs">g</span></div>
+            <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5 col-span-2 sm:col-span-1">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Grăsimi</div>
+              <div class="text-base sm:text-lg font-extrabold text-[#0284C7] dark:text-[#98DDFE] mt-0.5">${dayData.totals.fat.toFixed(1)} <span class="text-xs">g</span></div>
             </div>
           </div>
 
           <!-- Calorie Target Progress Bar -->
-          <div class="space-y-1">
-            <div class="flex justify-between text-xs text-slate-500">
-              <span>Țintă calorică zilnică</span>
-              <span class="font-medium text-slate-700">${Math.round(dayData.totals.calories)} / ${this.dailyCalorieTarget} kcal (${calPercent}%)</span>
+          <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-white/5">
+            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span class="font-medium">Țintă calorică zilnică</span>
+              <span class="font-bold text-slate-800 dark:text-white">${Math.round(dayData.totals.calories)} / ${this.dailyCalorieTarget} kcal (${calPercent}%)</span>
             </div>
-            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div class="h-full rounded-full transition-all duration-300 ${calPercent > 100 ? 'bg-amber-500' : 'bg-emerald-500'}" style="width: ${calPercent}%"></div>
+            <div class="w-full bg-slate-100 dark:bg-white/10 rounded-full h-2.5 overflow-hidden p-0.5">
+              <div class="h-full rounded-full transition-all duration-300 ${calPercent > 100 ? 'bg-amber-400' : 'bg-gradient-to-r from-[#A390F5] to-[#70D6A3]'}" style="width: ${calPercent}%"></div>
             </div>
           </div>
         </div>
 
-        <!-- Meals Section -->
-        <div class="divide-y divide-slate-100">
-          ${mealCategories.map(meal => {
+        <!-- Bento Grid of 4 Meals (Screenshots 1 & 3: Warm Apricot, Sky Blue, Pink, Mint) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${mealThemes.map(meal => {
             const mealItems = dayData.items.filter(i => i.meal === meal.id);
             const mealCost = mealItems.reduce((acc, it) => acc + it.cost, 0);
             const mealCals = mealItems.reduce((acc, it) => acc + it.calories, 0);
 
             return `
-              <div class="p-4 hover:bg-slate-50/50 transition">
-                <div class="flex items-center justify-between mb-2.5">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold text-sm text-slate-800">${meal.title}</span>
-                    ${mealItems.length > 0 ? `
-                      <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        ${mealCost.toFixed(2)} RON • ${Math.round(mealCals)} kcal
+              <div class="bento-card ${meal.colorClass} p-5 sm:p-6 flex flex-col justify-between">
+                <div>
+                  <!-- Meal Card Header -->
+                  <div class="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                      <span class="pill-badge pill-badge-translucent mb-1.5">
+                        ${meal.badge}
                       </span>
-                    ` : ''}
-                  </div>
-                  <button data-add-meal-recipe="${meal.id}" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Adaugă Rețetă
-                  </button>
-                </div>
-
-                ${mealItems.length === 0 ? `
-                  <div class="text-center py-4 border border-dashed border-slate-200 rounded-xl bg-slate-50/60 text-slate-400 text-xs">
-                    Nicio rețetă planificată pentru această masă.
-                  </div>
-                ` : `
-                  <div class="space-y-2">
-                    ${mealItems.map(item => `
-                      <div class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs hover:border-slate-300 transition">
-                        <div class="flex-1 min-w-0">
-                          <div class="flex items-center gap-2">
-                            <span class="font-semibold text-sm text-slate-800 truncate">${item.recipeName}</span>
-                            <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">${item.category}</span>
-                          </div>
-                          <!-- Macros breakdown -->
-                          <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500">
-                            <span class="font-bold text-emerald-700">${item.cost.toFixed(2)} RON</span>
-                            <span>•</span>
-                            <span>${Math.round(item.calories)} kcal</span>
-                            <span>•</span>
-                            <span class="text-rose-600 font-medium">${item.protein.toFixed(1)}g P</span>
-                            <span class="text-amber-600 font-medium">${item.carbs.toFixed(1)}g C</span>
-                            <span class="text-sky-600 font-medium">${item.fat.toFixed(1)}g G</span>
-                          </div>
+                      <h4 class="text-xl sm:text-2xl font-extrabold font-display leading-tight tracking-tight">
+                        ${meal.title}
+                      </h4>
+                      ${mealItems.length > 0 ? `
+                        <div class="text-xs font-semibold mt-1 opacity-85">
+                          ${mealCost.toFixed(2)} RON • ${Math.round(mealCals)} kcal
                         </div>
+                      ` : ''}
+                    </div>
 
-                        <!-- Portions control & Delete -->
-                        <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                          <div class="flex items-center gap-1.5 bg-slate-100 rounded-lg p-0.5">
-                            <button data-portion-minus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded bg-white text-slate-600 hover:bg-slate-200 text-xs font-bold shadow-xs">
-                              -
-                            </button>
-                            <span class="text-xs font-bold text-slate-700 px-1 min-w-[2.5rem] text-center">${item.portions} porții</span>
-                            <button data-portion-plus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded bg-white text-slate-600 hover:bg-slate-200 text-xs font-bold shadow-xs">
-                              +
-                            </button>
-                          </div>
-                          <button data-delete-plan-item="${item.id}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Șterge din plan">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                          </button>
-                        </div>
+                    <div class="flex items-center gap-2">
+                      <div class="hidden sm:block">
+                        ${meal.iconSvg}
                       </div>
-                    `).join('')}
+                      <button data-add-meal-recipe="${meal.id}" class="btn-pill btn-pill-dark text-xs py-2 px-3">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+                        <span>Adaugă</span>
+                      </button>
+                    </div>
                   </div>
-                `}
+
+                  <!-- Meal Items or Empty State -->
+                  ${mealItems.length === 0 ? `
+                    <div class="text-center py-6 border-2 border-dashed border-black/10 dark:border-white/10 rounded-2xl bg-white/40 dark:bg-black/20 text-xs font-medium opacity-70">
+                      Nicio rețetă planificată. Apasă pe "+ Adaugă".
+                    </div>
+                  ` : `
+                    <div class="space-y-2.5">
+                      ${mealItems.map(item => `
+                        <div class="bg-white/90 dark:bg-[#181924]/90 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                              <span class="font-extrabold text-sm text-slate-900 dark:text-white truncate">${item.recipeName}</span>
+                              <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">${item.category}</span>
+                            </div>
+                            <!-- Macros breakdown -->
+                            <div class="flex flex-wrap items-center gap-1.5 mt-1.5 text-xs">
+                              <span class="font-extrabold text-[#218352] dark:text-[#70D6A3] text-sm">${item.cost.toFixed(2)} RON</span>
+                              <span class="text-slate-300 dark:text-slate-600">•</span>
+                              <span class="font-semibold text-slate-700 dark:text-slate-300">${Math.round(item.calories)} kcal</span>
+                              <span class="text-slate-300 dark:text-slate-600">•</span>
+                              <span class="macro-badge-p px-2 py-0.5 rounded-full text-[10px] font-bold">${item.protein.toFixed(1)}g P</span>
+                              <span class="macro-badge-c px-2 py-0.5 rounded-full text-[10px] font-bold">${item.carbs.toFixed(1)}g C</span>
+                              <span class="macro-badge-f px-2 py-0.5 rounded-full text-[10px] font-bold">${item.fat.toFixed(1)}g G</span>
+                            </div>
+                          </div>
+
+                          <!-- Portions control & Delete -->
+                          <div class="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 dark:border-white/10">
+                            <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/10 rounded-full p-1">
+                              <button data-portion-minus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="Scade 0.5 porții">
+                                −
+                              </button>
+                              <span class="text-xs font-bold text-slate-800 dark:text-white px-2 min-w-[2.8rem] text-center">${item.portions}</span>
+                              <button data-portion-plus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="Crește 0.5 porții">
+                                +
+                              </button>
+                            </div>
+                            <button data-delete-plan-item="${item.id}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge din plan">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  `}
+                </div>
               </div>
             `;
           }).join('')}
@@ -345,36 +463,43 @@ class NutriApp {
     const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
     return `
       <div class="space-y-4">
-        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-          <h2 class="text-base font-bold text-slate-800 mb-3">Privire de Ansamblu Săptămânală</h2>
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-xl font-extrabold font-display text-slate-900 dark:text-white">Privire de Ansamblu Săptămânală</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Totalurile celor 7 zile din săptămână</p>
+            </div>
+            <span class="pill-badge pill-badge-translucent">7 Zile Active</span>
+          </div>
+
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
-                <tr class="border-b border-slate-200 bg-slate-50 text-slate-600">
-                  <th class="py-2.5 px-3 font-semibold">Ziua</th>
-                  <th class="py-2.5 px-3 font-semibold">Nr. Preparate</th>
-                  <th class="py-2.5 px-3 font-semibold">Cost (RON)</th>
-                  <th class="py-2.5 px-3 font-semibold">Calorii</th>
-                  <th class="py-2.5 px-3 font-semibold text-rose-600">Proteine</th>
-                  <th class="py-2.5 px-3 font-semibold text-amber-600">Carbi</th>
-                  <th class="py-2.5 px-3 font-semibold text-sky-600">Grăsimi</th>
-                  <th class="py-2.5 px-3 font-semibold text-right">Acțiuni</th>
+                <tr class="border-b border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 text-slate-600 dark:text-slate-400">
+                  <th class="py-3 px-3.5 font-bold rounded-l-xl">Ziua</th>
+                  <th class="py-3 px-3.5 font-bold">Mese</th>
+                  <th class="py-3 px-3.5 font-bold text-[#218352] dark:text-[#70D6A3]">Cost (RON)</th>
+                  <th class="py-3 px-3.5 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">Calorii</th>
+                  <th class="py-3 px-3.5 font-bold text-[#E02868] dark:text-[#FFA4CD]">Proteine</th>
+                  <th class="py-3 px-3.5 font-bold text-[#D97706] dark:text-[#FFC480]">Carbi</th>
+                  <th class="py-3 px-3.5 font-bold text-[#0284C7] dark:text-[#98DDFE]">Grăsimi</th>
+                  <th class="py-3 px-3.5 font-bold text-right rounded-r-xl">Acțiuni</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
+              <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                 ${days.map(day => {
                   const d = weekData.days[day];
                   return `
-                    <tr class="hover:bg-slate-50/70 transition">
-                      <td class="py-3 px-3 font-bold text-slate-800">${day}</td>
-                      <td class="py-3 px-3 text-slate-600">${d.items.length}</td>
-                      <td class="py-3 px-3 font-semibold text-emerald-700">${d.totals.cost.toFixed(2)} RON</td>
-                      <td class="py-3 px-3 text-slate-700">${Math.round(d.totals.calories)} kcal</td>
-                      <td class="py-3 px-3 text-rose-600 font-medium">${d.totals.protein.toFixed(1)}g</td>
-                      <td class="py-3 px-3 text-amber-600 font-medium">${d.totals.carbs.toFixed(1)}g</td>
-                      <td class="py-3 px-3 text-sky-600 font-medium">${d.totals.fat.toFixed(1)}g</td>
-                      <td class="py-3 px-3 text-right">
-                        <button data-switch-day="${day}" class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md">
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-white/5 transition">
+                      <td class="py-3.5 px-3.5 font-extrabold text-slate-900 dark:text-white">${day}</td>
+                      <td class="py-3.5 px-3.5 text-slate-600 dark:text-slate-400">${d.items.length}</td>
+                      <td class="py-3.5 px-3.5 font-extrabold text-[#218352] dark:text-[#70D6A3]">${d.totals.cost.toFixed(2)} RON</td>
+                      <td class="py-3.5 px-3.5 font-semibold text-slate-700 dark:text-slate-300">${Math.round(d.totals.calories)} kcal</td>
+                      <td class="py-3.5 px-3.5 text-[#E02868] dark:text-[#FFA4CD] font-bold">${d.totals.protein.toFixed(1)}g</td>
+                      <td class="py-3.5 px-3.5 text-[#D97706] dark:text-[#FFC480] font-bold">${d.totals.carbs.toFixed(1)}g</td>
+                      <td class="py-3.5 px-3.5 text-[#0284C7] dark:text-[#98DDFE] font-bold">${d.totals.fat.toFixed(1)}g</td>
+                      <td class="py-3.5 px-3.5 text-right">
+                        <button data-switch-day="${day}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3">
                           Deschide
                         </button>
                       </td>
@@ -383,24 +508,24 @@ class NutriApp {
                 }).join('')}
               </tbody>
               <tfoot>
-                <tr class="bg-slate-100/80 font-bold border-t-2 border-slate-300 text-slate-800">
-                  <td class="py-3 px-3">TOTAL SĂPTĂMÂNĂ</td>
-                  <td class="py-3 px-3">-</td>
-                  <td class="py-3 px-3 text-emerald-800">${weekData.totals.cost.toFixed(2)} RON</td>
-                  <td class="py-3 px-3">${Math.round(weekData.totals.calories)} kcal</td>
-                  <td class="py-3 px-3 text-rose-700">${Math.round(weekData.totals.protein)}g</td>
-                  <td class="py-3 px-3 text-amber-700">${Math.round(weekData.totals.carbs)}g</td>
-                  <td class="py-3 px-3 text-sky-700">${Math.round(weekData.totals.fat)}g</td>
+                <tr class="bg-slate-100/90 dark:bg-white/10 font-bold border-t-2 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
+                  <td class="py-3.5 px-3.5 font-extrabold">TOTAL SĂPTĂMÂNĂ</td>
+                  <td class="py-3.5 px-3.5">-</td>
+                  <td class="py-3.5 px-3.5 text-[#218352] dark:text-[#70D6A3] font-black">${weekData.totals.cost.toFixed(2)} RON</td>
+                  <td class="py-3.5 px-3.5 font-bold">${Math.round(weekData.totals.calories)} kcal</td>
+                  <td class="py-3.5 px-3.5 text-[#E02868] dark:text-[#FFA4CD]">${Math.round(weekData.totals.protein)}g</td>
+                  <td class="py-3.5 px-3.5 text-[#D97706] dark:text-[#FFC480]">${Math.round(weekData.totals.carbs)}g</td>
+                  <td class="py-3.5 px-3.5 text-[#0284C7] dark:text-[#98DDFE]">${Math.round(weekData.totals.fat)}g</td>
                   <td></td>
                 </tr>
-                <tr class="bg-slate-50 font-semibold text-slate-600 border-t border-slate-200">
-                  <td class="py-2.5 px-3">MEDIE ZILNICĂ</td>
-                  <td class="py-2.5 px-3">-</td>
-                  <td class="py-2.5 px-3 text-emerald-700">${weekData.totals.avgDailyCost.toFixed(2)} RON</td>
-                  <td class="py-2.5 px-3">${Math.round(weekData.totals.avgDailyCalories)} kcal</td>
-                  <td class="py-2.5 px-3 text-rose-600">${Math.round(weekData.totals.avgDailyProtein)}g</td>
-                  <td class="py-2.5 px-3 text-amber-600">${Math.round(weekData.totals.avgDailyCarbs)}g</td>
-                  <td class="py-2.5 px-3 text-sky-600">${Math.round(weekData.totals.avgDailyFat)}g</td>
+                <tr class="bg-slate-50 dark:bg-white/5 font-semibold text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-white/5">
+                  <td class="py-3 px-3.5">MEDIE ZILNICĂ</td>
+                  <td class="py-3 px-3.5">-</td>
+                  <td class="py-3 px-3.5 text-[#218352] dark:text-[#70D6A3] font-bold">${weekData.totals.avgDailyCost.toFixed(2)} RON</td>
+                  <td class="py-3 px-3.5">${Math.round(weekData.totals.avgDailyCalories)} kcal</td>
+                  <td class="py-3 px-3.5 text-[#E02868] dark:text-[#FFA4CD]">${Math.round(weekData.totals.avgDailyProtein)}g</td>
+                  <td class="py-3 px-3.5 text-[#D97706] dark:text-[#FFC480]">${Math.round(weekData.totals.avgDailyCarbs)}g</td>
+                  <td class="py-3 px-3.5 text-[#0284C7] dark:text-[#98DDFE]">${Math.round(weekData.totals.avgDailyFat)}g</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -500,32 +625,37 @@ class NutriApp {
     const recipes = window.store.getRecipes(this.recipeFilterCategory, this.recipeSearch);
 
     return `
-      <div class="space-y-5 pb-20">
+      <div class="space-y-6 pb-24">
         <!-- Header & Action Bar -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm">
           <div>
-            <h1 class="text-xl font-bold text-slate-800">Rețetar & Calculator Cost / Macro</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Calculează automat costul și profilul nutrițional per porție</p>
+            <div class="flex items-center gap-2">
+              <span class="pill-badge pill-badge-translucent">Rețetar Nutrițional</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white mt-1">
+              Rețete & Calculator Cost / Macro
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Calculează automat costul per porție și distribuția macronutrienților</p>
           </div>
-          <button id="btn-create-recipe" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Creează Rețetă Nouă
+          <button id="btn-create-recipe" class="btn-pill btn-pill-dark text-xs sm:text-sm shadow">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+            <span>Creează Rețetă Nouă</span>
           </button>
         </div>
 
         <!-- Search & Filter Category Pills -->
         <div class="space-y-3">
           <div class="relative">
-            <input type="text" id="recipe-search-input" value="${this.recipeSearch}" placeholder="Caută rețetă după nume..." class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-xs">
-            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" id="recipe-search-input" value="${this.recipeSearch}" placeholder="Caută rețetă după nume..." class="w-full bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-full pl-11 pr-5 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#A390F5] focus:ring-2 focus:ring-[#A390F5]/20 shadow-xs transition">
+            <svg class="w-4 h-4 text-slate-400 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           </div>
 
-          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             ${categories.map(cat => `
-              <button data-recipe-cat="${cat}" class="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
+              <button data-recipe-cat="${cat}" class="flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold transition ${
                 this.recipeFilterCategory === cat
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
+                  : 'bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-[#A390F5]'
               }">
                 ${cat}
               </button>
@@ -534,97 +664,99 @@ class NutriApp {
         </div>
 
         <!-- Recipes Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           ${recipes.length === 0 ? `
-            <div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
-              <svg class="w-12 h-12 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-              <p class="text-sm font-medium text-slate-600">Nu s-a găsit nicio rețetă.</p>
-              <button id="btn-reset-recipes-filter" class="mt-2 text-xs text-emerald-600 font-semibold hover:underline">Resetează filtrele</button>
+            <div class="col-span-full text-center py-12 bento-card bento-white border-2 border-dashed border-[#E5E0F5] dark:border-white/10">
+              <svg class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+              <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Nu s-a găsit nicio rețetă.</p>
+              <button id="btn-reset-recipes-filter" class="mt-2 text-xs text-[#6D4AE8] dark:text-[#C4B5FD] font-bold hover:underline">Resetează filtrele</button>
             </div>
           ` : recipes.map(rawRecipe => {
             const r = window.store.calculateRecipe(rawRecipe);
             return `
-              <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
                 <div>
                   <!-- Card Header -->
-                  <div class="p-4 border-b border-slate-100 flex items-start justify-between gap-2">
+                  <div class="p-5 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-3">
                     <div>
-                      <span class="inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      <span class="pill-badge pill-badge-translucent mb-1">
                         ${r.category}
                       </span>
-                      <h3 class="font-bold text-base text-slate-800 mt-1">${r.name}</h3>
-                      <div class="text-xs text-slate-500 mt-0.5">
+                      <h4 class="font-extrabold font-display text-lg text-slate-900 dark:text-white mt-1 leading-snug">${r.name}</h4>
+                      <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         ${r.servings} ${r.servings === 1 ? 'porție' : 'porții'} • ${Math.round(r.totals.weight)}g total
                       </div>
                     </div>
-                    <div class="text-right">
-                      <div class="text-base font-bold text-emerald-700">${r.perServing.cost.toFixed(2)} <span class="text-xs">RON</span></div>
-                      <div class="text-[11px] text-slate-400">per porție</div>
+                    <div class="text-right flex-shrink-0">
+                      <div class="pill-badge bg-[#70D6A3]/20 text-[#218352] dark:text-[#70D6A3] font-black text-sm px-3 py-1">
+                        ${r.perServing.cost.toFixed(2)} RON
+                      </div>
+                      <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">per porție</div>
                     </div>
                   </div>
 
                   <!-- Macro Hero Numbers Per Serving -->
-                  <div class="p-4 bg-slate-50/50">
+                  <div class="p-4 bg-slate-50/60 dark:bg-white/5">
                     <div class="grid grid-cols-4 gap-2 text-center">
-                      <div class="bg-white rounded-xl p-2 border border-slate-100 shadow-2xs">
-                        <div class="text-[10px] text-slate-500">Calorii</div>
-                        <div class="text-sm font-bold text-purple-700 mt-0.5">${Math.round(r.perServing.calories)}</div>
+                      <div class="bg-white dark:bg-[#181924] rounded-2xl p-2.5 border border-slate-100 dark:border-white/5 shadow-2xs">
+                        <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Calorii</div>
+                        <div class="text-sm font-extrabold text-[#6D4AE8] dark:text-[#C4B5FD] mt-0.5">${Math.round(r.perServing.calories)}</div>
                         <div class="text-[9px] text-slate-400">kcal</div>
                       </div>
-                      <div class="bg-white rounded-xl p-2 border border-slate-100 shadow-2xs">
-                        <div class="text-[10px] text-slate-500">Proteine</div>
-                        <div class="text-sm font-bold text-rose-600 mt-0.5">${r.perServing.protein.toFixed(1)}</div>
+                      <div class="bg-white dark:bg-[#181924] rounded-2xl p-2.5 border border-slate-100 dark:border-white/5 shadow-2xs">
+                        <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Proteine</div>
+                        <div class="text-sm font-extrabold text-[#E02868] dark:text-[#FFA4CD] mt-0.5">${r.perServing.protein.toFixed(1)}</div>
                         <div class="text-[9px] text-slate-400">g</div>
                       </div>
-                      <div class="bg-white rounded-xl p-2 border border-slate-100 shadow-2xs">
-                        <div class="text-[10px] text-slate-500">Carbi</div>
-                        <div class="text-sm font-bold text-amber-600 mt-0.5">${r.perServing.carbs.toFixed(1)}</div>
+                      <div class="bg-white dark:bg-[#181924] rounded-2xl p-2.5 border border-slate-100 dark:border-white/5 shadow-2xs">
+                        <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Carbi</div>
+                        <div class="text-sm font-extrabold text-[#D97706] dark:text-[#FFC480] mt-0.5">${r.perServing.carbs.toFixed(1)}</div>
                         <div class="text-[9px] text-slate-400">g</div>
                       </div>
-                      <div class="bg-white rounded-xl p-2 border border-slate-100 shadow-2xs">
-                        <div class="text-[10px] text-slate-500">Grăsimi</div>
-                        <div class="text-sm font-bold text-sky-600 mt-0.5">${r.perServing.fat.toFixed(1)}</div>
+                      <div class="bg-white dark:bg-[#181924] rounded-2xl p-2.5 border border-slate-100 dark:border-white/5 shadow-2xs">
+                        <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Grăsimi</div>
+                        <div class="text-sm font-extrabold text-[#0284C7] dark:text-[#98DDFE] mt-0.5">${r.perServing.fat.toFixed(1)}</div>
                         <div class="text-[9px] text-slate-400">g</div>
                       </div>
                     </div>
 
                     <!-- Macro Caloric Distribution Bar -->
-                    <div class="mt-3">
-                      <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                    <div class="mt-3.5">
+                      <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1 font-medium">
                         <span>Pondere calorică</span>
-                        <span class="font-medium">
+                        <span class="font-bold">
                           ${Math.round(r.macroShare.protein)}% P • ${Math.round(r.macroShare.carbs)}% C • ${Math.round(r.macroShare.fat)}% G
                         </span>
                       </div>
-                      <div class="w-full h-2 rounded-full overflow-hidden flex bg-slate-200">
-                        <div class="bg-rose-500" style="width: ${r.macroShare.protein}%" title="Proteine: ${Math.round(r.macroShare.protein)}%"></div>
-                        <div class="bg-amber-400" style="width: ${r.macroShare.carbs}%" title="Carbohidrați: ${Math.round(r.macroShare.carbs)}%"></div>
-                        <div class="bg-sky-500" style="width: ${r.macroShare.fat}%" title="Grăsimi: ${Math.round(r.macroShare.fat)}%"></div>
+                      <div class="w-full h-2 rounded-full overflow-hidden flex bg-slate-200 dark:bg-white/10">
+                        <div class="bg-[#FF6FA4]" style="width: ${r.macroShare.protein}%" title="Proteine: ${Math.round(r.macroShare.protein)}%"></div>
+                        <div class="bg-[#FFB259]" style="width: ${r.macroShare.carbs}%" title="Carbohidrați: ${Math.round(r.macroShare.carbs)}%"></div>
+                        <div class="bg-[#82CBEF]" style="width: ${r.macroShare.fat}%" title="Grăsimi: ${Math.round(r.macroShare.fat)}%"></div>
                       </div>
                     </div>
                   </div>
 
                   <!-- Ingredients list preview -->
-                  <div class="px-4 py-3 border-t border-slate-100 text-xs text-slate-600">
-                    <span class="font-semibold text-slate-700">Ingrediente (${r.ingredients.length}):</span>
-                    <span class="text-slate-500">${r.ingredients.map(i => `${i.name} (${i.quantity}g)`).join(', ')}</span>
+                  <div class="px-5 py-3.5 border-t border-slate-100 dark:border-white/5 text-xs text-slate-600 dark:text-slate-400">
+                    <span class="font-bold text-slate-800 dark:text-slate-200">Ingrediente (${r.ingredients.length}):</span>
+                    <span class="opacity-80">${r.ingredients.map(i => `${i.name} (${i.quantity}g)`).join(', ')}</span>
                   </div>
                 </div>
 
                 <!-- Card Footer Actions -->
-                <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
-                  <button data-recipe-details="${r.id}" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-white border border-slate-200 hover:border-emerald-300 px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-2xs transition">
+                <div class="p-3.5 bg-slate-50/80 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
+                  <button data-recipe-details="${r.id}" class="btn-pill btn-pill-white text-xs py-1.5 px-3">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     Tabel & Cost
                   </button>
-                  <div class="flex items-center gap-1">
-                    <button data-recipe-plan="${r.id}" class="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 rounded-lg shadow-2xs transition" title="Adaugă în planificator">
+                  <div class="flex items-center gap-1.5">
+                    <button data-recipe-plan="${r.id}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3" title="Adaugă în planificator">
                       + Planifică
                     </button>
-                    <button data-recipe-edit="${r.id}" class="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-200" title="Editează">
+                    <button data-recipe-edit="${r.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     </button>
-                    <button data-recipe-delete="${r.id}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50" title="Șterge">
+                    <button data-recipe-delete="${r.id}" class="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                   </div>
@@ -734,20 +866,25 @@ class NutriApp {
     }
 
     return `
-      <div class="space-y-5 pb-20">
+      <div class="space-y-6 pb-24">
         <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm">
           <div>
-            <h1 class="text-xl font-bold text-slate-800">Bază de Date Ingrediente & Prețuri</h1>
-            <p class="text-xs text-slate-500 mt-0.5">${window.store.data.ingredients.length} ingrediente înregistrate cu referință raportată la 100g</p>
+            <div class="flex items-center gap-2">
+              <span class="pill-badge pill-badge-translucent">Bază de Date Alimentară</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white mt-1">
+              Ingrediente & Prețuri
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${window.store.data.ingredients.length} ingrediente calculate cu referință per 100g</p>
           </div>
-          <div class="flex items-center gap-2">
-            <button id="btn-open-scanner-shortcut" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
-              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+          <div class="flex items-center gap-2.5">
+            <button id="btn-open-scanner-shortcut" class="btn-pill btn-pill-white text-xs sm:text-sm">
+              <svg class="w-4 h-4 text-[#A390F5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
               Scan EAN / Bon
             </button>
-            <button id="btn-add-ingredient-manual" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-xl shadow flex items-center gap-1.5 transition">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <button id="btn-add-ingredient-manual" class="btn-pill btn-pill-dark text-xs sm:text-sm shadow">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
               Adaugă Manual
             </button>
           </div>
@@ -755,13 +892,13 @@ class NutriApp {
 
         <!-- Search & Sorting Controls -->
         <div class="space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div class="sm:col-span-2 relative">
-              <input type="text" id="ing-search-input" value="${this.ingSearch}" placeholder="Caută ingredient sau cod EAN..." class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-xs">
-              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" id="ing-search-input" value="${this.ingSearch}" placeholder="Caută ingredient sau cod EAN..." class="w-full bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-full pl-11 pr-5 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#A390F5] focus:ring-2 focus:ring-[#A390F5]/20 shadow-xs transition">
+              <svg class="w-4 h-4 text-slate-400 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
             <div>
-              <select id="ing-sort-select" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-500">
+              <select id="ing-sort-select" class="w-full bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-full px-4 py-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-[#A390F5] transition">
                 <option value="name" ${this.ingSortBy === 'name' ? 'selected' : ''}>Sortare: Nume (A-Z)</option>
                 <option value="pricePer100g" ${this.ingSortBy === 'pricePer100g' ? 'selected' : ''}>Sortare: Preț / 100g (Crescător)</option>
                 <option value="protein" ${this.ingSortBy === 'protein' ? 'selected' : ''}>Sortare: Proteine (Descrescător)</option>
@@ -771,12 +908,12 @@ class NutriApp {
           </div>
 
           <!-- Category Pills -->
-          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             ${categories.map(cat => `
-              <button data-ing-cat="${cat}" class="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+              <button data-ing-cat="${cat}" class="flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold transition ${
                 this.ingFilterCategory === cat
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
+                  : 'bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-[#A390F5]'
               }">
                 ${cat}
               </button>
@@ -785,59 +922,61 @@ class NutriApp {
         </div>
 
         <!-- Ingredients Table / Cards -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 shadow-sm overflow-hidden p-5 sm:p-6">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
-                <tr class="border-b border-slate-200 bg-slate-50 text-slate-600">
-                  <th class="py-3 px-3.5 font-semibold">Ingredient & Categorie</th>
-                  <th class="py-3 px-3 font-semibold">Pachet (g / RON)</th>
-                  <th class="py-3 px-3 font-semibold text-emerald-700">Preț / 100g</th>
-                  <th class="py-3 px-3 font-semibold">Calorii / 100g</th>
-                  <th class="py-3 px-3 font-semibold text-rose-600">Proteine</th>
-                  <th class="py-3 px-3 font-semibold text-amber-600">Carbi</th>
-                  <th class="py-3 px-3 font-semibold text-sky-600">Grăsimi</th>
-                  <th class="py-3 px-3 font-semibold text-right">Acțiuni</th>
+                <tr class="border-b border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 text-slate-600 dark:text-slate-400">
+                  <th class="py-3 px-3.5 font-bold rounded-l-xl">Ingredient & Categorie</th>
+                  <th class="py-3 px-3 font-bold">Pachet (g / RON)</th>
+                  <th class="py-3 px-3 font-bold text-[#218352] dark:text-[#70D6A3]">Preț / 100g</th>
+                  <th class="py-3 px-3 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">Calorii / 100g</th>
+                  <th class="py-3 px-3 font-bold text-[#E02868] dark:text-[#FFA4CD]">Proteine</th>
+                  <th class="py-3 px-3 font-bold text-[#D97706] dark:text-[#FFC480]">Carbi</th>
+                  <th class="py-3 px-3 font-bold text-[#0284C7] dark:text-[#98DDFE]">Grăsimi</th>
+                  <th class="py-3 px-3 font-bold text-right rounded-r-xl">Acțiuni</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
+              <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                 ${ingredients.length === 0 ? `
                   <tr>
                     <td colspan="8" class="text-center py-8 text-slate-400">Nu a fost găsit niciun ingredient.</td>
                   </tr>
                 ` : ingredients.map(ing => `
-                  <tr class="hover:bg-slate-50/70 transition">
-                    <td class="py-3 px-3.5">
-                      <div class="font-bold text-slate-800 text-sm">${ing.name}</div>
+                  <tr class="hover:bg-slate-50/80 dark:hover:bg-white/5 transition">
+                    <td class="py-3.5 px-3.5">
+                      <div class="font-extrabold text-slate-900 dark:text-white text-sm">${ing.name}</div>
                       <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="text-[10px] uppercase font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">${ing.category}</span>
-                        ${ing.ean ? `<span class="text-[10px] text-slate-400 font-mono">EAN: ${ing.ean}</span>` : ''}
+                        <span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full">${ing.category}</span>
+                        ${ing.ean ? `<span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">EAN: ${ing.ean}</span>` : ''}
                       </div>
                     </td>
-                    <td class="py-3 px-3 text-slate-600">
-                      ${ing.packageQuantity}g • <span class="font-medium text-slate-800">${ing.packagePrice.toFixed(2)} RON</span>
+                    <td class="py-3.5 px-3 text-slate-600 dark:text-slate-400">
+                      ${ing.packageQuantity}g • <span class="font-bold text-slate-900 dark:text-white">${ing.packagePrice.toFixed(2)} RON</span>
                     </td>
-                    <td class="py-3 px-3 font-bold text-emerald-700 text-sm">
-                      ${ing.pricePer100g.toFixed(2)} <span class="text-[10px] font-normal">RON</span>
+                    <td class="py-3.5 px-3">
+                      <span class="pill-badge bg-[#70D6A3]/15 text-[#218352] dark:text-[#70D6A3] font-black text-xs px-2.5 py-0.5">
+                        ${ing.pricePer100g.toFixed(2)} RON
+                      </span>
                     </td>
-                    <td class="py-3 px-3 font-medium text-purple-700">
+                    <td class="py-3.5 px-3 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">
                       ${Math.round(ing.calories)} kcal
                     </td>
-                    <td class="py-3 px-3 font-semibold text-rose-600">
-                      ${ing.protein.toFixed(1)}g
+                    <td class="py-3.5 px-3">
+                      <span class="macro-badge-p px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.protein.toFixed(1)}g</span>
                     </td>
-                    <td class="py-3 px-3 font-semibold text-amber-600">
-                      ${ing.carbs.toFixed(1)}g
+                    <td class="py-3.5 px-3">
+                      <span class="macro-badge-c px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.carbs.toFixed(1)}g</span>
                     </td>
-                    <td class="py-3 px-3 font-semibold text-sky-600">
-                      ${ing.fat.toFixed(1)}g
+                    <td class="py-3.5 px-3">
+                      <span class="macro-badge-f px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.fat.toFixed(1)}g</span>
                     </td>
-                    <td class="py-3 px-3 text-right">
+                    <td class="py-3.5 px-3 text-right">
                       <div class="flex items-center justify-end gap-1">
-                        <button data-ing-edit="${ing.id}" class="p-1 text-slate-400 hover:text-slate-800 rounded hover:bg-slate-100" title="Editează">
+                        <button data-ing-edit="${ing.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Editează">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
-                        <button data-ing-delete="${ing.id}" class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50" title="Șterge">
+                        <button data-ing-delete="${ing.id}" class="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                       </div>
@@ -926,24 +1065,24 @@ class NutriApp {
   // ==========================================
   renderScanView() {
     return `
-      <div class="space-y-5 pb-20">
-        <!-- Sub-Tabs Selector -->
-        <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2">
-          <button id="subtab-ean" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+      <div class="space-y-6 pb-24">
+        <!-- Sub-Tabs Selector Capsule -->
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-1.5 flex items-center gap-2 max-w-md mx-auto shadow-sm">
+          <button id="subtab-ean" class="flex-1 py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
             this.scanSubTab === 'ean'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
           }">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-            Scanare Cod EAN (Barcode)
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+            Scanare Cod EAN
           </button>
-          <button id="subtab-receipt" class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+          <button id="subtab-receipt" class="flex-1 py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
             this.scanSubTab === 'receipt'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
+              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
           }">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Încărcare Bon Fiscal (OCR)
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Bon Fiscal (OCR)
           </button>
         </div>
 
@@ -956,21 +1095,21 @@ class NutriApp {
     const samples = window.INITIAL_DATA.sampleBarcodes || [];
 
     return `
-      <div class="space-y-4">
+      <div class="space-y-5">
         <!-- Live Camera Viewfinder Box -->
-        <div class="bg-slate-900 rounded-2xl p-4 text-white shadow-lg overflow-hidden relative">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <div class="bg-[#121319] rounded-3xl p-5 text-white shadow-xl overflow-hidden relative border border-white/10">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-bold text-[#70D6A3] flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-[#70D6A3] animate-ping"></span>
               Cameră Scanare Barcode
             </span>
-            <button id="btn-toggle-camera" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+            <button id="btn-toggle-camera" class="btn-pill btn-pill-lilac text-xs py-1.5 px-3.5">
               Pornește Camera
             </button>
           </div>
 
           <!-- Video viewport -->
-          <div id="camera-container" class="relative w-full h-48 sm:h-64 bg-black rounded-xl overflow-hidden flex items-center justify-center border border-white/10">
+          <div id="camera-container" class="relative w-full h-52 sm:h-64 bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-white/10">
             <video id="barcode-video" class="w-full h-full object-cover hidden" playsinline></video>
             
             <!-- Default camera placeholder -->
@@ -981,7 +1120,7 @@ class NutriApp {
 
             <!-- Animated Reticle when active -->
             <div id="scanner-overlay" class="hidden absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div class="w-64 h-36 border-2 border-emerald-400/80 rounded-lg relative overflow-hidden">
+              <div class="w-64 h-36 border-2 border-[#70D6A3]/80 rounded-2xl relative overflow-hidden">
                 <div class="scanner-line"></div>
               </div>
             </div>
@@ -989,22 +1128,22 @@ class NutriApp {
         </div>
 
         <!-- Manual EAN Input Form -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-          <label class="block text-xs font-bold text-slate-700">Introducere Manuală Cod EAN (13 sau 8 cifre)</label>
-          <div class="flex gap-2">
-            <input type="text" id="manual-ean-input" placeholder="ex: 5941014001234" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white">
-            <button id="btn-search-ean" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm space-y-4">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">Introducere Manuală Cod EAN (13 sau 8 cifre)</label>
+          <div class="flex gap-2.5">
+            <input type="text" id="manual-ean-input" placeholder="ex: 5941014001234" class="flex-1 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-full px-5 py-3 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#A390F5] focus:ring-2 focus:ring-[#A390F5]/20">
+            <button id="btn-search-ean" class="btn-pill btn-pill-dark text-xs sm:text-sm px-5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               Caută
             </button>
           </div>
 
           <!-- Quick Test Barcode Buttons -->
-          <div>
-            <div class="text-[11px] font-semibold text-slate-500 mb-1.5">Sau testează instant cu produse românești uzuale (Click pentru scan rapid):</div>
-            <div class="flex flex-wrap gap-1.5">
+          <div class="pt-2 border-t border-slate-100 dark:border-white/5">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2">Sau testează instant cu produse românești uzuale (Click pentru scan rapid):</div>
+            <div class="flex flex-wrap gap-2">
               ${samples.map(s => `
-                <button data-quick-ean="${s.ean}" class="text-xs bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 border border-slate-200 px-2.5 py-1.5 rounded-lg transition text-slate-700 font-medium">
+                <button data-quick-ean="${s.ean}" class="text-xs bg-slate-100 hover:bg-[#B8A9FD]/20 dark:bg-white/10 dark:hover:bg-white/15 border border-[#E5E0F5] dark:border-white/10 px-3.5 py-1.5 rounded-full transition text-slate-800 dark:text-slate-200 font-bold">
                   ${s.name}
                 </button>
               `).join('')}
@@ -1625,67 +1764,83 @@ class NutriApp {
     const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
 
     return `
-      <div class="space-y-5 pb-20">
+      <div class="space-y-6 pb-24">
         <!-- Header -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 class="text-xl font-bold text-slate-800">Sumar Săptămânal & Listă de Cumpărături</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Optimizare buget alimentar și aprovizionare automată</p>
+            <div class="flex items-center gap-2">
+              <span class="pill-badge pill-badge-translucent">Aprovizionare Inteligentă</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white mt-1">
+              Sumar Săptămânal & Cumpărături
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Optimizare buget alimentar și listă agregată pe pachete întregi</p>
           </div>
-          <div class="flex items-center gap-2">
-            <button id="btn-print-shopping-list" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+          <div class="flex items-center gap-2.5">
+            <button id="btn-print-shopping-list" class="btn-pill btn-pill-white text-xs sm:text-sm">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
               Printează
             </button>
-            <button id="btn-copy-shopping-list" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow flex items-center gap-1.5 transition">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+            <button id="btn-copy-shopping-list" class="btn-pill btn-pill-dark text-xs sm:text-sm shadow">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
               Copiază Text
             </button>
           </div>
         </div>
 
-        <!-- Weekly Shopping Cart Summary Card -->
-        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-2xl p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-emerald-200">Necesar de Cumpărat pentru Toată Săptămâna</span>
-            <div class="text-2xl sm:text-3xl font-extrabold mt-1">${shoppingList.totalBudget.toFixed(2)} <span class="text-sm font-normal">RON Estimativ</span></div>
-            <div class="text-xs text-emerald-100 mt-1">Calculat automat pe pachete întregi din cele ${shoppingList.totalItemsCount} ingrediente necesare</div>
-          </div>
-          <div class="bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10 text-center sm:text-right">
-            <div class="text-xs text-emerald-200">Consum Planificat vs Achiziție</div>
-            <div class="text-sm font-semibold mt-0.5">${weekData.totals.cost.toFixed(2)} RON consum net</div>
+        <!-- Weekly Shopping Cart Hero Banner -->
+        <div class="bento-lilac-hero p-6 sm:p-7 bento-card relative">
+          <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div>
+              <span class="pill-badge pill-badge-translucent mb-2">
+                Necesar Săptămânal de Cumpărat
+              </span>
+              <div class="text-3xl sm:text-4xl font-black font-display mt-1 text-[#121319] dark:text-white">
+                ${shoppingList.totalBudget.toFixed(2)} <span class="text-base font-bold">RON Estimativ</span>
+              </div>
+              <p class="text-xs sm:text-sm text-[#121319] dark:text-white font-medium opacity-85 mt-1.5 max-w-md">
+                Calculat automat pe pachete din supermarket (Lidl / Kaufland) pentru cele ${shoppingList.totalItemsCount} ingrediente din plan.
+              </p>
+            </div>
+            <div class="bg-white/70 dark:bg-black/35 backdrop-blur-md rounded-2xl p-4 border border-white/80 dark:border-white/10 text-left sm:text-right shadow-xs">
+              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Consum Net Planificat</div>
+              <div class="text-xl font-extrabold text-[#121319] dark:text-white mt-0.5">${weekData.totals.cost.toFixed(2)} RON</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Diferența rămâne în stoc</div>
+            </div>
           </div>
         </div>
 
         <!-- Shopping List Items -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
-          <h2 class="font-bold text-base text-slate-800 mb-3 flex items-center gap-2">
-            <span>Ingrediente de Cumpărat</span>
-            <span class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">${shoppingList.items.length} articole</span>
-          </h2>
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-extrabold font-display text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Articole de Cumpărat</span>
+            </h3>
+            <span class="pill-badge pill-badge-translucent">${shoppingList.items.length} produse</span>
+          </div>
 
           ${shoppingList.items.length === 0 ? `
-            <div class="text-center py-8 text-slate-400 text-sm">
+            <div class="text-center py-10 border-2 border-dashed border-[#E5E0F5] dark:border-white/10 rounded-2xl text-slate-400 dark:text-slate-500 text-sm font-medium">
               Nu ai planificat nicio rețetă în săptămâna curentă. Mergi la tabul "Planificator" pentru a adăuga mese.
             </div>
           ` : `
-            <div class="divide-y divide-slate-100">
+            <div class="divide-y divide-slate-100 dark:divide-white/5">
               ${shoppingList.items.map((item, idx) => `
-                <div class="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 rounded-lg px-2 transition">
-                  <div class="flex items-center gap-3">
-                    <input type="checkbox" id="shop-check-${idx}" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                <div class="py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-white/5 rounded-2xl px-3 transition">
+                  <div class="flex items-center gap-3.5">
+                    <input type="checkbox" id="shop-check-${idx}" class="w-5 h-5 rounded-lg text-[#A390F5] focus:ring-[#A390F5] border-slate-300 dark:border-white/20 dark:bg-white/5">
                     <label for="shop-check-${idx}" class="cursor-pointer">
-                      <div class="font-bold text-sm text-slate-800">${item.name}</div>
-                      <div class="text-xs text-slate-500">
-                        Necesar: <span class="font-semibold text-slate-700">${item.totalGrams} ${item.unit}</span> • Categorie: ${item.category}
+                      <div class="font-extrabold text-sm text-slate-900 dark:text-white">${item.name}</div>
+                      <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Necesar: <span class="font-bold text-slate-800 dark:text-slate-200">${item.totalGrams} ${item.unit}</span> • ${item.category}
                       </div>
                     </label>
                   </div>
                   <div class="text-right">
-                    <div class="text-xs font-bold text-emerald-700">
+                    <div class="pill-badge bg-[#70D6A3]/15 text-[#218352] dark:text-[#70D6A3] font-black text-xs px-2.5 py-0.5">
                       ${item.packagesToBuy} ${item.packagesToBuy === 1 ? 'pachet' : 'pachete'} (~${item.estimatedCost.toFixed(2)} RON)
                     </div>
-                    <div class="text-[11px] text-slate-400">Pachet de ${item.packageQuantity}${item.unit}</div>
+                    <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Pachet de ${item.packageQuantity}${item.unit}</div>
                   </div>
                 </div>
               `).join('')}
@@ -1694,17 +1849,20 @@ class NutriApp {
         </div>
 
         <!-- Data Management & Backup -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
-          <h3 class="font-bold text-sm text-slate-800">Gestiune Date & Backup</h3>
-          <div class="flex flex-wrap gap-2">
-            <button id="btn-export-json" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-3.5 py-2 rounded-xl transition">
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm space-y-4">
+          <div>
+            <h4 class="font-extrabold font-display text-base text-slate-900 dark:text-white">Gestiune Date & Backup</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Exportă și importă planul tău nutrițional oricând</p>
+          </div>
+          <div class="flex flex-wrap gap-2.5">
+            <button id="btn-export-json" class="btn-pill btn-pill-white text-xs">
               Exportă Date (JSON)
             </button>
-            <button id="btn-import-json" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs px-3.5 py-2 rounded-xl transition">
+            <button id="btn-import-json" class="btn-pill btn-pill-white text-xs">
               Importă Date (JSON)
             </button>
-            <button id="btn-reset-defaults" class="text-rose-600 hover:bg-rose-50 font-semibold text-xs px-3.5 py-2 rounded-xl border border-rose-200 transition">
-              Resetează la Datele Google Sheet
+            <button id="btn-reset-defaults" class="btn-pill btn-pill-white text-xs text-rose-600 hover:text-rose-700">
+              Resetează la Datele Inițiale
             </button>
           </div>
         </div>
@@ -1784,8 +1942,8 @@ class NutriApp {
     const modalWrapper = document.createElement('div');
     modalWrapper.id = 'active-modal-root';
     modalWrapper.innerHTML = `
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs modal-enter" data-modal-backdrop="true">
-        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200" onclick="event.stopPropagation()">
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
+        <div class="bg-white dark:bg-[#181924] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white" onclick="event.stopPropagation()">
           ${html}
         </div>
       </div>
@@ -1806,33 +1964,33 @@ class NutriApp {
     const recipes = window.store.getRecipes();
 
     const html = `
-      <div class="p-5">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+      <div class="p-6">
+        <div class="flex items-center justify-between pb-4 border-b border-[#E5E0F5] dark:border-white/10">
           <div>
-            <h3 class="font-bold text-base text-slate-800">Adaugă Rețetă la ${meal}</h3>
-            <p class="text-xs text-slate-500">Ziua: ${day}</p>
+            <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">Adaugă Rețetă la ${meal}</h3>
+            <p class="text-xs text-slate-500 dark:text-white/60">Ziua: <span class="font-bold text-brand-dark dark:text-brand-lilac">${day}</span></p>
           </div>
-          <button data-modal-close="true" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
-        <div class="py-3">
-          <input type="text" id="modal-recipe-search" placeholder="Caută rețetă..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm">
+        <div class="py-4">
+          <input type="text" id="modal-recipe-search" placeholder="Caută o rețetă..." class="w-full bg-[#F4F3FA] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:border-brand-lilac">
         </div>
 
         <div class="space-y-2 max-h-72 overflow-y-auto pr-1" id="modal-recipe-list">
           ${recipes.map(raw => {
             const r = window.store.calculateRecipe(raw);
             return `
-              <div class="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition" data-select-recipe="${r.id}">
+              <div class="p-3.5 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
                 <div>
-                  <div class="font-bold text-sm text-slate-800">${r.name}</div>
-                  <div class="text-xs text-slate-500">${r.category} • ${Math.round(r.perServing.calories)} kcal</div>
+                  <div class="font-bold text-sm text-slate-800 dark:text-white">${r.name}</div>
+                  <div class="text-xs text-slate-500 dark:text-white/60">${r.category} • ${Math.round(r.perServing.calories)} kcal</div>
                 </div>
                 <div class="text-right">
-                  <div class="font-bold text-sm text-emerald-700">${r.perServing.cost.toFixed(2)} RON</div>
-                  <div class="text-[10px] text-slate-400">per porție</div>
+                  <div class="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
+                  <div class="text-[10px] text-slate-400 dark:text-white/40">per porție</div>
                 </div>
               </div>
             `;
@@ -1853,14 +2011,14 @@ class NutriApp {
         listEl.innerHTML = filtered.map(raw => {
           const r = window.store.calculateRecipe(raw);
           return `
-            <div class="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition" data-select-recipe="${r.id}">
+            <div class="p-3.5 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
               <div>
-                <div class="font-bold text-sm text-slate-800">${r.name}</div>
-                <div class="text-xs text-slate-500">${r.category} • ${Math.round(r.perServing.calories)} kcal</div>
+                <div class="font-bold text-sm text-slate-800 dark:text-white">${r.name}</div>
+                <div class="text-xs text-slate-500 dark:text-white/60">${r.category} • ${Math.round(r.perServing.calories)} kcal</div>
               </div>
               <div class="text-right">
-                <div class="font-bold text-sm text-emerald-700">${r.perServing.cost.toFixed(2)} RON</div>
-                <div class="text-[10px] text-slate-400">per porție</div>
+                <div class="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
+                <div class="text-[10px] text-slate-400 dark:text-white/40">per porție</div>
               </div>
             </div>
           `;
@@ -1889,96 +2047,96 @@ class NutriApp {
     const r = window.store.calculateRecipe(raw);
 
     const html = `
-      <div class="p-5 space-y-4">
-        <div class="flex items-start justify-between border-b border-slate-200 pb-3">
+      <div class="p-6 space-y-5">
+        <div class="flex items-start justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
           <div>
-            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600">${r.category}</span>
-            <h2 class="text-lg font-bold text-slate-800 mt-1">${r.name}</h2>
-            <div class="text-xs text-slate-500">${r.servings} porții • Greutate totală: ${Math.round(r.totals.weight)}g</div>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-brand-lilac/20 text-brand-dark dark:text-brand-lilac">${r.category}</span>
+            <h2 class="text-xl font-extrabold text-slate-800 dark:text-white mt-1.5">${r.name}</h2>
+            <div class="text-xs text-slate-500 dark:text-white/60">${r.servings} porții • Greutate totală: ${Math.round(r.totals.weight)}g</div>
           </div>
-          <button data-modal-close="true" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
-        <!-- Recipe Overview Cards (Same as Google Sheet Header) -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-          <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
-            <div class="text-[11px] font-medium text-emerald-800">Preț / Porție</div>
-            <div class="text-base font-bold text-emerald-700">${r.perServing.cost.toFixed(2)} RON</div>
-            <div class="text-[10px] text-emerald-600">Total: ${r.totals.cost.toFixed(2)} RON</div>
+        <!-- Recipe Overview Cards (Bento Macro Cards) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div class="bg-emerald-50 dark:bg-emerald-500/10 p-3.5 rounded-2xl border border-emerald-200/50 dark:border-emerald-500/20">
+            <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">Preț / Porție</div>
+            <div class="text-lg font-black text-emerald-700 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
+            <div class="text-[10px] text-emerald-600 dark:text-emerald-300/70">Total: ${r.totals.cost.toFixed(2)} RON</div>
           </div>
-          <div class="bg-purple-50 p-2.5 rounded-xl border border-purple-100">
-            <div class="text-[11px] font-medium text-purple-800">Calorii / Porție</div>
-            <div class="text-base font-bold text-purple-700">${Math.round(r.perServing.calories)} kcal</div>
-            <div class="text-[10px] text-purple-600">Total: ${Math.round(r.totals.calories)} kcal</div>
+          <div class="bg-brand-lilac/15 dark:bg-brand-lilac/10 p-3.5 rounded-2xl border border-brand-lilac/30">
+            <div class="text-[11px] font-bold text-brand-dark dark:text-brand-lilac">Calorii / Porție</div>
+            <div class="text-lg font-black text-brand-dark dark:text-white">${Math.round(r.perServing.calories)} <span class="text-xs font-normal">kcal</span></div>
+            <div class="text-[10px] text-slate-500 dark:text-white/60">Total: ${Math.round(r.totals.calories)} kcal</div>
           </div>
-          <div class="bg-rose-50 p-2.5 rounded-xl border border-rose-100">
-            <div class="text-[11px] font-medium text-rose-800">Proteine / Porție</div>
-            <div class="text-base font-bold text-rose-600">${r.perServing.protein.toFixed(1)}g</div>
-            <div class="text-[10px] text-rose-500">${Math.round(r.macroShare.protein)}% calorii</div>
+          <div class="bg-brand-pink/15 dark:bg-brand-pink/10 p-3.5 rounded-2xl border border-brand-pink/30">
+            <div class="text-[11px] font-bold text-rose-700 dark:text-brand-pink">Proteine / Porție</div>
+            <div class="text-lg font-black text-rose-600 dark:text-brand-pink">${r.perServing.protein.toFixed(1)}g</div>
+            <div class="text-[10px] text-rose-500 dark:text-brand-pink/70">${Math.round(r.macroShare.protein)}% calorii</div>
           </div>
-          <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-100">
-            <div class="text-[11px] font-medium text-amber-800">Carbi & Grăsimi</div>
-            <div class="text-sm font-bold text-slate-700 mt-1">${r.perServing.carbs.toFixed(1)}g C | ${r.perServing.fat.toFixed(1)}g G</div>
-            <div class="text-[10px] text-slate-500">${Math.round(r.macroShare.carbs)}% C | ${Math.round(r.macroShare.fat)}% G</div>
+          <div class="bg-brand-apricot/15 dark:bg-brand-apricot/10 p-3.5 rounded-2xl border border-brand-apricot/30">
+            <div class="text-[11px] font-bold text-amber-800 dark:text-brand-apricot">Carbi & Grăsimi</div>
+            <div class="text-sm font-extrabold text-slate-800 dark:text-white mt-1">${r.perServing.carbs.toFixed(1)}g C | ${r.perServing.fat.toFixed(1)}g G</div>
+            <div class="text-[10px] text-slate-500 dark:text-white/60">${Math.round(r.macroShare.carbs)}% C | ${Math.round(r.macroShare.fat)}% G</div>
           </div>
         </div>
 
         <!-- Full Detailed Table (Exact Google Sheet Replica) -->
         <div>
-          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Compoziție Ingrediente & Costuri</h4>
-          <div class="overflow-x-auto border border-slate-200 rounded-xl">
+          <h4 class="text-xs font-extrabold text-slate-700 dark:text-white/80 uppercase tracking-wider mb-2.5">Compoziție Ingrediente & Costuri</h4>
+          <div class="overflow-x-auto border border-[#E5E0F5] dark:border-white/10 rounded-2xl">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
-                <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
-                  <th class="py-2.5 px-3 font-semibold">Ingredient</th>
-                  <th class="py-2.5 px-2 font-semibold">Cantitate</th>
-                  <th class="py-2.5 px-2 font-semibold">Preț / 100g</th>
-                  <th class="py-2.5 px-2 font-semibold text-emerald-700">Cost Total</th>
-                  <th class="py-2.5 px-2 font-semibold">Calorii</th>
-                  <th class="py-2.5 px-2 font-semibold text-rose-600">P</th>
-                  <th class="py-2.5 px-2 font-semibold text-amber-600">C</th>
-                  <th class="py-2.5 px-2 font-semibold text-sky-600">G</th>
-                  <th class="py-2.5 px-2 font-semibold text-right">Pondere Cost</th>
+                <tr class="bg-[#F4F3FA] dark:bg-white/5 border-b border-[#E5E0F5] dark:border-white/10 text-slate-600 dark:text-white/70">
+                  <th class="py-2.5 px-3 font-bold">Ingredient</th>
+                  <th class="py-2.5 px-2 font-bold">Cantitate</th>
+                  <th class="py-2.5 px-2 font-bold">Preț / 100g</th>
+                  <th class="py-2.5 px-2 font-bold text-emerald-600 dark:text-emerald-400">Cost Total</th>
+                  <th class="py-2.5 px-2 font-bold">Calorii</th>
+                  <th class="py-2.5 px-2 font-bold text-rose-500">P</th>
+                  <th class="py-2.5 px-2 font-bold text-amber-500">C</th>
+                  <th class="py-2.5 px-2 font-bold text-sky-500">G</th>
+                  <th class="py-2.5 px-2 font-bold text-right">Pondere</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
+              <tbody class="divide-y divide-[#E5E0F5] dark:divide-white/5">
                 ${r.ingredients.map(ing => `
-                  <tr class="hover:bg-slate-50/50">
-                    <td class="py-2.5 px-3 font-medium text-slate-800">${ing.name}</td>
-                    <td class="py-2.5 px-2 text-slate-600">${ing.quantity}g</td>
-                    <td class="py-2.5 px-2 text-slate-600">${ing.pricePer100g.toFixed(2)} RON</td>
-                    <td class="py-2.5 px-2 font-semibold text-emerald-700">${ing.cost.toFixed(2)} RON</td>
-                    <td class="py-2.5 px-2 text-slate-700">${Math.round(ing.calories)}</td>
-                    <td class="py-2.5 px-2 text-rose-600">${ing.protein.toFixed(1)}g</td>
-                    <td class="py-2.5 px-2 text-amber-600">${ing.carbs.toFixed(1)}g</td>
-                    <td class="py-2.5 px-2 text-sky-600">${ing.fat.toFixed(1)}g</td>
-                    <td class="py-2.5 px-2 text-right font-medium text-slate-600">${ing.costShare.toFixed(1)}%</td>
+                  <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition">
+                    <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-white">${ing.name}</td>
+                    <td class="py-2.5 px-2 text-slate-600 dark:text-white/70">${ing.quantity}g</td>
+                    <td class="py-2.5 px-2 text-slate-600 dark:text-white/70">${ing.pricePer100g.toFixed(2)} RON</td>
+                    <td class="py-2.5 px-2 font-bold text-emerald-600 dark:text-emerald-400">${ing.cost.toFixed(2)} RON</td>
+                    <td class="py-2.5 px-2 text-slate-700 dark:text-white/80">${Math.round(ing.calories)}</td>
+                    <td class="py-2.5 px-2 text-rose-500 font-semibold">${ing.protein.toFixed(1)}g</td>
+                    <td class="py-2.5 px-2 text-amber-500 font-semibold">${ing.carbs.toFixed(1)}g</td>
+                    <td class="py-2.5 px-2 text-sky-500 font-semibold">${ing.fat.toFixed(1)}g</td>
+                    <td class="py-2.5 px-2 text-right font-medium text-slate-500 dark:text-white/50">${ing.costShare.toFixed(1)}%</td>
                   </tr>
                 `).join('')}
               </tbody>
               <tfoot>
-                <tr class="bg-slate-100 font-bold border-t-2 border-slate-300 text-slate-800">
+                <tr class="bg-slate-100 dark:bg-white/10 font-bold border-t-2 border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white">
                   <td class="py-2.5 px-3">TOTAL REȚETĂ</td>
                   <td class="py-2.5 px-2">${Math.round(r.totals.weight)}g</td>
                   <td class="py-2.5 px-2">-</td>
-                  <td class="py-2.5 px-2 text-emerald-800">${r.totals.cost.toFixed(2)} RON</td>
+                  <td class="py-2.5 px-2 text-emerald-600 dark:text-emerald-400">${r.totals.cost.toFixed(2)} RON</td>
                   <td class="py-2.5 px-2">${Math.round(r.totals.calories)}</td>
-                  <td class="py-2.5 px-2 text-rose-700">${r.totals.protein.toFixed(1)}g</td>
-                  <td class="py-2.5 px-2 text-amber-700">${r.totals.carbs.toFixed(1)}g</td>
-                  <td class="py-2.5 px-2 text-sky-700">${r.totals.fat.toFixed(1)}g</td>
+                  <td class="py-2.5 px-2 text-rose-500">${r.totals.protein.toFixed(1)}g</td>
+                  <td class="py-2.5 px-2 text-amber-500">${r.totals.carbs.toFixed(1)}g</td>
+                  <td class="py-2.5 px-2 text-sky-500">${r.totals.fat.toFixed(1)}g</td>
                   <td class="py-2.5 px-2 text-right">100%</td>
                 </tr>
-                <tr class="bg-emerald-50/70 font-bold text-emerald-900 border-t border-emerald-200">
+                <tr class="bg-emerald-500/10 dark:bg-emerald-500/20 font-extrabold text-emerald-800 dark:text-emerald-300 border-t border-emerald-200 dark:border-emerald-500/30">
                   <td class="py-2.5 px-3">PER PORȚIE (${r.servings})</td>
                   <td class="py-2.5 px-2">${Math.round(r.perServing.weight)}g</td>
                   <td class="py-2.5 px-2">-</td>
-                  <td class="py-2.5 px-2 text-emerald-700">${r.perServing.cost.toFixed(2)} RON</td>
+                  <td class="py-2.5 px-2 text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</td>
                   <td class="py-2.5 px-2">${Math.round(r.perServing.calories)}</td>
-                  <td class="py-2.5 px-2 text-rose-600">${r.perServing.protein.toFixed(1)}g</td>
-                  <td class="py-2.5 px-2 text-amber-600">${r.perServing.carbs.toFixed(1)}g</td>
-                  <td class="py-2.5 px-2 text-sky-600">${r.perServing.fat.toFixed(1)}g</td>
+                  <td class="py-2.5 px-2 text-rose-500">${r.perServing.protein.toFixed(1)}g</td>
+                  <td class="py-2.5 px-2 text-amber-500">${r.perServing.carbs.toFixed(1)}g</td>
+                  <td class="py-2.5 px-2 text-sky-500">${r.perServing.fat.toFixed(1)}g</td>
                   <td class="py-2.5 px-2 text-right">-</td>
                 </tr>
               </tfoot>
@@ -1987,7 +2145,7 @@ class NutriApp {
         </div>
 
         <div class="flex justify-end gap-2 pt-2">
-          <button data-modal-close="true" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">
             Închide
           </button>
         </div>
@@ -2012,19 +2170,19 @@ class NutriApp {
 
     const renderRows = () => {
       return curIngredients.map((item, idx) => `
-        <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200">
-          <select data-builder-ing-select="${idx}" class="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
+        <div class="flex items-center gap-2 p-2.5 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10">
+          <select data-builder-ing-select="${idx}" class="flex-1 bg-white dark:bg-[#202230] border border-[#E5E0F5] dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white">
             ${allIngredients.map(ing => `
               <option value="${ing.id}" ${ing.id === item.ingredientId ? 'selected' : ''}>
                 ${ing.name} (${ing.pricePer100g.toFixed(2)} RON/100g)
               </option>
             `).join('')}
           </select>
-          <div class="flex items-center gap-1 w-24">
-            <input type="number" step="1" data-builder-ing-qty="${idx}" value="${item.quantity}" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-center font-bold">
-            <span class="text-xs text-slate-500 font-medium">g</span>
+          <div class="flex items-center gap-1.5 w-24">
+            <input type="number" step="1" data-builder-ing-qty="${idx}" value="${item.quantity}" class="w-full bg-white dark:bg-[#202230] border border-[#E5E0F5] dark:border-white/10 rounded-xl px-2.5 py-2 text-xs text-center font-bold text-slate-800 dark:text-white">
+            <span class="text-xs text-slate-500 dark:text-white/60 font-semibold">g</span>
           </div>
-          <button data-builder-ing-remove="${idx}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded">
+          <button data-builder-ing-remove="${idx}" class="p-2 text-slate-400 hover:text-rose-500 rounded-full hover:bg-rose-50 dark:hover:bg-rose-500/10 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </button>
         </div>
@@ -2032,50 +2190,50 @@ class NutriApp {
     };
 
     const html = `
-      <div class="p-5 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-          <h3 class="font-bold text-base text-slate-800">${isEdit ? 'Editează Rețeta' : 'Creează Rețetă Nouă'}</h3>
-          <button data-modal-close="true" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+      <div class="p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
+          <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">${isEdit ? 'Editează Rețeta' : 'Creează Rețetă Nouă'}</h3>
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="sm:col-span-2 space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Nume Rețetă</label>
-            <input type="text" id="recipe-builder-name" value="${existingRecipe?.name || ''}" placeholder="ex: Souvlaki cu Cartofi" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-emerald-500">
+          <div class="sm:col-span-2 space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Nume Rețetă</label>
+            <input type="text" id="recipe-builder-name" value="${existingRecipe?.name || ''}" placeholder="ex: Souvlaki cu Cartofi" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
           </div>
-          <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Categorie</label>
-            <select id="recipe-builder-cat" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:bg-white">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Categorie</label>
+            <select id="recipe-builder-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
               ${categories.map(c => `
                 <option value="${c}" ${existingRecipe?.category === c ? 'selected' : ''}>${c}</option>
               `).join('')}
             </select>
           </div>
-          <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Număr Porții</label>
-            <input type="number" step="0.5" id="recipe-builder-servings" value="${existingRecipe?.servings || 1}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-center">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Număr Porții</label>
+            <input type="number" step="0.5" id="recipe-builder-servings" value="${existingRecipe?.servings || 1}" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3 py-2.5 text-xs font-bold text-center text-slate-800 dark:text-white">
           </div>
         </div>
 
         <!-- Ingredients dynamic list -->
-        <div class="space-y-2">
+        <div class="space-y-2.5">
           <div class="flex items-center justify-between">
-            <label class="text-xs font-bold text-slate-700">Ingrediente & Cantități</label>
-            <button id="btn-builder-add-ing" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
+            <label class="text-xs font-extrabold text-slate-700 dark:text-white/80">Ingrediente & Cantități</label>
+            <button id="btn-builder-add-ing" class="btn-pill text-xs py-1.5 px-3 bg-brand-lilac/20 dark:bg-brand-lilac/30 text-brand-dark dark:text-white border-none flex items-center gap-1">
               + Adaugă Ingredient
             </button>
           </div>
 
-          <div id="recipe-builder-rows" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+          <div id="recipe-builder-rows" class="space-y-2.5 max-h-56 overflow-y-auto pr-1">
             ${renderRows()}
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
-          <button data-modal-close="true" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Anulează</button>
-          <button id="btn-builder-save" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition">
+        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+          <button id="btn-builder-save" class="btn-pill btn-pill-primary text-xs">
             ${isEdit ? 'Salvează Modificările' : 'Creează Rețeta'}
           </button>
         </div>
@@ -2175,48 +2333,48 @@ class NutriApp {
     const categories = window.INITIAL_DATA.categories?.filter(c => c !== 'Toate') || ['Ingrediente'];
 
     const html = `
-      <div class="p-5 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-          <h3 class="font-bold text-base text-slate-800">${isEdit ? 'Editează Ingredient' : 'Adaugă Ingredient Nou'}</h3>
-          <button data-modal-close="true" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+      <div class="p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
+          <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">${isEdit ? 'Editează Ingredient' : 'Adaugă Ingredient Nou'}</h3>
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div class="space-y-1 sm:col-span-2">
-            <label class="block text-xs font-bold text-slate-700">Nume Ingredient</label>
-            <input type="text" id="ing-form-name" value="${existingIng?.name || ''}" placeholder="ex: Piept de pui dezosat" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Nume Ingredient</label>
+            <input type="text" id="ing-form-name" value="${existingIng?.name || ''}" placeholder="ex: Piept de pui dezosat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
           </div>
           <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Categorie</label>
-            <select id="ing-form-cat" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:bg-white">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Categorie</label>
+            <select id="ing-form-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
               ${categories.map(c => `
                 <option value="${c}" ${existingIng?.category === c ? 'selected' : ''}>${c}</option>
               `).join('')}
             </select>
           </div>
           <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Cod Bare EAN (opțional)</label>
-            <input type="text" id="ing-form-ean" value="${existingIng?.ean || ''}" placeholder="ex: 5941014001234" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Cod Bare EAN (opțional)</label>
+            <input type="text" id="ing-form-ean" value="${existingIng?.ean || ''}" placeholder="ex: 5941014001234" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-mono text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
           </div>
         </div>
 
         <!-- Package size & price -> Price per 100g -->
-        <div class="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-100 space-y-3">
-          <div class="text-xs font-bold text-emerald-900">Preț de Achiziție & Pachet</div>
+        <div class="bg-emerald-500/10 dark:bg-emerald-500/15 p-4 rounded-2xl border border-emerald-500/20 space-y-3">
+          <div class="text-xs font-extrabold text-emerald-800 dark:text-emerald-300">Preț de Achiziție & Pachet</div>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div class="space-y-1">
-              <label class="block text-[11px] font-semibold text-emerald-800">Gramaj Pachet (g/ml)</label>
-              <input type="number" step="10" id="ing-form-qty" value="${existingIng?.packageQuantity || 1000}" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-center">
+              <label class="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">Gramaj Pachet (g/ml)</label>
+              <input type="number" step="10" id="ing-form-qty" value="${existingIng?.packageQuantity || 1000}" class="w-full bg-white dark:bg-[#1f2330] border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-bold text-center text-slate-800 dark:text-white">
             </div>
             <div class="space-y-1">
-              <label class="block text-[11px] font-semibold text-emerald-800">Preț Pachet (RON)</label>
-              <input type="number" step="0.1" id="ing-form-price" value="${existingIng?.packagePrice || ''}" placeholder="28.00" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-center">
+              <label class="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">Preț Pachet (RON)</label>
+              <input type="number" step="0.1" id="ing-form-price" value="${existingIng?.packagePrice || ''}" placeholder="28.00" class="w-full bg-white dark:bg-[#1f2330] border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-bold text-center text-slate-800 dark:text-white">
             </div>
             <div class="space-y-1 col-span-2 sm:col-span-1">
-              <label class="block text-[11px] font-semibold text-emerald-800">Preț Calculat / 100g</label>
-              <div id="ing-form-calc-100g" class="bg-emerald-100/80 rounded-lg py-1.5 px-2 text-center text-xs font-extrabold text-emerald-900">
+              <label class="block text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">Preț Calculat / 100g</label>
+              <div id="ing-form-calc-100g" class="bg-emerald-500/20 dark:bg-emerald-500/30 rounded-xl py-2 px-2.5 text-center text-xs font-black text-emerald-800 dark:text-emerald-300">
                 ${existingIng ? existingIng.pricePer100g.toFixed(2) : '0.00'} RON
               </div>
             </div>
@@ -2224,31 +2382,31 @@ class NutriApp {
         </div>
 
         <!-- Nutrition per 100g -->
-        <div class="space-y-2">
-          <div class="text-xs font-bold text-slate-700">Valori Nutriționale raportate la 100g:</div>
+        <div class="space-y-2.5">
+          <div class="text-xs font-bold text-slate-700 dark:text-white/80">Valori Nutriționale raportate la 100g:</div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <div class="space-y-1">
-              <label class="block text-[11px] text-purple-700 font-semibold">Calorii (kcal)</label>
-              <input type="number" step="1" id="ing-form-cals" value="${existingIng?.calories || ''}" placeholder="165" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-center">
+              <label class="block text-[11px] text-brand-dark dark:text-brand-lilac font-bold">Calorii (kcal)</label>
+              <input type="number" step="1" id="ing-form-cals" value="${existingIng?.calories || ''}" placeholder="165" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-xl px-2.5 py-2 text-xs font-bold text-center text-slate-800 dark:text-white">
             </div>
             <div class="space-y-1">
-              <label class="block text-[11px] text-rose-600 font-semibold">Proteine (g)</label>
-              <input type="number" step="0.1" id="ing-form-prot" value="${existingIng?.protein || ''}" placeholder="31.0" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-center">
+              <label class="block text-[11px] text-rose-500 font-bold">Proteine (g)</label>
+              <input type="number" step="0.1" id="ing-form-prot" value="${existingIng?.protein || ''}" placeholder="31.0" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-xl px-2.5 py-2 text-xs font-bold text-center text-slate-800 dark:text-white">
             </div>
             <div class="space-y-1">
-              <label class="block text-[11px] text-amber-600 font-semibold">Carbohidrați (g)</label>
-              <input type="number" step="0.1" id="ing-form-carbs" value="${existingIng?.carbs || '0'}" placeholder="0.0" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-center">
+              <label class="block text-[11px] text-amber-500 font-bold">Carbohidrați (g)</label>
+              <input type="number" step="0.1" id="ing-form-carbs" value="${existingIng?.carbs || '0'}" placeholder="0.0" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-xl px-2.5 py-2 text-xs font-bold text-center text-slate-800 dark:text-white">
             </div>
             <div class="space-y-1">
-              <label class="block text-[11px] text-sky-600 font-semibold">Grăsimi (g)</label>
-              <input type="number" step="0.1" id="ing-form-fat" value="${existingIng?.fat || ''}" placeholder="3.6" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-center">
+              <label class="block text-[11px] text-sky-500 font-bold">Grăsimi (g)</label>
+              <input type="number" step="0.1" id="ing-form-fat" value="${existingIng?.fat || ''}" placeholder="3.6" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-xl px-2.5 py-2 text-xs font-bold text-center text-slate-800 dark:text-white">
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
-          <button data-modal-close="true" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Anulează</button>
-          <button id="btn-ing-form-save" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition">
+        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+          <button id="btn-ing-form-save" class="btn-pill btn-pill-primary text-xs">
             ${isEdit ? 'Salvează Modificările' : 'Adaugă Ingredient'}
           </button>
         </div>
@@ -2310,39 +2468,39 @@ class NutriApp {
     const meals = ['Mic Dejun', 'Prânz', 'Snack', 'Cină'];
 
     const html = `
-      <div class="p-5 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div class="p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
           <div>
-            <h3 class="font-bold text-base text-slate-800">Planifică Rețeta</h3>
-            <p class="text-xs text-emerald-700 font-semibold">${raw.name}</p>
+            <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">Planifică Rețeta</h3>
+            <p class="text-xs text-brand-dark dark:text-brand-lilac font-bold">${raw.name}</p>
           </div>
-          <button data-modal-close="true" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
-        <div class="space-y-3">
-          <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Alege Ziua</label>
-            <select id="quick-plan-day" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
+        <div class="space-y-3.5">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Alege Ziua</label>
+            <select id="quick-plan-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
               ${days.map(d => `<option value="${d}" ${d === this.activeDay ? 'selected' : ''}>${d}</option>`).join('')}
             </select>
           </div>
-          <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Alege Masa</label>
-            <select id="quick-plan-meal" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Alege Masa</label>
+            <select id="quick-plan-meal" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
               ${meals.map(m => `<option value="${m}">${m}</option>`).join('')}
             </select>
           </div>
-          <div class="space-y-1">
-            <label class="block text-xs font-bold text-slate-700">Număr Porții</label>
-            <input type="number" step="0.5" id="quick-plan-servings" value="1.0" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-center">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Număr Porții</label>
+            <input type="number" step="0.5" id="quick-plan-servings" value="1.0" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-center text-slate-800 dark:text-white">
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
-          <button data-modal-close="true" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Anulează</button>
-          <button id="btn-save-quick-plan" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition">
+        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+          <button id="btn-save-quick-plan" class="btn-pill btn-pill-primary text-xs">
             Adaugă în Planificator
           </button>
         </div>
@@ -2367,24 +2525,24 @@ class NutriApp {
     const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'].filter(d => d !== this.activeDay);
 
     const html = `
-      <div class="p-5 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-          <h3 class="font-bold text-base text-slate-800">Copiază Planul Zilei (${this.activeDay})</h3>
-          <button data-modal-close="true" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+      <div class="p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
+          <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">Copiază Planul Zilei (${this.activeDay})</h3>
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
         <div class="space-y-2">
-          <label class="block text-xs font-bold text-slate-700">Copiază preparatele în ziua:</label>
-          <select id="copy-target-day" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Copiază preparatele în ziua:</label>
+          <select id="copy-target-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
             ${days.map(d => `<option value="${d}">${d}</option>`).join('')}
           </select>
         </div>
 
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
-          <button data-modal-close="true" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Anulează</button>
-          <button id="btn-execute-copy-day" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition">
+        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+          <button id="btn-execute-copy-day" class="btn-pill btn-pill-primary text-xs">
             Copiază Planul
           </button>
         </div>
