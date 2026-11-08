@@ -1,0 +1,14 @@
+{
+  "name": "nutri-planner",
+  "version": "1.0.0",
+  "description": "Calculator Rețete - Preț și Macronutrienți per Porție",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "build": "echo 'Build static site: ready for Vercel'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["recipe", "nutrition", "meal-planner", "macronutrients", "romania", "lidl", "kaufland"],
+  "author": "",
+  "license": "MIT"
+}
