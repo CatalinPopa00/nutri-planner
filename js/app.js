@@ -1943,13 +1943,32 @@ class NutriApp {
     modalWrapper.id = 'active-modal-root';
     modalWrapper.innerHTML = `
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
-        <div class="bg-white dark:bg-[#181924] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white" onclick="event.stopPropagation()">
+        <div class="bg-white dark:bg-[#181924] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white relative">
           ${html}
         </div>
       </div>
     `;
     document.body.appendChild(modalWrapper);
     this.activeModal = modalWrapper;
+
+    // Direct listener on backdrop (click outside card)
+    const backdrop = modalWrapper.querySelector('[data-modal-backdrop="true"]');
+    if (backdrop) {
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) {
+          this.closeModal();
+        }
+      });
+    }
+
+    // Direct click listeners for all close buttons inside the modal ('X', 'Anulează', 'Închide')
+    modalWrapper.querySelectorAll('[data-modal-close]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeModal();
+      });
+    });
   }
 
   closeModal() {
