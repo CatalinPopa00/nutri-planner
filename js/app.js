@@ -9,7 +9,7 @@ class NutriApp {
     this.ingFilterCategory = 'Toate';
     this.ingSearch = '';
     this.ingSortBy = 'name';
-    this.dailyCalorieTarget = 2000;
+    this.dailyCalorieTarget = window.store ? window.store.getTargets().calories : 2000;
 
     this.editingRecipe = null;
     this.editingIngredient = null;
@@ -59,6 +59,14 @@ class NutriApp {
       themeBtn.addEventListener('click', () => {
         const isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('nutri_theme', isDark ? 'dark' : 'light');
+      });
+    }
+
+    // Settings button in header (Caloric & Macronutrient targets)
+    const settingsBtn = document.getElementById('btn-open-settings');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        this.openSettingsModal();
       });
     }
 
@@ -155,8 +163,10 @@ class NutriApp {
       { id: 'Duminică', short: 'Dum', dateNum: '30' }
     ];
     const activeDayData = weekData.days[this.activeDay] || { items: [], totals: { cost: 0, calories: 0, protein: 0, carbs: 0, fat: 0 } };
+    const targets = window.store.getTargets();
+    this.dailyCalorieTarget = targets.calories;
 
-    const calPercent = Math.min(100, Math.round((activeDayData.totals.calories / this.dailyCalorieTarget) * 100));
+    const calPercent = Math.min(100, Math.round((activeDayData.totals.calories / targets.calories) * 100));
 
     return `
       <div class="space-y-6 pb-24">
@@ -337,14 +347,18 @@ class NutriApp {
           </div>
 
           <!-- Quick Day Actions -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="btn-planner-settings" class="btn-pill btn-pill-white text-xs" title="Configurează necesarul caloric & macronutrienți">
+              <svg class="w-3.5 h-3.5 text-[#6D4AE8] dark:text-[#C4B5FD]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
+              <span>Setări Ținte</span>
+            </button>
             <button id="btn-copy-day" class="btn-pill btn-pill-white text-xs">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
-              Copiază ziua
+              <span>Copiază ziua</span>
             </button>
             <button id="btn-clear-day" class="btn-pill btn-pill-white text-xs text-rose-600 hover:text-rose-700">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              Golește
+              <span>Golește</span>
             </button>
           </div>
         </div>
@@ -359,29 +373,80 @@ class NutriApp {
             <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5">
               <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Calorii</div>
               <div class="text-base sm:text-lg font-extrabold text-[#6D4AE8] dark:text-[#C4B5FD] mt-0.5">${Math.round(dayData.totals.calories)} <span class="text-xs">kcal</span></div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">țintă ${targets.calories}</div>
             </div>
             <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5">
               <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Proteine</div>
               <div class="text-base sm:text-lg font-extrabold text-[#E02868] dark:text-[#FFA4CD] mt-0.5">${dayData.totals.protein.toFixed(1)} <span class="text-xs">g</span></div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">țintă ${targets.protein}g</div>
             </div>
             <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5">
               <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Carbi</div>
               <div class="text-base sm:text-lg font-extrabold text-[#D97706] dark:text-[#FFC480] mt-0.5">${dayData.totals.carbs.toFixed(1)} <span class="text-xs">g</span></div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">țintă ${targets.carbs}g</div>
             </div>
             <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-3 border border-slate-100 dark:border-white/5 col-span-2 sm:col-span-1">
               <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Grăsimi</div>
               <div class="text-base sm:text-lg font-extrabold text-[#0284C7] dark:text-[#98DDFE] mt-0.5">${dayData.totals.fat.toFixed(1)} <span class="text-xs">g</span></div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">țintă ${targets.fat}g</div>
             </div>
           </div>
 
-          <!-- Calorie Target Progress Bar -->
-          <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-white/5">
-            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span class="font-medium">Țintă calorică zilnică</span>
-              <span class="font-bold text-slate-800 dark:text-white">${Math.round(dayData.totals.calories)} / ${this.dailyCalorieTarget} kcal (${calPercent}%)</span>
+          <!-- Calorie & Macronutrient Targets Progress Bars -->
+          <div class="space-y-3 pt-3 border-t border-slate-100 dark:border-white/5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-800 dark:text-white">Aport vs. Ținte Zilnice</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] font-extrabold">Configurabil</span>
+              </div>
+              <button id="btn-edit-targets-quick" class="text-xs font-bold text-[#6D4AE8] dark:text-[#C4B5FD] hover:underline flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
+                <span>Modifică Ținte</span>
+              </button>
             </div>
-            <div class="w-full bg-slate-100 dark:bg-white/10 rounded-full h-2.5 overflow-hidden p-0.5">
-              <div class="h-full rounded-full transition-all duration-300 ${calPercent > 100 ? 'bg-amber-400' : 'bg-gradient-to-r from-[#A390F5] to-[#70D6A3]'}" style="width: ${calPercent}%"></div>
+
+            <!-- Calories Progress Bar -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span class="font-bold text-slate-700 dark:text-slate-300">Calorii</span>
+                <span class="font-black text-slate-900 dark:text-white">${Math.round(dayData.totals.calories)} / ${targets.calories} kcal (${calPercent}%)</span>
+              </div>
+              <div class="w-full bg-slate-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-300 ${calPercent > 100 ? 'bg-amber-400' : 'bg-gradient-to-r from-[#A390F5] to-[#70D6A3]'}" style="width: ${Math.min(100, calPercent)}%"></div>
+              </div>
+            </div>
+
+            <!-- 3 Mini Macro Progress Bars (Protein, Carbs, Fat) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+              <div class="bg-slate-50 dark:bg-white/5 rounded-xl p-2 border border-slate-100 dark:border-white/5">
+                <div class="flex justify-between text-[10.5px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  <span class="text-[#E02868] dark:text-[#FFA4CD]">Proteine</span>
+                  <span>${dayData.totals.protein.toFixed(1)} / ${targets.protein}g</span>
+                </div>
+                <div class="w-full bg-slate-200/70 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-full rounded-full bg-[#E02868] dark:bg-[#FFA4CD] transition-all" style="width: ${Math.min(100, Math.round((dayData.totals.protein / targets.protein) * 100))}%"></div>
+                </div>
+              </div>
+
+              <div class="bg-slate-50 dark:bg-white/5 rounded-xl p-2 border border-slate-100 dark:border-white/5">
+                <div class="flex justify-between text-[10.5px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  <span class="text-[#D97706] dark:text-[#FFC480]">Carbohidrați</span>
+                  <span>${dayData.totals.carbs.toFixed(1)} / ${targets.carbs}g</span>
+                </div>
+                <div class="w-full bg-slate-200/70 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-full rounded-full bg-[#D97706] dark:bg-[#FFC480] transition-all" style="width: ${Math.min(100, Math.round((dayData.totals.carbs / targets.carbs) * 100))}%"></div>
+                </div>
+              </div>
+
+              <div class="bg-slate-50 dark:bg-white/5 rounded-xl p-2 border border-slate-100 dark:border-white/5">
+                <div class="flex justify-between text-[10.5px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  <span class="text-[#0284C7] dark:text-[#98DDFE]">Grăsimi</span>
+                  <span>${dayData.totals.fat.toFixed(1)} / ${targets.fat}g</span>
+                </div>
+                <div class="w-full bg-slate-200/70 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-full rounded-full bg-[#0284C7] dark:bg-[#98DDFE] transition-all" style="width: ${Math.min(100, Math.round((dayData.totals.fat / targets.fat) * 100))}%"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -409,10 +474,16 @@ class NutriApp {
                       ` : ''}
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 sm:gap-2">
                       <div class="hidden sm:block">
                         ${meal.iconSvg}
                       </div>
+                      ${mealItems.length > 0 ? `
+                        <button data-copy-meal="${meal.id}" class="btn-pill btn-pill-white text-xs py-2 px-2.5 sm:px-3 shadow-xs flex items-center gap-1.5" title="Copiază această masă în altă zi sau masă">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                          <span class="hidden xs:inline sm:inline">Copiază</span>
+                        </button>
+                      ` : ''}
                       <button data-add-meal-recipe="${meal.id}" class="btn-pill btn-pill-dark text-xs py-2 px-3 shadow-xs">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
                         <span>Adaugă</span>
@@ -452,7 +523,7 @@ class NutriApp {
                             </div>
                           </div>
 
-                          <!-- Portions control & Delete -->
+                          <!-- Portions control, Copy item & Delete -->
                           <div class="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 dark:border-white/10 flex-shrink-0">
                             <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/10 rounded-full p-1">
                               <button data-portion-minus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="${item.isIngredient ? 'Scade 50g' : 'Scade 0.5 porții'}">
@@ -463,9 +534,14 @@ class NutriApp {
                                 +
                               </button>
                             </div>
-                            <button data-delete-plan-item="${item.id}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge din plan">
-                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            </button>
+                            <div class="flex items-center gap-1">
+                              <button data-copy-plan-item="${item.id}" class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Copiază acest preparat în altă zi/masă">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                              </button>
+                              <button data-delete-plan-item="${item.id}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge din plan">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       `).join('')}
@@ -610,6 +686,37 @@ class NutriApp {
         window.store.removePlanItem(this.activeDay, itemId);
       });
     });
+
+    // Copy meal
+    document.querySelectorAll('[data-copy-meal]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const meal = e.currentTarget.getAttribute('data-copy-meal');
+        this.openCopyMealModal(this.activeDay, meal);
+      });
+    });
+
+    // Copy single plan item
+    document.querySelectorAll('[data-copy-plan-item]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const itemId = e.currentTarget.getAttribute('data-copy-plan-item');
+        this.openCopyPlanItemModal(this.activeDay, itemId);
+      });
+    });
+
+    // Settings targets buttons
+    const plannerSettingsBtn = document.getElementById('btn-planner-settings');
+    if (plannerSettingsBtn) {
+      plannerSettingsBtn.addEventListener('click', () => {
+        this.openSettingsModal();
+      });
+    }
+
+    const editTargetsQuickBtn = document.getElementById('btn-edit-targets-quick');
+    if (editTargetsQuickBtn) {
+      editTargetsQuickBtn.addEventListener('click', () => {
+        this.openSettingsModal();
+      });
+    }
 
     // Copy day
     const copyBtn = document.getElementById('btn-copy-day');
@@ -3447,6 +3554,410 @@ class NutriApp {
         this.closeModal();
       }
     });
+  }
+
+  // --- Modal: Copy Meal to Another Day / Meal ---
+  openCopyMealModal(sourceDay, sourceMeal) {
+    const dayData = window.store.calculateDay(sourceDay);
+    const mealItems = dayData.items.filter(i => i.meal === sourceMeal);
+    if (mealItems.length === 0) {
+      this.showToast('Nu există preparate în această masă pentru a fi copiate.', 'warning');
+      return;
+    }
+
+    const allDays = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+    const allMeals = [
+      { id: 'Mic Dejun', label: 'Mic Dejun' },
+      { id: 'Prânz', label: 'Prânz' },
+      { id: 'Snack', label: 'Gustare / Snack' },
+      { id: 'Cină', label: 'Cină' }
+    ];
+
+    const curIdx = allDays.indexOf(sourceDay);
+    const defaultTargetDay = curIdx < allDays.length - 1 ? allDays[curIdx + 1] : allDays[0];
+
+    const html = `
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div>
+          <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">Copiază Masa: ${sourceMeal}</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Din ziua de <span class="font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">${sourceDay}</span> (${mealItems.length} ${mealItems.length === 1 ? 'preparat' : 'preparate'})</p>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <!-- Preview of dishes in source meal -->
+        <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 space-y-2">
+          <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Preparate incluse:</div>
+          <div class="space-y-1.5 max-h-36 overflow-y-auto">
+            ${mealItems.map(it => `
+              <div class="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-white dark:bg-[#121319] border border-[#E5E0F5] dark:border-white/10">
+                <span class="font-bold text-slate-800 dark:text-white truncate">${it.recipeName}</span>
+                <span class="text-slate-500 text-[11px] font-medium whitespace-nowrap">${it.isIngredient ? (it.portions * 100) + 'g' : it.portions + ' porții'}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Target Day & Target Meal Selection -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Ziua Destinație</label>
+            <select id="copy-meal-target-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+              ${allDays.map(d => `<option value="${d}" ${d === defaultTargetDay ? 'selected' : ''}>${d}</option>`).join('')}
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Masa Destinație</label>
+            <select id="copy-meal-target-meal" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+              ${allMeals.map(m => `<option value="${m.id}" ${m.id === sourceMeal ? 'selected' : ''}>${m.label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- Copy Mode: Append vs Overwrite -->
+        <div class="space-y-2 pt-1">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Opțiune copiere</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="flex items-center gap-2.5 p-3 rounded-2xl border border-[#E5E0F5] dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 cursor-pointer hover:border-brand-lilac transition">
+              <input type="radio" name="copy-meal-mode" value="append" checked class="text-[#6D4AE8] focus:ring-[#6D4AE8]">
+              <div class="text-xs">
+                <div class="font-bold text-slate-800 dark:text-white">Adaugă</div>
+                <div class="text-[10.5px] text-slate-500">Păstrează ce există deja</div>
+              </div>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 rounded-2xl border border-[#E5E0F5] dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 cursor-pointer hover:border-brand-lilac transition">
+              <input type="radio" name="copy-meal-mode" value="overwrite" class="text-[#6D4AE8] focus:ring-[#6D4AE8]">
+              <div class="text-xs">
+                <div class="font-bold text-slate-800 dark:text-white">Înlocuiește</div>
+                <div class="text-[10.5px] text-slate-500">Golește masa destinație</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex justify-end gap-2.5 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+        <button id="btn-execute-copy-meal" class="btn-pill btn-pill-primary text-xs shadow-sm">
+          Copiază Masa
+        </button>
+      </div>
+    `;
+
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-md' });
+
+    document.getElementById('btn-execute-copy-meal')?.addEventListener('click', () => {
+      const targetDay = document.getElementById('copy-meal-target-day')?.value;
+      const targetMeal = document.getElementById('copy-meal-target-meal')?.value;
+      const overwrite = document.querySelector('input[name="copy-meal-mode"]:checked')?.value === 'overwrite';
+
+      if (targetDay && targetMeal) {
+        window.store.copyMeal(sourceDay, sourceMeal, targetDay, targetMeal, overwrite);
+        this.closeModal();
+        this.showToast(`Masa "${sourceMeal}" din ${sourceDay} a fost copiată la ${targetMeal} (${targetDay})!`, 'success');
+      }
+    });
+  }
+
+  // --- Modal: Copy Single Plan Item to Another Day / Meal ---
+  openCopyPlanItemModal(sourceDay, itemId) {
+    const dayData = window.store.calculateDay(sourceDay);
+    const item = dayData.items.find(i => i.id === itemId);
+    if (!item) return;
+
+    const allDays = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+    const allMeals = [
+      { id: 'Mic Dejun', label: 'Mic Dejun' },
+      { id: 'Prânz', label: 'Prânz' },
+      { id: 'Snack', label: 'Gustare / Snack' },
+      { id: 'Cină', label: 'Cină' }
+    ];
+
+    const curIdx = allDays.indexOf(sourceDay);
+    const defaultTargetDay = curIdx < allDays.length - 1 ? allDays[curIdx + 1] : allDays[0];
+
+    const html = `
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div>
+          <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">Copiază Preparatul</h3>
+          <p class="text-xs text-[#6D4AE8] dark:text-[#C4B5FD] font-bold mt-0.5 truncate max-w-[240px]">${item.recipeName}</p>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 flex items-center justify-between text-xs">
+          <div>
+            <div class="font-extrabold text-slate-900 dark:text-white">${item.recipeName}</div>
+            <div class="text-slate-500 text-[11px] mt-0.5">Din ${sourceDay} • ${item.meal}</div>
+          </div>
+          <span class="font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-white/10 px-2.5 py-1 rounded-xl border border-[#E5E0F5] dark:border-white/10">
+            ${item.isIngredient ? (item.portions * 100) + 'g' : item.portions + ' porții'}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Ziua Destinație</label>
+            <select id="copy-item-target-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+              ${allDays.map(d => `<option value="${d}" ${d === defaultTargetDay ? 'selected' : ''}>${d}</option>`).join('')}
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Masa Destinație</label>
+            <select id="copy-item-target-meal" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+              ${allMeals.map(m => `<option value="${m.id}" ${m.id === item.meal ? 'selected' : ''}>${m.label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex justify-end gap-2.5 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+        <button id="btn-execute-copy-plan-item" class="btn-pill btn-pill-primary text-xs shadow-sm">
+          Copiază Preparatul
+        </button>
+      </div>
+    `;
+
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-md' });
+
+    document.getElementById('btn-execute-copy-plan-item')?.addEventListener('click', () => {
+      const targetDay = document.getElementById('copy-item-target-day')?.value;
+      const targetMeal = document.getElementById('copy-item-target-meal')?.value;
+
+      if (targetDay && targetMeal) {
+        window.store.copyPlanItem(sourceDay, itemId, targetDay, targetMeal);
+        this.closeModal();
+        this.showToast(`"${item.recipeName}" a fost copiat la ${targetMeal} (${targetDay})!`, 'success');
+      }
+    });
+  }
+
+  // --- Modal: Settings (Caloric & Macronutrient Targets) ---
+  openSettingsModal() {
+    const targets = window.store.getTargets();
+
+    const html = `
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center font-bold flex-shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white leading-snug">Setări & Ținte Nutriționale</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Configurează necesarul zilnic de calorii și macronutrienți</p>
+          </div>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <!-- Quick Presets -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80 mb-2">Preseturi rapide de obiective:</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button type="button" data-preset-cals="1700" data-preset-prot="140" data-preset-carbs="160" data-preset-fat="55" class="preset-target-btn p-2.5 text-left rounded-2xl border border-[#E5E0F5] dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 hover:border-brand-lilac hover:bg-brand-lilac/5 transition">
+              <div class="text-[11px] font-extrabold text-slate-800 dark:text-white">Slăbire / Deficit</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">1700 kcal • 140g P</div>
+            </button>
+            <button type="button" data-preset-cals="2000" data-preset-prot="135" data-preset-carbs="230" data-preset-fat="60" class="preset-target-btn p-2.5 text-left rounded-2xl border border-[#E5E0F5] dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 hover:border-brand-lilac hover:bg-brand-lilac/5 transition">
+              <div class="text-[11px] font-extrabold text-slate-800 dark:text-white">Echilibrat</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">2000 kcal • 135g P</div>
+            </button>
+            <button type="button" data-preset-cals="2500" data-preset-prot="160" data-preset-carbs="310" data-preset-fat="70" class="preset-target-btn p-2.5 text-left rounded-2xl border border-[#E5E0F5] dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 hover:border-brand-lilac hover:bg-brand-lilac/5 transition">
+              <div class="text-[11px] font-extrabold text-slate-800 dark:text-white">Masă Musculară</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">2500 kcal • 160g P</div>
+            </button>
+            <button type="button" data-preset-cals="1800" data-preset-prot="130" data-preset-carbs="50" data-preset-fat="120" class="preset-target-btn p-2.5 text-left rounded-2xl border border-[#E5E0F5] dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 hover:border-brand-lilac hover:bg-brand-lilac/5 transition">
+              <div class="text-[11px] font-extrabold text-slate-800 dark:text-white">Low Carb / Keto</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">1800 kcal • 50g C</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Input Fields (Calories & 3 Macros) -->
+        <div class="bg-white dark:bg-[#181924] p-4 rounded-3xl border border-[#E5E0F5] dark:border-white/10 space-y-4 shadow-xs">
+          <!-- Calorie Target -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-bold text-slate-800 dark:text-white">Necesar Caloric Zilnic (kcal)</label>
+              <span class="text-[11px] font-extrabold text-[#6D4AE8] dark:text-[#C4B5FD]" id="settings-cals-val">${targets.calories} kcal</span>
+            </div>
+            <div class="relative">
+              <input type="number" step="25" min="500" max="6000" id="settings-input-cals" value="${targets.calories}" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm font-extrabold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+              <span class="absolute right-4 top-2.5 text-xs font-bold text-slate-400 pointer-events-none">kcal / zi</span>
+            </div>
+          </div>
+
+          <!-- 3 Macronutrients -->
+          <div class="space-y-3 pt-2 border-t border-slate-100 dark:border-white/5">
+            <div class="text-xs font-extrabold text-slate-700 dark:text-white/80">Necesar Macronutrienți per Zi:</div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <!-- Protein -->
+              <div class="space-y-1 bg-rose-50/60 dark:bg-rose-500/10 p-3 rounded-2xl border border-rose-200/60 dark:border-rose-500/20">
+                <div class="flex items-center justify-between text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                  <span>Proteine</span>
+                  <span id="settings-prot-cal-percent" class="text-[10px] opacity-80">--%</span>
+                </div>
+                <div class="relative">
+                  <input type="number" step="5" min="20" max="400" id="settings-input-prot" value="${targets.protein}" class="w-full bg-white dark:bg-[#121319] border border-rose-300/70 dark:border-rose-500/30 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 dark:text-white text-center focus:outline-none">
+                  <span class="absolute right-2.5 top-2 text-[10px] font-bold text-slate-400 pointer-events-none">g</span>
+                </div>
+              </div>
+
+              <!-- Carbs -->
+              <div class="space-y-1 bg-amber-50/60 dark:bg-amber-500/10 p-3 rounded-2xl border border-amber-200/60 dark:border-amber-500/20">
+                <div class="flex items-center justify-between text-[11px] font-bold text-amber-800 dark:text-amber-300">
+                  <span>Carbohidrați</span>
+                  <span id="settings-carbs-cal-percent" class="text-[10px] opacity-80">--%</span>
+                </div>
+                <div class="relative">
+                  <input type="number" step="5" min="10" max="600" id="settings-input-carbs" value="${targets.carbs}" class="w-full bg-white dark:bg-[#121319] border border-amber-300/70 dark:border-amber-500/30 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 dark:text-white text-center focus:outline-none">
+                  <span class="absolute right-2.5 top-2 text-[10px] font-bold text-slate-400 pointer-events-none">g</span>
+                </div>
+              </div>
+
+              <!-- Fat -->
+              <div class="space-y-1 bg-sky-50/60 dark:bg-sky-500/10 p-3 rounded-2xl border border-sky-200/60 dark:border-sky-500/20">
+                <div class="flex items-center justify-between text-[11px] font-bold text-sky-800 dark:text-sky-300">
+                  <span>Grăsimi</span>
+                  <span id="settings-fat-cal-percent" class="text-[10px] opacity-80">--%</span>
+                </div>
+                <div class="relative">
+                  <input type="number" step="5" min="10" max="250" id="settings-input-fat" value="${targets.fat}" class="w-full bg-white dark:bg-[#121319] border border-sky-300/70 dark:border-sky-500/30 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-900 dark:text-white text-center focus:outline-none">
+                  <span class="absolute right-2.5 top-2 text-[10px] font-bold text-slate-400 pointer-events-none">g</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Real-time Macro Sum vs Target Calories feedback -->
+            <div id="settings-macro-sum-banner" class="p-3 rounded-2xl text-xs flex items-center justify-between bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+              <span class="text-slate-600 dark:text-slate-300 font-medium">Suma caloriilor din macro (4P + 4C + 9G):</span>
+              <div class="flex items-center gap-2">
+                <span id="settings-macro-sum-cals" class="font-extrabold text-slate-900 dark:text-white">-- kcal</span>
+                <button type="button" id="btn-sync-macro-cals" class="text-[10.5px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] hover:underline" title="Setează caloriile țintă egale cu suma macro">Sincronizează</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-3 bg-white dark:bg-[#181924]">
+        <button type="button" id="btn-reset-targets-default" class="text-xs font-bold text-slate-500 hover:text-rose-600 underline">
+          Resetează la 2000 kcal
+        </button>
+        <div class="flex items-center gap-2">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+          <button id="btn-save-settings-targets" class="btn-pill btn-pill-primary text-xs shadow-sm">
+            Salvează Țintele
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-lg' });
+
+    const calsInput = document.getElementById('settings-input-cals');
+    const protInput = document.getElementById('settings-input-prot');
+    const carbsInput = document.getElementById('settings-input-carbs');
+    const fatInput = document.getElementById('settings-input-fat');
+
+    const calsVal = document.getElementById('settings-cals-val');
+    const sumCalsEl = document.getElementById('settings-macro-sum-cals');
+    const protPctEl = document.getElementById('settings-prot-cal-percent');
+    const carbsPctEl = document.getElementById('settings-carbs-cal-percent');
+    const fatPctEl = document.getElementById('settings-fat-cal-percent');
+    const syncBtn = document.getElementById('btn-sync-macro-cals');
+
+    const updateCalculations = () => {
+      const cals = parseFloat(calsInput?.value) || 0;
+      const prot = parseFloat(protInput?.value) || 0;
+      const carbs = parseFloat(carbsInput?.value) || 0;
+      const fat = parseFloat(fatInput?.value) || 0;
+
+      const macroCals = Math.round(prot * 4 + carbs * 4 + fat * 9);
+      if (calsVal) calsVal.textContent = `${cals} kcal`;
+      if (sumCalsEl) sumCalsEl.textContent = `${macroCals} kcal`;
+
+      const base = macroCals > 0 ? macroCals : (cals || 1);
+      if (protPctEl) protPctEl.textContent = `${Math.round((prot * 4 / base) * 100)}%`;
+      if (carbsPctEl) carbsPctEl.textContent = `${Math.round((carbs * 4 / base) * 100)}%`;
+      if (fatPctEl) fatPctEl.textContent = `${Math.round((fat * 9 / base) * 100)}%`;
+    };
+
+    calsInput?.addEventListener('input', updateCalculations);
+    protInput?.addEventListener('input', updateCalculations);
+    carbsInput?.addEventListener('input', updateCalculations);
+    fatInput?.addEventListener('input', updateCalculations);
+
+    syncBtn?.addEventListener('click', () => {
+      const prot = parseFloat(protInput?.value) || 0;
+      const carbs = parseFloat(carbsInput?.value) || 0;
+      const fat = parseFloat(fatInput?.value) || 0;
+      const macroCals = Math.round(prot * 4 + carbs * 4 + fat * 9);
+      if (calsInput) calsInput.value = macroCals;
+      updateCalculations();
+    });
+
+    // Preset buttons
+    document.querySelectorAll('.preset-target-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const c = btn.getAttribute('data-preset-cals');
+        const p = btn.getAttribute('data-preset-prot');
+        const cb = btn.getAttribute('data-preset-carbs');
+        const f = btn.getAttribute('data-preset-fat');
+
+        if (calsInput) calsInput.value = c;
+        if (protInput) protInput.value = p;
+        if (carbsInput) carbsInput.value = cb;
+        if (fatInput) fatInput.value = f;
+
+        updateCalculations();
+      });
+    });
+
+    // Reset default
+    document.getElementById('btn-reset-targets-default')?.addEventListener('click', () => {
+      if (calsInput) calsInput.value = 2000;
+      if (protInput) protInput.value = 140;
+      if (carbsInput) carbsInput.value = 220;
+      if (fatInput) fatInput.value = 65;
+      updateCalculations();
+    });
+
+    // Save
+    document.getElementById('btn-save-settings-targets')?.addEventListener('click', () => {
+      const calories = parseFloat(calsInput?.value) || 2000;
+      const protein = parseFloat(protInput?.value) || 140;
+      const carbs = parseFloat(carbsInput?.value) || 220;
+      const fat = parseFloat(fatInput?.value) || 65;
+
+      window.store.updateTargets({ calories, protein, carbs, fat });
+      this.dailyCalorieTarget = calories;
+      this.closeModal();
+      this.showToast('Țintele calorice și macronutrienții au fost actualizate!', 'success');
+      this.renderCurrentView();
+    });
+
+    updateCalculations();
   }
 }
 

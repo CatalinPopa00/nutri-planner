@@ -560,6 +560,103 @@ class NutriStore {
     this.saveState();
   }
 
+  // --- COPY MEAL & PLAN ITEMS ---
+  copyMeal(sourceDay, sourceMeal, targetDay, targetMeal, overwrite = false) {
+    if (!this.data.weeklyPlan[sourceDay]) return false;
+    const sourceItems = this.data.weeklyPlan[sourceDay].filter(it => it.meal === sourceMeal);
+    if (sourceItems.length === 0) return false;
+
+    if (!this.data.weeklyPlan[targetDay]) {
+      this.data.weeklyPlan[targetDay] = [];
+    }
+
+    if (overwrite) {
+      this.data.weeklyPlan[targetDay] = this.data.weeklyPlan[targetDay].filter(it => it.meal !== targetMeal);
+    }
+
+    const now = Date.now();
+    if (!this.data.mealHistory) this.data.mealHistory = [];
+
+    const cloned = sourceItems.map((item, index) => {
+      const newItem = {
+        ...item,
+        id: 'plan_' + now + '_' + index + '_' + Math.random().toString(36).substr(2, 4),
+        meal: targetMeal
+      };
+
+      this.data.mealHistory.push({
+        meal: targetMeal,
+        recipeId: newItem.recipeId,
+        isIngredient: !!newItem.isIngredient,
+        timestamp: now
+      });
+
+      return newItem;
+    });
+
+    this.data.weeklyPlan[targetDay].push(...cloned);
+    this.saveState();
+    return true;
+  }
+
+  copyPlanItem(sourceDay, itemId, targetDay, targetMeal) {
+    if (!this.data.weeklyPlan[sourceDay]) return false;
+    const item = this.data.weeklyPlan[sourceDay].find(i => i.id === itemId);
+    if (!item) return false;
+
+    if (!this.data.weeklyPlan[targetDay]) {
+      this.data.weeklyPlan[targetDay] = [];
+    }
+
+    const now = Date.now();
+    const cloned = {
+      ...item,
+      id: 'plan_' + now + '_' + Math.random().toString(36).substr(2, 4),
+      meal: targetMeal
+    };
+
+    this.data.weeklyPlan[targetDay].push(cloned);
+
+    if (!this.data.mealHistory) this.data.mealHistory = [];
+    this.data.mealHistory.push({
+      meal: targetMeal,
+      recipeId: cloned.recipeId,
+      isIngredient: !!cloned.isIngredient,
+      timestamp: now
+    });
+
+    this.saveState();
+    return true;
+  }
+
+  // --- NUTRITIONAL TARGETS & SETTINGS ---
+  getTargets() {
+    const defaults = {
+      calories: 2000,
+      protein: 140,
+      carbs: 220,
+      fat: 65
+    };
+    if (!this.data.targets) {
+      this.data.targets = { ...defaults };
+    }
+    return {
+      calories: parseFloat(this.data.targets.calories) || defaults.calories,
+      protein: parseFloat(this.data.targets.protein) || defaults.protein,
+      carbs: parseFloat(this.data.targets.carbs) || defaults.carbs,
+      fat: parseFloat(this.data.targets.fat) || defaults.fat
+    };
+  }
+
+  updateTargets(targets) {
+    if (!this.data.targets) this.data.targets = {};
+    if (targets.calories !== undefined) this.data.targets.calories = Math.max(500, parseFloat(targets.calories) || 2000);
+    if (targets.protein !== undefined) this.data.targets.protein = Math.max(10, parseFloat(targets.protein) || 140);
+    if (targets.carbs !== undefined) this.data.targets.carbs = Math.max(10, parseFloat(targets.carbs) || 220);
+    if (targets.fat !== undefined) this.data.targets.fat = Math.max(10, parseFloat(targets.fat) || 65);
+    this.saveState();
+  }
+
   clearDay(day) {
     this.data.weeklyPlan[day] = [];
     this.saveState();
