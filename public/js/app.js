@@ -1972,14 +1972,16 @@ class NutriApp {
     // Position: 'center' (default: center middle vertically & horizontally) vs 'top' (for virtual keyboard search forms)
     const isTop = options.position === 'top';
     const positionClass = isTop
-      ? 'items-start pt-3 sm:pt-4 sm:items-center'
+      ? 'items-start pt-2 sm:pt-6 sm:items-center'
       : 'items-center';
 
+    const marginClass = isTop ? 'my-0 sm:my-auto' : 'my-auto';
+    const heightClass = options.height || (isTop ? 'h-[88dvh] max-h-[88dvh] sm:h-[680px]' : 'max-h-[88dvh] max-h-[88vh]');
     const maxWidthClass = options.maxWidth || 'max-w-2xl';
 
     modalWrapper.innerHTML = `
-      <div class="fixed inset-0 z-50 flex ${positionClass} justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
-        <div class="bg-white dark:bg-[#181924] rounded-3xl ${maxWidthClass} w-full max-h-[88dvh] max-h-[88vh] flex flex-col shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white relative overflow-hidden my-auto">
+      <div class="fixed inset-0 z-50 flex ${positionClass} justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
+        <div class="bg-white dark:bg-[#181924] rounded-3xl ${maxWidthClass} w-full ${heightClass} flex flex-col shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white relative overflow-hidden ${marginClass}">
           ${html}
         </div>
       </div>
@@ -2589,26 +2591,26 @@ class NutriApp {
       </div>
 
       <!-- Fixed Footer with Multi-Select Actions -->
-      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-3 bg-white dark:bg-[#181924]">
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-2 bg-white dark:bg-[#181924]">
         <div class="flex items-center gap-2 min-w-0">
           <span id="modal-meal-selected-count" class="px-2.5 py-1 rounded-full text-xs font-black bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] whitespace-nowrap">
             0 selectate
           </span>
-          <button id="btn-modal-select-all-visible" type="button" class="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white underline whitespace-nowrap">
+          <button id="btn-modal-select-all-visible" type="button" class="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white underline whitespace-nowrap">
             Selectează tot
           </button>
         </div>
 
         <div class="flex items-center gap-2 flex-shrink-0">
-          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
-          <button id="btn-modal-submit-meal-items" class="btn-pill btn-pill-primary text-xs sm:text-sm shadow whitespace-nowrap">
+          <button data-modal-close="true" class="hidden sm:inline-flex btn-pill btn-pill-outline text-xs py-2 px-3.5">Anulează</button>
+          <button id="btn-modal-submit-meal-items" class="btn-pill btn-pill-primary text-xs sm:text-sm shadow whitespace-nowrap py-2.5 px-4 sm:px-5">
             Adaugă în Plan (0)
           </button>
         </div>
       </div>
     `;
 
-    this.openModal(html, { position: 'center', maxWidth: 'max-w-2xl' });
+    this.openModal(html, { position: 'top', height: 'h-[88dvh] sm:h-[680px]', maxWidth: 'max-w-2xl' });
 
     const container = document.getElementById('modal-meal-items-container');
     const searchInput = document.getElementById('modal-meal-search');
@@ -2623,6 +2625,11 @@ class NutriApp {
       }
       if (submitBtn) {
         submitBtn.textContent = `Adaugă în Plan (${count})`;
+      }
+      if (selectAllBtn) {
+        const visible = getVisibleItems();
+        const allSelected = visible.length > 0 && visible.every(it => selectedMap.has(it.id));
+        selectAllBtn.textContent = allSelected ? 'Deselectează tot' : 'Selectează tot';
       }
     };
 
