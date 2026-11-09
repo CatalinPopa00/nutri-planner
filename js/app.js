@@ -162,6 +162,7 @@ class NutriApp {
       { id: 'Sâmbătă', short: 'Sâm', dateNum: '29' },
       { id: 'Duminică', short: 'Dum', dateNum: '30' }
     ];
+    const activeDayDef = dayDefinitions.find(d => d.id === this.activeDay) || dayDefinitions[0];
     const activeDayData = weekData.days[this.activeDay] || { items: [], totals: { cost: 0, calories: 0, protein: 0, carbs: 0, fat: 0 } };
     const targets = window.store.getTargets();
     this.dailyCalorieTarget = targets.calories;
@@ -253,30 +254,42 @@ class NutriApp {
           </div>
         </div>
 
-        <!-- Date Selector Vertical Capsule Strip (Screenshots 1 & 3) -->
-        <div>
-          <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-2 px-1">
-            ${dayDefinitions.map(d => {
-              const isSelected = this.activeDay === d.id;
-              const dayTotals = weekData.days[d.id]?.totals || { cost: 0, calories: 0 };
-              return `
-                <button data-day-btn="${d.id}" class="day-capsule ${isSelected ? 'active' : ''}" title="${d.id}: ${dayTotals.cost > 0 ? `${dayTotals.cost.toFixed(1)} RON` : 'Liber'}">
-                  <span class="day-capsule-name">${d.short}</span>
-                  <span class="day-capsule-dot"></span>
-                  <span class="day-capsule-num">${d.dateNum}</span>
-                </button>
-              `;
-            }).join('')}
-            <button data-day-btn="ALL" class="day-capsule day-capsule-all ${this.activeDay === 'ALL' ? 'active' : ''}">
-              <span class="day-capsule-name">Toată Săpt.</span>
-              <span class="day-capsule-dot"></span>
-              <span class="text-[11px] font-extrabold mt-1">7 Zile</span>
+        <!-- Floating Day Navigator (Shows ONLY current day + Swipe Support) -->
+        <div class="sticky top-18 z-30 flex justify-center py-2 pointer-events-none">
+          <div id="floating-day-nav" class="pointer-events-auto inline-flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/95 dark:bg-[#181924]/95 backdrop-blur-xl rounded-full shadow-lg border border-[#E5E0F5] dark:border-white/10 select-none transition-all">
+            <!-- Prev Day Arrow (<) -->
+            <button id="btn-day-prev" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition" title="Ziua anterioară (sau swipe spre dreapta)">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+
+            <!-- Current Day Name & Badge (Click to open day picker) -->
+            <button id="btn-open-day-picker" class="flex items-center gap-2 px-2.5 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 active:scale-98 transition" title="Apasă pentru selector rapid de zile">
+              <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-[#A390F5] to-[#FF6FA4] animate-pulse"></span>
+              <span class="text-sm sm:text-base font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
+                ${this.activeDay === 'ALL' ? 'Toată Săptămâna' : (activeDayDef ? activeDayDef.id : this.activeDay)}
+              </span>
+              ${this.activeDay === 'ALL' ? `
+                <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                  7 Zile
+                </span>
+              ` : `
+                <span class="text-[11px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] bg-brand-lilac/15 px-2 py-0.5 rounded-full">
+                  ${activeDayDef ? `${activeDayDef.dateNum} Noi` : ''}
+                </span>
+              `}
+            </button>
+
+            <!-- Next Day Arrow (>) -->
+            <button id="btn-day-next" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition" title="Ziua următoare (sau swipe spre stânga)">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </button>
           </div>
         </div>
 
-        <!-- Single Day View or Overview Table -->
-        ${this.activeDay === 'ALL' ? this.renderAllDaysOverview(weekData) : this.renderSingleDayView(this.activeDay, activeDayData, calPercent)}
+        <!-- Single Day View or Overview Table with Horizontal Swipe Support -->
+        <div id="planner-day-container" class="touch-pan-y">
+          ${this.activeDay === 'ALL' ? this.renderAllDaysOverview(weekData) : this.renderSingleDayView(this.activeDay, activeDayData, calPercent)}
+        </div>
       </div>
     `;
   }
@@ -396,13 +409,9 @@ class NutriApp {
           <!-- Calorie & Macronutrient Targets Progress Bars -->
           <div class="space-y-3 pt-3 border-t border-slate-100 dark:border-white/5">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-slate-800 dark:text-white">Aport vs. Ținte Zilnice</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] font-extrabold">Configurabil</span>
-              </div>
-              <button id="btn-edit-targets-quick" class="text-xs font-bold text-[#6D4AE8] dark:text-[#C4B5FD] hover:underline flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
-                <span>Modifică Ținte</span>
+              <span class="text-xs font-bold text-slate-800 dark:text-white">Aport vs. Obiectiv</span>
+              <button id="btn-edit-targets-quick" class="p-1.5 text-slate-400 hover:text-[#6D4AE8] dark:hover:text-[#C4B5FD] hover:bg-brand-lilac/10 dark:hover:bg-white/5 rounded-full transition" title="Configurare Obiectiv">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
               </button>
             </div>
 
@@ -634,7 +643,161 @@ class NutriApp {
     `;
   }
 
+  goToPrevDay() {
+    const dayOrder = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+    let idx = dayOrder.indexOf(this.activeDay);
+    if (idx === -1) idx = 0;
+    idx = (idx - 1 + dayOrder.length) % dayOrder.length;
+    this.activeDay = dayOrder[idx];
+    this.renderCurrentView();
+  }
+
+  goToNextDay() {
+    const dayOrder = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+    let idx = dayOrder.indexOf(this.activeDay);
+    if (idx === -1) idx = 0;
+    idx = (idx + 1) % dayOrder.length;
+    this.activeDay = dayOrder[idx];
+    this.renderCurrentView();
+  }
+
+  openDayPickerModal() {
+    const dayDefinitions = [
+      { id: 'Luni', short: 'Lun', dateNum: '24' },
+      { id: 'Marți', short: 'Mar', dateNum: '25' },
+      { id: 'Miercuri', short: 'Mie', dateNum: '26' },
+      { id: 'Joi', short: 'Joi', dateNum: '27' },
+      { id: 'Vineri', short: 'Vin', dateNum: '28' },
+      { id: 'Sâmbătă', short: 'Sâm', dateNum: '29' },
+      { id: 'Duminică', short: 'Dum', dateNum: '30' }
+    ];
+    const weekData = window.store.calculateWeek();
+    const html = `
+      <div class="p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-brand-lilac/20 flex items-center justify-center text-[#6D4AE8] dark:text-[#C4B5FD]">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white font-display">Alege Ziua din Plan</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Poți naviga și prin swipe stânga / dreapta pe ecran</p>
+          </div>
+        </div>
+        <button data-modal-close="true" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-2.5 max-h-[70vh] overflow-y-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          ${dayDefinitions.map(d => {
+            const isSelected = this.activeDay === d.id;
+            const totals = weekData.days[d.id]?.totals || { cost: 0, calories: 0 };
+            const itemsCount = (window.store.data.weeklyPlan[d.id] || []).length;
+            return `
+              <button data-select-day="${d.id}" class="p-3.5 rounded-2xl border text-left transition flex items-center justify-between ${isSelected ? 'border-[#6D4AE8] bg-brand-lilac/10 font-bold ring-2 ring-[#6D4AE8]/20' : 'border-[#E5E0F5] dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-[#181924]'}">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-extrabold text-slate-900 dark:text-white">${d.id}</span>
+                    <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500">${d.dateNum} Noiembrie</span>
+                  </div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    ${itemsCount > 0 ? `${itemsCount} prep. • ${Math.round(totals.calories)} kcal • ${totals.cost.toFixed(1)} RON` : '<span class="italic text-slate-400">Nicio masă adăugată</span>'}
+                  </div>
+                </div>
+                ${isSelected ? '<span class="w-2.5 h-2.5 rounded-full bg-[#6D4AE8] dark:bg-[#C4B5FD] flex-shrink-0"></span>' : ''}
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <button data-select-day="ALL" class="w-full p-3.5 rounded-2xl border text-center transition flex items-center justify-center gap-2 ${this.activeDay === 'ALL' ? 'border-[#6D4AE8] bg-brand-lilac/10 font-bold ring-2 ring-[#6D4AE8]/20' : 'border-[#E5E0F5] dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-[#181924]'}">
+          <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span class="text-sm font-extrabold text-slate-900 dark:text-white">Toată Săptămâna (Tabel & Prezentare Generală)</span>
+        </button>
+      </div>
+    `;
+    this.openModal(html, { maxWidth: 'max-w-lg', position: 'center' });
+    document.querySelectorAll('[data-select-day]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const day = e.currentTarget.getAttribute('data-select-day');
+        this.activeDay = day;
+        this.closeModal();
+        this.renderCurrentView();
+      });
+    });
+  }
+
+  bindDaySwipeGestures() {
+    const swipeTargets = [
+      document.getElementById('planner-day-container'),
+      document.getElementById('floating-day-nav')
+    ].filter(Boolean);
+
+    if (swipeTargets.length === 0) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const onTouchStart = (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+      const deltaTime = Date.now() - touchStartTime;
+
+      // Condition: Fast enough (< 800ms), sufficient distance (>= 40px), and primarily horizontal
+      if (deltaTime < 800 && Math.abs(deltaX) >= 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+        if (e.target && e.target.closest('input, textarea, select, [data-portion-plus], [data-portion-minus], [data-delete-plan-item]')) {
+          if (Math.abs(deltaX) < 65) return;
+        }
+
+        if (deltaX > 40) {
+          // Swipe spre dreapta -> o zi in urma
+          this.goToPrevDay();
+        } else if (deltaX < -40) {
+          // Swipe spre stanga -> o zi dupa
+          this.goToNextDay();
+        }
+      }
+    };
+
+    swipeTargets.forEach(target => {
+      target.addEventListener('touchstart', onTouchStart, { passive: true });
+      target.addEventListener('touchend', onTouchEnd, { passive: true });
+    });
+  }
+
   bindPlannerEvents() {
+    // Floating day navigator controls
+    const prevBtn = document.getElementById('btn-day-prev');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => this.goToPrevDay());
+    }
+
+    const nextBtn = document.getElementById('btn-day-next');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => this.goToNextDay());
+    }
+
+    const pickerBtn = document.getElementById('btn-open-day-picker');
+    if (pickerBtn) {
+      pickerBtn.addEventListener('click', () => this.openDayPickerModal());
+    }
+
+    // Touch swipe gestures (swipe right -> prev day, swipe left -> next day)
+    this.bindDaySwipeGestures();
+
     // Day switcher buttons
     document.querySelectorAll('[data-day-btn]').forEach(btn => {
       btn.addEventListener('click', (e) => {
