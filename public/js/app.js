@@ -379,16 +379,13 @@ class NutriApp {
               <div class="bento-card ${meal.colorClass} p-5 sm:p-6 flex flex-col justify-between">
                 <div>
                   <!-- Meal Card Header -->
-                  <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="flex items-center justify-between gap-3 mb-3">
                     <div>
-                      <span class="pill-badge pill-badge-translucent mb-1.5">
-                        ${meal.badge}
-                      </span>
                       <h4 class="text-xl sm:text-2xl font-extrabold font-display leading-tight tracking-tight">
                         ${meal.title}
                       </h4>
                       ${mealItems.length > 0 ? `
-                        <div class="text-xs font-semibold mt-1 opacity-85">
+                        <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-0.5">
                           ${mealCost.toFixed(2)} RON • ${Math.round(mealCals)} kcal
                         </div>
                       ` : ''}
@@ -398,7 +395,7 @@ class NutriApp {
                       <div class="hidden sm:block">
                         ${meal.iconSvg}
                       </div>
-                      <button data-add-meal-recipe="${meal.id}" class="btn-pill btn-pill-dark text-xs py-2 px-3">
+                      <button data-add-meal-recipe="${meal.id}" class="btn-pill btn-pill-dark text-xs py-2 px-3 shadow-xs">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
                         <span>Adaugă</span>
                       </button>
@@ -413,31 +410,30 @@ class NutriApp {
                   ` : `
                     <div class="space-y-2.5">
                       ${mealItems.map(item => `
-                        <div class="bg-white/90 dark:bg-[#181924]/90 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="bg-white/95 dark:bg-[#181924]/95 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 p-3 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
                           <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                              <span class="font-extrabold text-sm text-slate-900 dark:text-white truncate">${item.recipeName}</span>
-                              <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">${item.category}</span>
-                            </div>
-                            <!-- Macros breakdown -->
-                            <div class="flex flex-wrap items-center gap-1.5 mt-1.5 text-xs">
-                              <span class="font-extrabold text-[#218352] dark:text-[#70D6A3] text-sm">${item.cost.toFixed(2)} RON</span>
+                            <div class="font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug">${item.recipeName}</div>
+                            <!-- Single row: Price, Calories, Protein, Carbs, Fat -->
+                            <div class="flex items-center gap-1.5 mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap overflow-x-auto no-scrollbar">
+                              <span class="font-black text-[#218352] dark:text-[#70D6A3] text-sm">${item.cost.toFixed(2)} lei</span>
                               <span class="text-slate-300 dark:text-slate-600">•</span>
-                              <span class="font-semibold text-slate-700 dark:text-slate-300">${Math.round(item.calories)} kcal</span>
+                              <span class="font-bold text-slate-800 dark:text-slate-200">${Math.round(item.calories)} kcal</span>
                               <span class="text-slate-300 dark:text-slate-600">•</span>
-                              <span class="macro-badge-p px-2 py-0.5 rounded-full text-[10px] font-bold">${item.protein.toFixed(1)}g P</span>
-                              <span class="macro-badge-c px-2 py-0.5 rounded-full text-[10px] font-bold">${item.carbs.toFixed(1)}g C</span>
-                              <span class="macro-badge-f px-2 py-0.5 rounded-full text-[10px] font-bold">${item.fat.toFixed(1)}g G</span>
+                              <span class="text-[#E02868] dark:text-[#FFA4CD] font-bold">${item.protein.toFixed(1)}g P</span>
+                              <span class="text-slate-300 dark:text-slate-600">•</span>
+                              <span class="text-[#D97706] dark:text-[#FFC480] font-bold">${item.carbs.toFixed(1)}g C</span>
+                              <span class="text-slate-300 dark:text-slate-600">•</span>
+                              <span class="text-[#0284C7] dark:text-[#98DDFE] font-bold">${item.fat.toFixed(1)}g G</span>
                             </div>
                           </div>
 
                           <!-- Portions control & Delete -->
-                          <div class="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 dark:border-white/10">
+                          <div class="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 dark:border-white/10 flex-shrink-0">
                             <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/10 rounded-full p-1">
                               <button data-portion-minus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="Scade 0.5 porții">
                                 −
                               </button>
-                              <span class="text-xs font-bold text-slate-800 dark:text-white px-2 min-w-[2.8rem] text-center">${item.portions}</span>
+                              <span class="text-xs font-extrabold text-slate-800 dark:text-white px-2 min-w-[2.4rem] text-center">${item.portions}</span>
                               <button data-portion-plus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="Crește 0.5 porții">
                                 +
                               </button>
@@ -921,70 +917,120 @@ class NutriApp {
           </div>
         </div>
 
-        <!-- Ingredients Table / Cards -->
-        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 shadow-sm overflow-hidden p-5 sm:p-6">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr class="border-b border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 text-slate-600 dark:text-slate-400">
-                  <th class="py-3 px-3.5 font-bold rounded-l-xl">Ingredient & Categorie</th>
-                  <th class="py-3 px-3 font-bold">Pachet (g / RON)</th>
-                  <th class="py-3 px-3 font-bold text-[#218352] dark:text-[#70D6A3]">Preț / 100g</th>
-                  <th class="py-3 px-3 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">Calorii / 100g</th>
-                  <th class="py-3 px-3 font-bold text-[#E02868] dark:text-[#FFA4CD]">Proteine</th>
-                  <th class="py-3 px-3 font-bold text-[#D97706] dark:text-[#FFC480]">Carbi</th>
-                  <th class="py-3 px-3 font-bold text-[#0284C7] dark:text-[#98DDFE]">Grăsimi</th>
-                  <th class="py-3 px-3 font-bold text-right rounded-r-xl">Acțiuni</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-white/5">
-                ${ingredients.length === 0 ? `
-                  <tr>
-                    <td colspan="8" class="text-center py-8 text-slate-400">Nu a fost găsit niciun ingredient.</td>
+        <!-- Ingredients Mobile Cards (sm:hidden) & Desktop Table (hidden sm:block) -->
+        <div>
+          <!-- Mobile Cards List: 100% responsive, elegant, no horizontal scroll -->
+          <div class="sm:hidden space-y-2.5">
+            ${ingredients.length === 0 ? `
+              <div class="text-center py-8 text-slate-400 bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-6">
+                Nu a fost găsit niciun ingredient.
+              </div>
+            ` : ingredients.map(ing => `
+              <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-3.5 shadow-xs space-y-2">
+                <!-- Top Line: Name & Category + Price/100g badge + Actions -->
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug">${ing.name}</div>
+                    <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                      <span>${ing.category}</span>
+                      ${ing.ean ? `<span class="opacity-40">•</span> <span class="font-mono text-[10px] text-slate-400">EAN: ${ing.ean}</span>` : ''}
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-black bg-[#70D6A3]/15 text-[#218352] dark:text-[#70D6A3] border border-emerald-500/20 whitespace-nowrap">
+                      ${ing.pricePer100g.toFixed(2)} lei/100g
+                    </span>
+                    <button data-ing-edit="${ing.id}" class="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Editează">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <button data-ing-delete="${ing.id}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Bottom Line: Package Gramaj & Price + Calories, P, C, G on SAME LINE -->
+                <div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 pt-1.5 border-t border-slate-100 dark:border-white/5 whitespace-nowrap overflow-x-auto no-scrollbar">
+                  <span class="font-semibold text-slate-800 dark:text-slate-200">${ing.packageQuantity}g (${ing.packagePrice.toFixed(2)} lei)</span>
+                  <span class="text-slate-300 dark:text-slate-600">•</span>
+                  <span class="font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">${Math.round(ing.calories)} kcal</span>
+                  <span class="text-slate-300 dark:text-slate-600">•</span>
+                  <span class="text-[#E02868] dark:text-[#FFA4CD] font-bold">${ing.protein.toFixed(1)}g P</span>
+                  <span class="text-slate-300 dark:text-slate-600">•</span>
+                  <span class="text-[#D97706] dark:text-[#FFC480] font-bold">${ing.carbs.toFixed(1)}g C</span>
+                  <span class="text-slate-300 dark:text-slate-600">•</span>
+                  <span class="text-[#0284C7] dark:text-[#98DDFE] font-bold">${ing.fat.toFixed(1)}g G</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Desktop Table: preserved with refined borders & padding -->
+          <div class="hidden sm:block bento-card bento-white border border-[#E5E0F5] dark:border-white/10 shadow-sm overflow-hidden p-5 sm:p-6">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 text-slate-600 dark:text-slate-400">
+                    <th class="py-3 px-3.5 font-bold rounded-l-xl">Ingredient & Categorie</th>
+                    <th class="py-3 px-3 font-bold">Pachet (g / lei)</th>
+                    <th class="py-3 px-3 font-bold text-[#218352] dark:text-[#70D6A3]">Preț / 100g</th>
+                    <th class="py-3 px-3 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">Calorii / 100g</th>
+                    <th class="py-3 px-3 font-bold text-[#E02868] dark:text-[#FFA4CD]">Proteine</th>
+                    <th class="py-3 px-3 font-bold text-[#D97706] dark:text-[#FFC480]">Carbi</th>
+                    <th class="py-3 px-3 font-bold text-[#0284C7] dark:text-[#98DDFE]">Grăsimi</th>
+                    <th class="py-3 px-3 font-bold text-right rounded-r-xl">Acțiuni</th>
                   </tr>
-                ` : ingredients.map(ing => `
-                  <tr class="hover:bg-slate-50/80 dark:hover:bg-white/5 transition">
-                    <td class="py-3.5 px-3.5">
-                      <div class="font-extrabold text-slate-900 dark:text-white text-sm">${ing.name}</div>
-                      <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full">${ing.category}</span>
-                        ${ing.ean ? `<span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">EAN: ${ing.ean}</span>` : ''}
-                      </div>
-                    </td>
-                    <td class="py-3.5 px-3 text-slate-600 dark:text-slate-400">
-                      ${ing.packageQuantity}g • <span class="font-bold text-slate-900 dark:text-white">${ing.packagePrice.toFixed(2)} RON</span>
-                    </td>
-                    <td class="py-3.5 px-3">
-                      <span class="pill-badge bg-[#70D6A3]/15 text-[#218352] dark:text-[#70D6A3] font-black text-xs px-2.5 py-0.5">
-                        ${ing.pricePer100g.toFixed(2)} RON
-                      </span>
-                    </td>
-                    <td class="py-3.5 px-3 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">
-                      ${Math.round(ing.calories)} kcal
-                    </td>
-                    <td class="py-3.5 px-3">
-                      <span class="macro-badge-p px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.protein.toFixed(1)}g</span>
-                    </td>
-                    <td class="py-3.5 px-3">
-                      <span class="macro-badge-c px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.carbs.toFixed(1)}g</span>
-                    </td>
-                    <td class="py-3.5 px-3">
-                      <span class="macro-badge-f px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.fat.toFixed(1)}g</span>
-                    </td>
-                    <td class="py-3.5 px-3 text-right">
-                      <div class="flex items-center justify-end gap-1">
-                        <button data-ing-edit="${ing.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Editează">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        </button>
-                        <button data-ing-delete="${ing.id}" class="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                  ${ingredients.length === 0 ? `
+                    <tr>
+                      <td colspan="8" class="text-center py-8 text-slate-400">Nu a fost găsit niciun ingredient.</td>
+                    </tr>
+                  ` : ingredients.map(ing => `
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-white/5 transition">
+                      <td class="py-3.5 px-3.5">
+                        <div class="font-extrabold text-slate-900 dark:text-white text-sm">${ing.name}</div>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                          <span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full">${ing.category}</span>
+                          ${ing.ean ? `<span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">EAN: ${ing.ean}</span>` : ''}
+                        </div>
+                      </td>
+                      <td class="py-3.5 px-3 text-slate-600 dark:text-slate-400">
+                        ${ing.packageQuantity}g • <span class="font-bold text-slate-900 dark:text-white">${ing.packagePrice.toFixed(2)} lei</span>
+                      </td>
+                      <td class="py-3.5 px-3">
+                        <span class="pill-badge bg-[#70D6A3]/15 text-[#218352] dark:text-[#70D6A3] font-black text-xs px-2.5 py-0.5">
+                          ${ing.pricePer100g.toFixed(2)} lei/100g
+                        </span>
+                      </td>
+                      <td class="py-3.5 px-3 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">
+                        ${Math.round(ing.calories)} kcal
+                      </td>
+                      <td class="py-3.5 px-3">
+                        <span class="macro-badge-p px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.protein.toFixed(1)}g</span>
+                      </td>
+                      <td class="py-3.5 px-3">
+                        <span class="macro-badge-c px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.carbs.toFixed(1)}g</span>
+                      </td>
+                      <td class="py-3.5 px-3">
+                        <span class="macro-badge-f px-2 py-0.5 rounded-full text-[11px] font-bold">${ing.fat.toFixed(1)}g</span>
+                      </td>
+                      <td class="py-3.5 px-3 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                          <button data-ing-edit="${ing.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Editează">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                          </button>
+                          <button data-ing-delete="${ing.id}" class="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -2094,33 +2140,73 @@ class NutriApp {
       <!-- Scrollable Content -->
       <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5">
         <!-- Recipe Overview Cards (Bento Macro Cards) -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div class="bg-emerald-50 dark:bg-emerald-500/10 p-3.5 rounded-2xl border border-emerald-200/50 dark:border-emerald-500/20">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center">
+          <div class="bg-emerald-50 dark:bg-emerald-500/10 p-3 sm:p-3.5 rounded-2xl border border-emerald-200/50 dark:border-emerald-500/20">
             <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">Preț / Porție</div>
-            <div class="text-lg font-black text-emerald-700 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
-            <div class="text-[10px] text-emerald-600 dark:text-emerald-300/70">Total: ${r.totals.cost.toFixed(2)} RON</div>
+            <div class="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-400 mt-0.5">${r.perServing.cost.toFixed(2)} RON</div>
+            <div class="text-[10px] text-emerald-600 dark:text-emerald-300/70 mt-0.5">Total: ${r.totals.cost.toFixed(2)} RON</div>
           </div>
-          <div class="bg-brand-lilac/15 dark:bg-brand-lilac/10 p-3.5 rounded-2xl border border-brand-lilac/30">
+          <div class="bg-brand-lilac/15 dark:bg-brand-lilac/10 p-3 sm:p-3.5 rounded-2xl border border-brand-lilac/30">
             <div class="text-[11px] font-bold text-brand-dark dark:text-brand-lilac">Calorii / Porție</div>
-            <div class="text-lg font-black text-brand-dark dark:text-white">${Math.round(r.perServing.calories)} <span class="text-xs font-normal">kcal</span></div>
-            <div class="text-[10px] text-slate-500 dark:text-white/60">Total: ${Math.round(r.totals.calories)} kcal</div>
+            <div class="text-base sm:text-lg font-black text-brand-dark dark:text-white mt-0.5">${Math.round(r.perServing.calories)} <span class="text-xs font-normal">kcal</span></div>
+            <div class="text-[10px] text-slate-500 dark:text-white/60 mt-0.5">Total: ${Math.round(r.totals.calories)} kcal</div>
           </div>
-          <div class="bg-brand-pink/15 dark:bg-brand-pink/10 p-3.5 rounded-2xl border border-brand-pink/30">
+          <div class="bg-brand-pink/15 dark:bg-brand-pink/10 p-3 sm:p-3.5 rounded-2xl border border-brand-pink/30">
             <div class="text-[11px] font-bold text-rose-700 dark:text-brand-pink">Proteine / Porție</div>
-            <div class="text-lg font-black text-rose-600 dark:text-brand-pink">${r.perServing.protein.toFixed(1)}g</div>
-            <div class="text-[10px] text-rose-500 dark:text-brand-pink/70">${Math.round(r.macroShare.protein)}% calorii</div>
+            <div class="text-base sm:text-lg font-black text-rose-600 dark:text-brand-pink mt-0.5">${r.perServing.protein.toFixed(1)}g</div>
+            <div class="text-[10px] text-rose-500 dark:text-brand-pink/70 mt-0.5">${Math.round(r.macroShare.protein)}% calorii</div>
           </div>
-          <div class="bg-brand-apricot/15 dark:bg-brand-apricot/10 p-3.5 rounded-2xl border border-brand-apricot/30">
+          <div class="bg-brand-apricot/15 dark:bg-brand-apricot/10 p-3 sm:p-3.5 rounded-2xl border border-brand-apricot/30">
             <div class="text-[11px] font-bold text-amber-800 dark:text-brand-apricot">Carbi & Grăsimi</div>
-            <div class="text-sm font-extrabold text-slate-800 dark:text-white mt-1">${r.perServing.carbs.toFixed(1)}g C | ${r.perServing.fat.toFixed(1)}g G</div>
-            <div class="text-[10px] text-slate-500 dark:text-white/60">${Math.round(r.macroShare.carbs)}% C | ${Math.round(r.macroShare.fat)}% G</div>
+            <div class="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-white mt-1 whitespace-nowrap">${r.perServing.carbs.toFixed(1)}g C • ${r.perServing.fat.toFixed(1)}g G</div>
+            <div class="text-[10px] text-slate-500 dark:text-white/60 whitespace-nowrap mt-0.5">${Math.round(r.macroShare.carbs)}% C • ${Math.round(r.macroShare.fat)}% G</div>
           </div>
         </div>
 
-        <!-- Full Detailed Table (Exact Google Sheet Replica) -->
+        <!-- Recipe Ingredients Composition: Mobile Cards (sm:hidden) & Desktop Table (hidden sm:block) -->
         <div>
           <h4 class="text-xs font-extrabold text-slate-700 dark:text-white/80 uppercase tracking-wider mb-2.5">Compoziție Ingrediente & Costuri</h4>
-          <div class="overflow-x-auto border border-[#E5E0F5] dark:border-white/10 rounded-2xl">
+          
+          <!-- Mobile List Cards (Zero horizontal scroll needed) -->
+          <div class="sm:hidden space-y-2">
+            ${r.ingredients.map(ing => `
+              <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 space-y-1.5 shadow-2xs">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">${ing.name}</span>
+                  <span class="font-black text-xs text-[#218352] dark:text-[#70D6A3] whitespace-nowrap">${ing.cost.toFixed(2)} RON</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-white/70 whitespace-nowrap overflow-x-auto no-scrollbar">
+                  <span class="font-bold text-slate-800 dark:text-white">${ing.quantity}g</span>
+                  <span class="text-slate-400">(${ing.pricePer100g.toFixed(2)} lei/100g)</span>
+                  <span class="opacity-40">•</span>
+                  <span class="font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">${Math.round(ing.calories)} kcal</span>
+                  <span class="opacity-40">•</span>
+                  <span class="text-rose-500 font-bold">${ing.protein.toFixed(1)}g P</span>
+                  <span class="opacity-40">•</span>
+                  <span class="text-amber-500 font-bold">${ing.carbs.toFixed(1)}g C</span>
+                  <span class="opacity-40">•</span>
+                  <span class="text-sky-500 font-bold">${ing.fat.toFixed(1)}g G</span>
+                  <span class="opacity-40">•</span>
+                  <span class="text-slate-400 font-semibold">${ing.costShare.toFixed(1)}%</span>
+                </div>
+              </div>
+            `).join('')}
+
+            <!-- Mobile Totals Card -->
+            <div class="p-3 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-2xl border border-emerald-500/20 space-y-1 mt-2.5">
+              <div class="flex justify-between text-xs font-bold text-slate-700 dark:text-white/80">
+                <span>TOTAL REȚETĂ (${Math.round(r.totals.weight)}g)</span>
+                <span class="font-black text-[#218352] dark:text-[#70D6A3]">${r.totals.cost.toFixed(2)} RON</span>
+              </div>
+              <div class="flex justify-between text-xs font-black text-emerald-800 dark:text-emerald-300 pt-1 border-t border-emerald-500/20">
+                <span>PER PORȚIE (${r.servings} porții • ${Math.round(r.perServing.weight)}g)</span>
+                <span>${r.perServing.cost.toFixed(2)} RON</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Table (Preserved with all 9 columns for wide screens) -->
+          <div class="hidden sm:block overflow-x-auto border border-[#E5E0F5] dark:border-white/10 rounded-2xl">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
                 <tr class="bg-[#F4F3FA] dark:bg-white/5 border-b border-[#E5E0F5] dark:border-white/10 text-slate-600 dark:text-white/70">
@@ -2140,7 +2226,7 @@ class NutriApp {
                   <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition">
                     <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-white">${ing.name}</td>
                     <td class="py-2.5 px-2 text-slate-600 dark:text-white/70">${ing.quantity}g</td>
-                    <td class="py-2.5 px-2 text-slate-600 dark:text-white/70">${ing.pricePer100g.toFixed(2)} RON</td>
+                    <td class="py-2.5 px-2 text-slate-600 dark:text-white/70">${ing.pricePer100g.toFixed(2)} lei</td>
                     <td class="py-2.5 px-2 font-bold text-emerald-600 dark:text-emerald-400">${ing.cost.toFixed(2)} RON</td>
                     <td class="py-2.5 px-2 text-slate-700 dark:text-white/80">${Math.round(ing.calories)}</td>
                     <td class="py-2.5 px-2 text-rose-500 font-semibold">${ing.protein.toFixed(1)}g</td>
