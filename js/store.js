@@ -498,7 +498,7 @@ class NutriStore {
       id: 'plan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       meal: meal || 'Prânz',
       recipeId,
-      servings: Math.max(0.1, parseFloat(servings) || 1.0),
+      servings: Math.max(0.01, parseFloat(servings) || 1.0),
       isIngredient: !!isIngredient
     };
     this.data.weeklyPlan[day].push(item);
@@ -535,7 +535,7 @@ class NutriStore {
         id: 'plan_' + (now + idx) + '_' + Math.random().toString(36).substr(2, 4),
         meal: meal || 'Prânz',
         recipeId: it.recipeId || it.id,
-        servings: Math.max(0.1, parseFloat(it.servings) || 1.0),
+        servings: Math.max(0.01, parseFloat(it.servings) || 1.0),
         isIngredient: !!it.isIngredient
       };
       this.data.weeklyPlan[day].push(planItem);
@@ -709,7 +709,7 @@ class NutriStore {
     if (!this.data.weeklyPlan[day]) return;
     const item = this.data.weeklyPlan[day].find(i => i.id === itemId);
     if (item) {
-      item.servings = Math.max(0.1, parseFloat(servings) || 1.0);
+      item.servings = Math.max(0.01, parseFloat(servings) || 0.01);
       this.saveState();
     }
   }

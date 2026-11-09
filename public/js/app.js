@@ -556,14 +556,17 @@ class NutriApp {
                             </div>
                           </div>
 
-                          <!-- Portions control, Copy item & Delete -->
+                          <!-- Portions / Grams control, Copy item & Delete -->
                           <div class="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 dark:border-white/10 flex-shrink-0">
-                            <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/10 rounded-full p-1">
-                              <button data-portion-minus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="${item.isIngredient ? 'Scade 50g' : 'Scade 0.5 porții'}">
+                            <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/10 rounded-2xl p-0.5">
+                              <button data-portion-minus="${item.id}" data-is-ing="${item.isIngredient ? 'true' : 'false'}" class="w-6 h-6 flex items-center justify-center rounded-xl bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="${item.isIngredient ? 'Scade 10g' : 'Scade 0.5 porții'}">
                                 −
                               </button>
-                              <span class="text-xs font-extrabold text-slate-800 dark:text-white px-2 min-w-[2.4rem] text-center">${item.isIngredient ? (item.portions * 100) + 'g' : item.portions}</span>
-                              <button data-portion-plus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="${item.isIngredient ? 'Crește 50g' : 'Crește 0.5 porții'}">
+                              <div class="flex items-center px-1">
+                                <input type="number" step="${item.isIngredient ? '1' : '0.5'}" min="${item.isIngredient ? '1' : '0.1'}" data-portion-input="${item.id}" data-is-ing="${item.isIngredient ? 'true' : 'false'}" value="${item.isIngredient ? Math.round(item.portions * 100) : item.portions}" class="w-12 text-center text-xs font-extrabold text-slate-800 dark:text-white bg-transparent focus:bg-white dark:focus:bg-[#181924] focus:outline-none focus:ring-1 focus:ring-brand-lilac rounded py-0.5 transition" title="${item.isIngredient ? 'Modifică gramajul manual' : 'Modifică numărul de porții'}">
+                                <span class="text-[10px] text-slate-400 dark:text-white/40 font-bold ml-0.5 pointer-events-none">${item.isIngredient ? 'g' : 'p'}</span>
+                              </div>
+                              <button data-portion-plus="${item.id}" data-is-ing="${item.isIngredient ? 'true' : 'false'}" class="w-6 h-6 flex items-center justify-center rounded-xl bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="${item.isIngredient ? 'Crește 10g' : 'Crește 0.5 porții'}">
                                 +
                               </button>
                             </div>
@@ -860,13 +863,40 @@ class NutriApp {
       });
     });
 
+    // Direct manual input for portion / gramaj in day plan
+    document.querySelectorAll('[data-portion-input]').forEach(input => {
+      const applyInput = () => {
+        const itemId = input.getAttribute('data-portion-input');
+        const isIng = input.getAttribute('data-is-ing') === 'true';
+        const val = parseFloat(input.value);
+        if (isNaN(val) || val <= 0) return;
+        const finalServings = isIng ? Math.max(0.01, val / 100) : Math.max(0.1, val);
+        window.store.updatePlanItemServings(this.activeDay, itemId, finalServings);
+      };
+
+      input.addEventListener('change', applyInput);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+      });
+    });
+
     // Portion plus / minus
     document.querySelectorAll('[data-portion-minus]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const itemId = e.currentTarget.getAttribute('data-portion-minus');
+        const isIng = e.currentTarget.getAttribute('data-is-ing') === 'true';
         const item = (window.store.data.weeklyPlan[this.activeDay] || []).find(i => i.id === itemId);
-        if (item && item.servings > 0.5) {
-          window.store.updatePlanItemServings(this.activeDay, itemId, item.servings - 0.5);
+        if (item) {
+          if (isIng) {
+            const curGrams = Math.round(item.servings * 100);
+            const newGrams = Math.max(5, curGrams - 10);
+            window.store.updatePlanItemServings(this.activeDay, itemId, newGrams / 100);
+          } else if (item.servings > 0.5) {
+            window.store.updatePlanItemServings(this.activeDay, itemId, Math.round((item.servings - 0.5) * 10) / 10);
+          }
         }
       });
     });
@@ -874,9 +904,16 @@ class NutriApp {
     document.querySelectorAll('[data-portion-plus]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const itemId = e.currentTarget.getAttribute('data-portion-plus');
+        const isIng = e.currentTarget.getAttribute('data-is-ing') === 'true';
         const item = (window.store.data.weeklyPlan[this.activeDay] || []).find(i => i.id === itemId);
         if (item) {
-          window.store.updatePlanItemServings(this.activeDay, itemId, item.servings + 0.5);
+          if (isIng) {
+            const curGrams = Math.round(item.servings * 100);
+            const newGrams = curGrams + 10;
+            window.store.updatePlanItemServings(this.activeDay, itemId, newGrams / 100);
+          } else {
+            window.store.updatePlanItemServings(this.activeDay, itemId, Math.round((item.servings + 0.5) * 10) / 10);
+          }
         }
       });
     });
@@ -3167,12 +3204,15 @@ class NutriApp {
                   </div>
                 </div>
 
-                <!-- Right Side: Servings Stepper & Quick Add Button -->
+                <!-- Right Side: Servings / Grams Stepper & Quick Add Button -->
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <div class="flex items-center bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-xl p-0.5" onclick="event.stopPropagation()">
-                    <button type="button" data-meal-minus="${it.id}" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 transition">−</button>
-                    <span data-meal-servings-text="${it.id}" class="text-xs font-extrabold min-w-[2rem] text-center text-slate-800 dark:text-white">${servings}</span>
-                    <button type="button" data-meal-plus="${it.id}" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 transition">+</button>
+                  <div class="flex items-center bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-xl p-0.5 shadow-2xs" onclick="event.stopPropagation()">
+                    <button type="button" data-meal-minus="${it.id}" data-is-ing="${it.isIngredient ? 'true' : 'false'}" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 transition" title="${it.isIngredient ? 'Scade 10g' : 'Scade 0.5 porții'}">−</button>
+                    <div class="flex items-center px-1">
+                      <input type="number" step="${it.isIngredient ? '1' : '0.5'}" min="${it.isIngredient ? '1' : '0.1'}" data-meal-servings-input="${it.id}" data-is-ing="${it.isIngredient ? 'true' : 'false'}" value="${it.isIngredient ? Math.round(servings * 100) : servings}" class="w-12 text-center text-xs font-extrabold text-slate-900 dark:text-white bg-transparent focus:outline-none focus:ring-1 focus:ring-brand-lilac rounded py-0.5" title="${it.isIngredient ? 'Introdu gramajul manual (ex: 60, 75, 120)' : 'Număr porții'}">
+                      <span class="text-[10px] text-slate-400 dark:text-white/40 font-bold ml-0.5 pointer-events-none">${it.isIngredient ? 'g' : 'p'}</span>
+                    </div>
+                    <button type="button" data-meal-plus="${it.id}" data-is-ing="${it.isIngredient ? 'true' : 'false'}" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 transition" title="${it.isIngredient ? 'Crește 10g' : 'Crește 0.5 porții'}">+</button>
                   </div>
 
                   <button type="button" data-meal-quick-add="${it.id}" class="p-1.5 rounded-xl text-slate-400 hover:text-[#6D4AE8] hover:bg-brand-lilac/10 transition" title="Adaugă instant">
@@ -3214,7 +3254,7 @@ class NutriApp {
       // Card click toggles selection
       container?.querySelectorAll('[data-meal-card-id]').forEach(card => {
         card.addEventListener('click', (e) => {
-          if (e.target.closest('button') || e.target.closest('input[type="checkbox"]')) return;
+          if (e.target.closest('button') || e.target.closest('input[type="checkbox"]') || e.target.closest('input[type="number"]')) return;
           const id = card.getAttribute('data-meal-card-id');
           toggleItemSelection(id);
         });
@@ -3228,19 +3268,75 @@ class NutriApp {
         });
       });
 
+      // Manual input change for portions / grams
+      container?.querySelectorAll('[data-meal-servings-input]').forEach(input => {
+        const handleUpdate = () => {
+          const id = input.getAttribute('data-meal-servings-input');
+          const isIng = input.getAttribute('data-is-ing') === 'true';
+          const val = parseFloat(input.value);
+          if (isNaN(val) || val <= 0) return;
+          const updatedServings = isIng ? Math.max(0.01, val / 100) : Math.max(0.1, val);
+          servingsMap.set(id, updatedServings);
+          if (selectedMap.has(id)) {
+            selectedMap.get(id).servings = updatedServings;
+          }
+
+          // Live update macro numbers and cost on this card
+          const allItems = [...favoritesList, ...fruitVegList, ...sweetsList, ...recipesList, ...ingredientsList];
+          const target = allItems.find(x => x.id === id);
+          if (target) {
+            const card = container.querySelector(`[data-meal-card-id="${id}"]`);
+            const macroRow = card?.querySelector('.whitespace-nowrap.overflow-hidden');
+            if (macroRow) {
+              const cost = target.cost * updatedServings;
+              const cals = target.calories * updatedServings;
+              const prot = target.protein * updatedServings;
+              const carbs = target.carbs * updatedServings;
+              const fat = target.fat * updatedServings;
+              macroRow.innerHTML = `
+                <span class="font-black text-[#218352] dark:text-[#70D6A3]">${cost.toFixed(2)} lei</span>
+                <span class="text-slate-300 dark:text-slate-600">•</span>
+                <span class="font-bold text-slate-800 dark:text-slate-200">${Math.round(cals)} kcal</span>
+                <span class="text-slate-300 dark:text-slate-600">•</span>
+                <span class="text-[#E02868] dark:text-[#FFA4CD] font-bold">${prot.toFixed(1)}g P</span>
+                <span class="text-slate-300 dark:text-slate-600">•</span>
+                <span class="text-[#D97706] dark:text-[#FFC480] font-bold">${carbs.toFixed(1)}g C</span>
+                <span class="text-slate-300 dark:text-slate-600">•</span>
+                <span class="text-[#0284C7] dark:text-[#98DDFE] font-bold">${fat.toFixed(1)}g G</span>
+              `;
+            }
+          }
+        };
+
+        input.addEventListener('click', (e) => e.stopPropagation());
+        input.addEventListener('input', handleUpdate);
+        input.addEventListener('change', handleUpdate);
+      });
+
       // Portion minus
       container?.querySelectorAll('[data-meal-minus]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const id = btn.getAttribute('data-meal-minus');
+          const isIng = btn.getAttribute('data-is-ing') === 'true';
           const cur = servingsMap.get(id) || 1.0;
-          const updated = Math.max(0.5, Math.round((cur - 0.5) * 10) / 10);
+          let updated;
+          if (isIng) {
+            const curGrams = Math.round(cur * 100);
+            const newGrams = Math.max(5, curGrams - 10);
+            updated = newGrams / 100;
+          } else {
+            updated = Math.max(0.5, Math.round((cur - 0.5) * 10) / 10);
+          }
           servingsMap.set(id, updated);
           if (selectedMap.has(id)) {
             selectedMap.get(id).servings = updated;
           }
-          const textEl = container.querySelector(`[data-meal-servings-text="${id}"]`);
-          if (textEl) textEl.textContent = updated;
+          const inputEl = container.querySelector(`[data-meal-servings-input="${id}"]`);
+          if (inputEl) {
+            inputEl.value = isIng ? Math.round(updated * 100) : updated;
+            inputEl.dispatchEvent(new Event('input'));
+          }
         });
       });
 
@@ -3249,14 +3345,25 @@ class NutriApp {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const id = btn.getAttribute('data-meal-plus');
+          const isIng = btn.getAttribute('data-is-ing') === 'true';
           const cur = servingsMap.get(id) || 1.0;
-          const updated = Math.round((cur + 0.5) * 10) / 10;
+          let updated;
+          if (isIng) {
+            const curGrams = Math.round(cur * 100);
+            const newGrams = curGrams + 10;
+            updated = newGrams / 100;
+          } else {
+            updated = Math.round((cur + 0.5) * 10) / 10;
+          }
           servingsMap.set(id, updated);
           if (selectedMap.has(id)) {
             selectedMap.get(id).servings = updated;
           }
-          const textEl = container.querySelector(`[data-meal-servings-text="${id}"]`);
-          if (textEl) textEl.textContent = updated;
+          const inputEl = container.querySelector(`[data-meal-servings-input="${id}"]`);
+          if (inputEl) {
+            inputEl.value = isIng ? Math.round(updated * 100) : updated;
+            inputEl.dispatchEvent(new Event('input'));
+          }
         });
       });
 
