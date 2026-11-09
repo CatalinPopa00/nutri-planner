@@ -262,33 +262,37 @@ class NutriApp {
           </div>
         </div>
 
-        <!-- Floating Day Navigator (Shows ONLY current day + Swipe Support) -->
-        <div class="sticky top-18 z-30 flex justify-center py-2 pointer-events-none">
-          <div id="floating-day-nav" class="pointer-events-auto inline-flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/95 dark:bg-[#181924]/95 backdrop-blur-xl rounded-full shadow-lg border border-[#E5E0F5] dark:border-white/10 select-none transition-all">
+        <!-- Dynamic Floating Day Island (Sticky on Scroll) -->
+        <div class="floating-island-container">
+          <div id="floating-day-nav" class="floating-day-island" role="navigation" aria-label="Navigator Zi Curentă">
             <!-- Prev Day Arrow (<) -->
-            <button id="btn-day-prev" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition" title="Ziua anterioară (sau swipe spre dreapta)">
+            <button id="btn-day-prev" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 active:scale-90 transition" title="Ziua anterioară (sau swipe spre dreapta)">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
             </button>
 
-            <!-- Current Day Name & Badge (Click to open day picker) -->
-            <button id="btn-open-day-picker" class="flex items-center gap-2 px-2.5 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 active:scale-98 transition" title="Apasă pentru selector rapid de zile">
-              <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-[#A390F5] to-[#FF6FA4] animate-pulse"></span>
+            <!-- Center Day Info (Click to open day picker) -->
+            <button id="btn-open-day-picker" class="flex items-center gap-2 px-2.5 py-1 rounded-full hover:bg-slate-100/60 dark:hover:bg-white/10 active:scale-95 transition group" title="Apasă pentru selector rapid de zile">
+              <span class="relative flex h-2.5 w-2.5 items-center justify-center">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#A390F5] opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-gradient-to-tr from-[#A390F5] to-[#FF6FA4]"></span>
+              </span>
               <span class="text-sm sm:text-base font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
                 ${this.activeDay === 'ALL' ? 'Toată Săptămâna' : (activeDayDef ? activeDayDef.id : this.activeDay)}
               </span>
               ${this.activeDay === 'ALL' ? `
-                <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">
                   7 Zile
                 </span>
               ` : `
-                <span class="text-[11px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] bg-brand-lilac/15 px-2 py-0.5 rounded-full">
+                <span class="text-[11px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] bg-[#6D4AE8]/10 dark:bg-[#C4B5FD]/15 px-2.5 py-0.5 rounded-full border border-[#6D4AE8]/20 dark:border-[#C4B5FD]/25">
                   ${activeDayDef ? `${activeDayDef.dateNum} Noi` : ''}
                 </span>
               `}
+              <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
             </button>
 
             <!-- Next Day Arrow (>) -->
-            <button id="btn-day-next" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95 transition" title="Ziua următoare (sau swipe spre stânga)">
+            <button id="btn-day-next" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10 active:scale-90 transition" title="Ziua următoare (sau swipe spre stânga)">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </button>
           </div>
@@ -739,7 +743,8 @@ class NutriApp {
   bindDaySwipeGestures() {
     const swipeTargets = [
       document.getElementById('planner-day-container'),
-      document.getElementById('floating-day-nav')
+      document.getElementById('floating-day-nav'),
+      document.querySelector('.floating-island-container')
     ].filter(Boolean);
 
     if (swipeTargets.length === 0) return;
@@ -805,6 +810,20 @@ class NutriApp {
 
     // Touch swipe gestures (swipe right -> prev day, swipe left -> next day)
     this.bindDaySwipeGestures();
+
+    // Sticky Floating Island scroll state detection
+    const island = document.getElementById('floating-day-nav');
+    if (island) {
+      const handleScroll = () => {
+        if (window.scrollY > 100) {
+          island.classList.add('is-scrolled');
+        } else {
+          island.classList.remove('is-scrolled');
+        }
+      };
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      handleScroll();
+    }
 
     // Day switcher buttons
     document.querySelectorAll('[data-day-btn]').forEach(btn => {
