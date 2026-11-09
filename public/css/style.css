@@ -512,6 +512,34 @@ html.dark .btn-pill-white {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.btn-pill-primary {
+  background: linear-gradient(135deg, #A390F5 0%, #8872F0 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(163, 144, 245, 0.35);
+}
+.btn-pill-primary:hover {
+  background: linear-gradient(135deg, #8E78F2 0%, #765EF2 100%);
+}
+
+.btn-pill-outline {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
+}
+.btn-pill-outline:hover {
+  background-color: var(--bg-card-subtle);
+  color: var(--text-primary);
+  border-color: var(--color-lilac);
+}
+html.dark .btn-pill-outline {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #A0A3B1;
+}
+html.dark .btn-pill-outline:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
 /* Claymorphism 3D Floating Decorations */
 .clay-3d-element {
   filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.18));

@@ -1942,14 +1942,15 @@ class NutriApp {
     const modalWrapper = document.createElement('div');
     modalWrapper.id = 'active-modal-root';
     modalWrapper.innerHTML = `
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
-        <div class="bg-white dark:bg-[#181924] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white relative">
+      <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 pt-3 sm:pt-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
+        <div class="bg-white dark:bg-[#181924] rounded-3xl max-w-2xl w-full max-h-[88dvh] max-h-[88vh] flex flex-col shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white relative overflow-hidden">
           ${html}
         </div>
       </div>
     `;
     document.body.appendChild(modalWrapper);
     this.activeModal = modalWrapper;
+    document.body.style.overflow = 'hidden';
 
     // Direct listener on backdrop (click outside card)
     const backdrop = modalWrapper.querySelector('[data-modal-backdrop="true"]');
@@ -1975,6 +1976,7 @@ class NutriApp {
     if (this.activeModal) {
       this.activeModal.remove();
       this.activeModal = null;
+      document.body.style.overflow = '';
     }
   }
 
@@ -1983,10 +1985,11 @@ class NutriApp {
     const recipes = window.store.getRecipes();
 
     const html = `
-      <div class="p-6">
-        <div class="flex items-center justify-between pb-4 border-b border-[#E5E0F5] dark:border-white/10">
+      <!-- Fixed Header + Search Bar (Never hidden by virtual keyboard) -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-[#181924]">
+        <div class="flex items-center justify-between pb-3">
           <div>
-            <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">Adaugă Rețetă la ${meal}</h3>
+            <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">Adaugă Rețetă la ${meal}</h3>
             <p class="text-xs text-slate-500 dark:text-white/60">Ziua: <span class="font-bold text-brand-dark dark:text-brand-lilac">${day}</span></p>
           </div>
           <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
@@ -1994,27 +1997,29 @@ class NutriApp {
           </button>
         </div>
 
-        <div class="py-4">
-          <input type="text" id="modal-recipe-search" placeholder="Caută o rețetă..." class="w-full bg-[#F4F3FA] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:border-brand-lilac">
+        <div class="relative">
+          <input type="text" id="modal-recipe-search" placeholder="Caută o rețetă..." autocomplete="off" class="w-full bg-[#F4F3FA] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:border-brand-lilac">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </div>
+      </div>
 
-        <div class="space-y-2 max-h-72 overflow-y-auto pr-1" id="modal-recipe-list">
-          ${recipes.map(raw => {
-            const r = window.store.calculateRecipe(raw);
-            return `
-              <div class="p-3.5 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
-                <div>
-                  <div class="font-bold text-sm text-slate-800 dark:text-white">${r.name}</div>
-                  <div class="text-xs text-slate-500 dark:text-white/60">${r.category} • ${Math.round(r.perServing.calories)} kcal</div>
-                </div>
-                <div class="text-right">
-                  <div class="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
-                  <div class="text-[10px] text-slate-400 dark:text-white/40">per porție</div>
-                </div>
+      <!-- Scrollable Recipes List (Occupies visible height right above keyboard) -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 space-y-2" id="modal-recipe-list">
+        ${recipes.map(raw => {
+          const r = window.store.calculateRecipe(raw);
+          return `
+            <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 active:scale-[0.99] border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white truncate">${r.name}</div>
+                <div class="text-[11px] sm:text-xs text-slate-500 dark:text-white/60 truncate">${r.category} • ${Math.round(r.perServing.calories)} kcal • ${r.perServing.protein.toFixed(1)}g P</div>
               </div>
-            `;
-          }).join('')}
-        </div>
+              <div class="text-right flex-shrink-0">
+                <div class="font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
+                <div class="text-[10px] text-slate-400 dark:text-white/40">per porție</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
 
@@ -2026,17 +2031,25 @@ class NutriApp {
     if (searchIn && listEl) {
       searchIn.addEventListener('input', (e) => {
         const q = e.target.value.toLowerCase().trim();
-        const filtered = recipes.filter(r => r.name.toLowerCase().includes(q));
+        const filtered = recipes.filter(r => r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q));
+        if (filtered.length === 0) {
+          listEl.innerHTML = `
+            <div class="text-center py-8 text-slate-400 dark:text-white/40 text-xs">
+              Nicio rețetă găsită pentru "${q}".
+            </div>
+          `;
+          return;
+        }
         listEl.innerHTML = filtered.map(raw => {
           const r = window.store.calculateRecipe(raw);
           return `
-            <div class="p-3.5 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
-              <div>
-                <div class="font-bold text-sm text-slate-800 dark:text-white">${r.name}</div>
-                <div class="text-xs text-slate-500 dark:text-white/60">${r.category} • ${Math.round(r.perServing.calories)} kcal</div>
+            <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 active:scale-[0.99] border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white truncate">${r.name}</div>
+                <div class="text-[11px] sm:text-xs text-slate-500 dark:text-white/60 truncate">${r.category} • ${Math.round(r.perServing.calories)} kcal • ${r.perServing.protein.toFixed(1)}g P</div>
               </div>
-              <div class="text-right">
-                <div class="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
+              <div class="text-right flex-shrink-0">
+                <div class="font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
                 <div class="text-[10px] text-slate-400 dark:text-white/40">per porție</div>
               </div>
             </div>
@@ -2066,18 +2079,20 @@ class NutriApp {
     const r = window.store.calculateRecipe(raw);
 
     const html = `
-      <div class="p-6 space-y-5">
-        <div class="flex items-start justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
-          <div>
-            <span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-brand-lilac/20 text-brand-dark dark:text-brand-lilac">${r.category}</span>
-            <h2 class="text-xl font-extrabold text-slate-800 dark:text-white mt-1.5">${r.name}</h2>
-            <div class="text-xs text-slate-500 dark:text-white/60">${r.servings} porții • Greutate totală: ${Math.round(r.totals.weight)}g</div>
-          </div>
-          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-start justify-between bg-white dark:bg-[#181924]">
+        <div>
+          <span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full bg-brand-lilac/20 text-brand-dark dark:text-brand-lilac">${r.category}</span>
+          <h2 class="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white mt-1.5">${r.name}</h2>
+          <div class="text-xs text-slate-500 dark:text-white/60">${r.servings} porții • Greutate totală: ${Math.round(r.totals.weight)}g</div>
         </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
 
+      <!-- Scrollable Content -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5">
         <!-- Recipe Overview Cards (Bento Macro Cards) -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           <div class="bg-emerald-50 dark:bg-emerald-500/10 p-3.5 rounded-2xl border border-emerald-200/50 dark:border-emerald-500/20">
@@ -2162,12 +2177,13 @@ class NutriApp {
             </table>
           </div>
         </div>
+      </div>
 
-        <div class="flex justify-end gap-2 pt-2">
-          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">
-            Închide
-          </button>
-        </div>
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex justify-end bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">
+          Închide
+        </button>
       </div>
     `;
 
@@ -2187,73 +2203,151 @@ class NutriApp {
           { ingredientId: allIngredients[0]?.id || '', name: allIngredients[0]?.name || '', quantity: 200 }
         ];
 
+    let servings = existingRecipe?.servings || 1;
+
     const renderRows = () => {
-      return curIngredients.map((item, idx) => `
-        <div class="flex items-center gap-2 p-2.5 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10">
-          <select data-builder-ing-select="${idx}" class="flex-1 bg-white dark:bg-[#202230] border border-[#E5E0F5] dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white">
-            ${allIngredients.map(ing => `
-              <option value="${ing.id}" ${ing.id === item.ingredientId ? 'selected' : ''}>
-                ${ing.name} (${ing.pricePer100g.toFixed(2)} RON/100g)
-              </option>
-            `).join('')}
-          </select>
-          <div class="flex items-center gap-1.5 w-24">
-            <input type="number" step="1" data-builder-ing-qty="${idx}" value="${item.quantity}" class="w-full bg-white dark:bg-[#202230] border border-[#E5E0F5] dark:border-white/10 rounded-xl px-2.5 py-2 text-xs text-center font-bold text-slate-800 dark:text-white">
-            <span class="text-xs text-slate-500 dark:text-white/60 font-semibold">g</span>
+      if (curIngredients.length === 0) {
+        return `
+          <div class="text-center py-6 border-2 border-dashed border-[#E5E0F5] dark:border-white/10 rounded-2xl text-xs text-slate-400 dark:text-white/40">
+            Niciun ingredient adăugat. Apasă pe "+ Adaugă" pentru a include ingrediente.
           </div>
-          <button data-builder-ing-remove="${idx}" class="p-2 text-slate-400 hover:text-rose-500 rounded-full hover:bg-rose-50 dark:hover:bg-rose-500/10 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
-        </div>
-      `).join('');
+        `;
+      }
+
+      return curIngredients.map((item, idx) => {
+        const ing = allIngredients.find(i => i.id === item.ingredientId) || allIngredients[0];
+        const qty = parseFloat(item.quantity) || 0;
+        const itemCost = ing ? (ing.pricePer100g * qty) / 100 : 0;
+        const itemKcal = ing ? (ing.calories * qty) / 100 : 0;
+
+        return `
+          <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 space-y-2">
+            <!-- Row 1: Ingredient Select dropdown + Delete Trash Button -->
+            <div class="flex items-center gap-2">
+              <div class="flex-1 min-w-0">
+                <select data-builder-ing-select="${idx}" class="w-full min-w-0 bg-white dark:bg-[#202230] border border-[#E5E0F5] dark:border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac truncate">
+                  ${allIngredients.map(i => `
+                    <option value="${i.id}" ${i.id === item.ingredientId ? 'selected' : ''}>
+                      ${i.name} (${i.pricePer100g.toFixed(2)} lei/100g)
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+              <button type="button" data-builder-ing-remove="${idx}" class="flex-shrink-0 p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition" title="Șterge ingredient">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+
+            <!-- Row 2: Grams Input + Live Price & Calorie Preview -->
+            <div class="flex items-center justify-between gap-3 pt-0.5">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-500 dark:text-white/60 font-semibold">Cantitate:</span>
+                <div class="relative w-28">
+                  <input type="number" step="5" min="0" data-builder-ing-qty="${idx}" value="${item.quantity}" class="w-full bg-white dark:bg-[#202230] border border-[#E5E0F5] dark:border-white/10 rounded-xl pl-3 pr-7 py-1.5 text-xs font-black text-slate-800 dark:text-white text-left focus:outline-none focus:border-brand-lilac">
+                  <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-white/40 font-bold pointer-events-none">g</span>
+                </div>
+              </div>
+
+              <div class="text-right text-xs">
+                <span class="font-black text-emerald-600 dark:text-emerald-400">${itemCost.toFixed(2)} RON</span>
+                <span class="text-slate-400 dark:text-white/40 text-[11px] ml-1">(${Math.round(itemKcal)} kcal)</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
+    const calcTotalCost = () => {
+      let totalCost = 0;
+      let totalCals = 0;
+      curIngredients.forEach(item => {
+        const ing = allIngredients.find(i => i.id === item.ingredientId);
+        const qty = parseFloat(item.quantity) || 0;
+        if (ing) {
+          totalCost += (ing.pricePer100g * qty) / 100;
+          totalCals += (ing.calories * qty) / 100;
+        }
+      });
+      const s = parseFloat(document.getElementById('recipe-builder-servings')?.value) || 1;
+      const perServCost = s > 0 ? totalCost / s : totalCost;
+      const perServCals = s > 0 ? totalCals / s : totalCals;
+      return { totalCost, totalCals, perServCost, perServCals };
     };
 
     const html = `
-      <div class="p-6 space-y-5">
-        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
-          <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">${isEdit ? 'Editează Rețeta' : 'Creează Rețetă Nouă'}</h3>
-          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div>
+          <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">${isEdit ? 'Editează Rețeta' : 'Creează Rețetă Nouă'}</h3>
+          <p class="text-xs text-slate-500 dark:text-white/60">Configurează ingredientele și gramajele</p>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <!-- Recipe Name -->
+        <div class="space-y-1">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Nume Rețetă</label>
+          <input type="text" id="recipe-builder-name" value="${existingRecipe?.name || ''}" placeholder="ex: Souvlaki cu Cartofi" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="sm:col-span-2 space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Nume Rețetă</label>
-            <input type="text" id="recipe-builder-name" value="${existingRecipe?.name || ''}" placeholder="ex: Souvlaki cu Cartofi" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
-          </div>
-          <div class="space-y-1.5">
+        <!-- 2-Column Grid: Categorie & Număr Porții -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
             <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Categorie</label>
-            <select id="recipe-builder-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+            <select id="recipe-builder-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3 py-2 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac truncate">
               ${categories.map(c => `
                 <option value="${c}" ${existingRecipe?.category === c ? 'selected' : ''}>${c}</option>
               `).join('')}
             </select>
           </div>
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Număr Porții</label>
-            <input type="number" step="0.5" id="recipe-builder-servings" value="${existingRecipe?.servings || 1}" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3 py-2.5 text-xs font-bold text-center text-slate-800 dark:text-white">
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Porții</label>
+            <div class="flex items-center bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl p-1">
+              <button type="button" id="btn-servings-minus" class="w-7 h-7 rounded-xl bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/20 transition shadow-xs active:scale-95 text-xs">-</button>
+              <input type="number" step="0.5" min="0.5" id="recipe-builder-servings" value="${servings}" class="w-full text-center font-extrabold text-xs bg-transparent text-slate-800 dark:text-white focus:outline-none">
+              <button type="button" id="btn-servings-plus" class="w-7 h-7 rounded-xl bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/20 transition shadow-xs active:scale-95 text-xs">+</button>
+            </div>
           </div>
         </div>
 
-        <!-- Ingredients dynamic list -->
+        <!-- Ingredients Section Header & Add Button -->
         <div class="space-y-2.5">
-          <div class="flex items-center justify-between">
-            <label class="text-xs font-extrabold text-slate-700 dark:text-white/80">Ingrediente & Cantități</label>
-            <button id="btn-builder-add-ing" class="btn-pill text-xs py-1.5 px-3 bg-brand-lilac/20 dark:bg-brand-lilac/30 text-brand-dark dark:text-white border-none flex items-center gap-1">
-              + Adaugă Ingredient
+          <div class="flex items-center justify-between pt-1">
+            <div>
+              <span class="text-xs font-extrabold text-slate-700 dark:text-white/80 uppercase tracking-wider">Ingrediente</span>
+              <span id="builder-ing-count" class="text-[11px] text-slate-400 dark:text-white/40 ml-1">(${curIngredients.length})</span>
+            </div>
+            <button type="button" id="btn-builder-add-ing" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-lilac/25 dark:bg-brand-lilac/30 text-brand-dark dark:text-brand-lilac hover:bg-brand-lilac/40 active:scale-95 transition flex items-center gap-1.5 shadow-xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+              <span>Adaugă</span>
             </button>
           </div>
 
-          <div id="recipe-builder-rows" class="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+          <div id="recipe-builder-rows" class="space-y-2.5">
             ${renderRows()}
           </div>
         </div>
+      </div>
 
-        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
-          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
-          <button id="btn-builder-save" class="btn-pill btn-pill-primary text-xs">
-            ${isEdit ? 'Salvează Modificările' : 'Creează Rețeta'}
+      <!-- Fixed Footer with Cost Summary & Actions -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div class="min-w-0 pr-2">
+          <div class="text-[10px] text-slate-400 dark:text-white/40 uppercase font-bold">Total estimat</div>
+          <div id="builder-total-cost" class="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 truncate">
+            0.00 RON
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button data-modal-close="true" class="px-3 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition">
+            Anulează
+          </button>
+          <button id="btn-builder-save" class="btn-pill btn-pill-primary text-xs py-2 px-3.5 sm:px-4 shadow-sm">
+            ${isEdit ? 'Salvează' : 'Creează'}
           </button>
         </div>
       </div>
@@ -2261,11 +2355,24 @@ class NutriApp {
 
     this.openModal(html);
 
+    const updateTotalsDisplay = () => {
+      const { totalCost, perServCost, perServCals } = calcTotalCost();
+      const costEl = document.getElementById('builder-total-cost');
+      if (costEl) {
+        costEl.innerHTML = `${totalCost.toFixed(2)} RON <span class="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-white/50">(${perServCost.toFixed(2)}/p • ${Math.round(perServCals)} kcal)</span>`;
+      }
+      const countEl = document.getElementById('builder-ing-count');
+      if (countEl) {
+        countEl.textContent = `(${curIngredients.length})`;
+      }
+    };
+
     const refreshRows = () => {
       const container = document.getElementById('recipe-builder-rows');
       if (container) {
         container.innerHTML = renderRows();
         bindRowHandlers();
+        updateTotalsDisplay();
       }
     };
 
@@ -2278,6 +2385,7 @@ class NutriApp {
           if (curIngredients[idx] && ing) {
             curIngredients[idx].ingredientId = ing.id;
             curIngredients[idx].name = ing.name;
+            refreshRows();
           }
         });
       });
@@ -2287,6 +2395,18 @@ class NutriApp {
           const idx = parseInt(e.target.getAttribute('data-builder-ing-qty'), 10);
           if (curIngredients[idx]) {
             curIngredients[idx].quantity = parseFloat(e.target.value) || 0;
+            const ing = allIngredients.find(i => i.id === curIngredients[idx].ingredientId);
+            const parentCard = e.target.closest('.space-y-2');
+            if (parentCard && ing) {
+              const qty = curIngredients[idx].quantity;
+              const cost = (ing.pricePer100g * qty) / 100;
+              const kcal = (ing.calories * qty) / 100;
+              const costDisplay = parentCard.querySelector('.text-right.text-xs');
+              if (costDisplay) {
+                costDisplay.innerHTML = `<span class="font-black text-emerald-600 dark:text-emerald-400">${cost.toFixed(2)} RON</span><span class="text-slate-400 dark:text-white/40 text-[11px] ml-1">(${Math.round(kcal)} kcal)</span>`;
+              }
+            }
+            updateTotalsDisplay();
           }
         });
       });
@@ -2301,6 +2421,27 @@ class NutriApp {
     };
 
     bindRowHandlers();
+    updateTotalsDisplay();
+
+    // Servings minus / plus buttons
+    const servingsInput = document.getElementById('recipe-builder-servings');
+    document.getElementById('btn-servings-minus')?.addEventListener('click', () => {
+      let cur = parseFloat(servingsInput?.value) || 1;
+      if (cur > 0.5) {
+        cur -= 0.5;
+        if (servingsInput) servingsInput.value = cur;
+        updateTotalsDisplay();
+      }
+    });
+
+    document.getElementById('btn-servings-plus')?.addEventListener('click', () => {
+      let cur = parseFloat(servingsInput?.value) || 1;
+      cur += 0.5;
+      if (servingsInput) servingsInput.value = cur;
+      updateTotalsDisplay();
+    });
+
+    servingsInput?.addEventListener('input', updateTotalsDisplay);
 
     document.getElementById('btn-builder-add-ing')?.addEventListener('click', () => {
       const firstIng = allIngredients[0];
@@ -2315,7 +2456,7 @@ class NutriApp {
     document.getElementById('btn-builder-save')?.addEventListener('click', () => {
       const name = document.getElementById('recipe-builder-name')?.value.trim();
       const cat = document.getElementById('recipe-builder-cat')?.value;
-      const servings = parseFloat(document.getElementById('recipe-builder-servings')?.value) || 1;
+      const finalServings = parseFloat(document.getElementById('recipe-builder-servings')?.value) || 1;
 
       if (!name) {
         alert('Te rugăm să completezi numele rețetei.');
@@ -2330,14 +2471,14 @@ class NutriApp {
         window.store.updateRecipe(existingRecipe.id, {
           name,
           category: cat,
-          servings,
+          servings: finalServings,
           ingredients: curIngredients
         });
       } else {
         window.store.addRecipe({
           name,
           category: cat,
-          servings,
+          servings: finalServings,
           ingredients: curIngredients
         });
       }
@@ -2352,14 +2493,16 @@ class NutriApp {
     const categories = window.INITIAL_DATA.categories?.filter(c => c !== 'Toate') || ['Ingrediente'];
 
     const html = `
-      <div class="p-6 space-y-5">
-        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
-          <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">${isEdit ? 'Editează Ingredient' : 'Adaugă Ingredient Nou'}</h3>
-          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </div>
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">${isEdit ? 'Editează Ingredient' : 'Adaugă Ingredient Nou'}</h3>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
 
+      <!-- Scrollable Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div class="space-y-1 sm:col-span-2">
             <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Nume Ingredient</label>
@@ -2367,7 +2510,7 @@ class NutriApp {
           </div>
           <div class="space-y-1">
             <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Categorie</label>
-            <select id="ing-form-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+            <select id="ing-form-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac truncate">
               ${categories.map(c => `
                 <option value="${c}" ${existingIng?.category === c ? 'selected' : ''}>${c}</option>
               `).join('')}
@@ -2422,13 +2565,14 @@ class NutriApp {
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
-          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
-          <button id="btn-ing-form-save" class="btn-pill btn-pill-primary text-xs">
-            ${isEdit ? 'Salvează Modificările' : 'Adaugă Ingredient'}
-          </button>
-        </div>
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex justify-end gap-2.5 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+        <button id="btn-ing-form-save" class="btn-pill btn-pill-primary text-xs">
+          ${isEdit ? 'Salvează Modificările' : 'Adaugă Ingredient'}
+        </button>
       </div>
     `;
 
@@ -2487,42 +2631,43 @@ class NutriApp {
     const meals = ['Mic Dejun', 'Prânz', 'Snack', 'Cină'];
 
     const html = `
-      <div class="p-6 space-y-5">
-        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
-          <div>
-            <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">Planifică Rețeta</h3>
-            <p class="text-xs text-brand-dark dark:text-brand-lilac font-bold">${raw.name}</p>
-          </div>
-          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div class="min-w-0 pr-2">
+          <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">Planifică Rețeta</h3>
+          <p class="text-xs text-brand-dark dark:text-brand-lilac font-bold truncate max-w-[240px]">${raw.name}</p>
         </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
 
-        <div class="space-y-3.5">
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Alege Ziua</label>
-            <select id="quick-plan-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
-              ${days.map(d => `<option value="${d}" ${d === this.activeDay ? 'selected' : ''}>${d}</option>`).join('')}
-            </select>
-          </div>
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Alege Masa</label>
-            <select id="quick-plan-meal" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
-              ${meals.map(m => `<option value="${m}">${m}</option>`).join('')}
-            </select>
-          </div>
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Număr Porții</label>
-            <input type="number" step="0.5" id="quick-plan-servings" value="1.0" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-center text-slate-800 dark:text-white">
-          </div>
+      <!-- Scrollable Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5">
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Alege Ziua</label>
+          <select id="quick-plan-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+            ${days.map(d => `<option value="${d}" ${d === this.activeDay ? 'selected' : ''}>${d}</option>`).join('')}
+          </select>
         </div>
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Alege Masa</label>
+          <select id="quick-plan-meal" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+            ${meals.map(m => `<option value="${m}">${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Număr Porții</label>
+          <input type="number" step="0.5" id="quick-plan-servings" value="1.0" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-center text-slate-800 dark:text-white">
+        </div>
+      </div>
 
-        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
-          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
-          <button id="btn-save-quick-plan" class="btn-pill btn-pill-primary text-xs">
-            Adaugă în Planificator
-          </button>
-        </div>
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex justify-end gap-2.5 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+        <button id="btn-save-quick-plan" class="btn-pill btn-pill-primary text-xs">
+          Adaugă în Planificator
+        </button>
       </div>
     `;
 
@@ -2544,27 +2689,28 @@ class NutriApp {
     const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'].filter(d => d !== this.activeDay);
 
     const html = `
-      <div class="p-6 space-y-5">
-        <div class="flex items-center justify-between border-b border-[#E5E0F5] dark:border-white/10 pb-4">
-          <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">Copiază Planul Zilei (${this.activeDay})</h3>
-          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </div>
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">Copiază Planul Zilei (${this.activeDay})</h3>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
 
-        <div class="space-y-2">
-          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Copiază preparatele în ziua:</label>
-          <select id="copy-target-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
-            ${days.map(d => `<option value="${d}">${d}</option>`).join('')}
-          </select>
-        </div>
+      <!-- Scrollable Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3">
+        <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Copiază preparatele în ziua:</label>
+        <select id="copy-target-day" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+          ${days.map(d => `<option value="${d}">${d}</option>`).join('')}
+        </select>
+      </div>
 
-        <div class="flex justify-end gap-2.5 pt-4 border-t border-[#E5E0F5] dark:border-white/10">
-          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
-          <button id="btn-execute-copy-day" class="btn-pill btn-pill-primary text-xs">
-            Copiază Planul
-          </button>
-        </div>
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex justify-end gap-2.5 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+        <button id="btn-execute-copy-day" class="btn-pill btn-pill-primary text-xs">
+          Copiază Planul
+        </button>
       </div>
     `;
 
