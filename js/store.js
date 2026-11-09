@@ -442,7 +442,7 @@ class NutriStore {
           seedScore = 1;
         }
       } else if (lowerCategory.includes('gustar') || lowerCategory.includes('snack')) {
-        if (recCat.includes('snacks') || /baton|iaurt|fruct|shake|smoothie|migdale/i.test(recLower)) {
+        if (recCat.includes('snacks') || recCat.includes('desert') || /baton|iaurt|fruct|shake|smoothie|migdale|clatite|pancake|prajitur|ciocolat|mere/i.test(recLower)) {
           seedScore = 1;
         }
       }
@@ -460,6 +460,7 @@ class NutriStore {
     const allIngredients = this.data.ingredients || [];
     allIngredients.forEach(ing => {
       const ingLower = (ing.name || '').toLowerCase();
+      const catLower = (ing.category || '').toLowerCase();
       let seedScore = 0;
 
       if (lowerCategory.includes('mic dejun')) {
@@ -475,7 +476,8 @@ class NutriStore {
           seedScore = 1;
         }
       } else if (lowerCategory.includes('gustar') || lowerCategory.includes('snack')) {
-        if (/mar|mere|banana|iaurt|migdale|nuci|caju/i.test(ingLower)) {
+        // Tag "Legume & Fructe" / "Fructe și Legume" and tag "Dulciuri"
+        if (catLower.includes('fruct') || catLower.includes('legum') || catLower.includes('dulciur') || /mar|mere|banana|iaurt|migdale|nuci|caju|ciocolat|biscuit|afine|capsuni|portocal|struguri|morcov/i.test(ingLower)) {
           seedScore = 1;
         }
       }
@@ -532,7 +534,7 @@ class NutriStore {
     });
 
     favorites.sort((a, b) => b.count - a.count);
-    return favorites.slice(0, 8);
+    return favorites.slice(0, 16);
   }
 
   removePlanItem(day, itemId) {

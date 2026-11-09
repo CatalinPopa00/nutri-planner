@@ -2443,7 +2443,7 @@ class NutriApp {
     });
   }
 
-  // --- Modal: Add Recipe or Foods to Meal (with Multi-Select & 2-Week Favorites) ---
+  // --- Modal: Add Recipe or Foods to Meal (with Multi-Select & 2-Week Favorites & Snacks Categories) ---
   openAddRecipeToMealModal(day, meal) {
     const favorites = window.store.getFavoriteMealsForCategory(meal, 14);
     const recipes = window.store.getRecipes();
@@ -2479,6 +2479,32 @@ class NutriApp {
       unit: '100g'
     }));
 
+    // Helpers to identify Fruits & Vegetables and Sweets / Desserts
+    const isFruitVeg = (it) => {
+      const c = (it.category || '').toLowerCase();
+      const n = (it.name || '').toLowerCase();
+      return c.includes('fruct') || c.includes('legum') || 
+             /mar|mere|banana|banană|afine|capsuni|căpșuni|portocal|portocale|strugur|struguri|rosie|roșii|castravet|morcov|ardei|salat|avocado|ciuperc|spanac|lamaie|lămâie|pere|ananas|kiwi|piersic|prun|pepene/i.test(n);
+    };
+
+    const isSweet = (it) => {
+      const c = (it.category || '').toLowerCase();
+      const n = (it.name || '').toLowerCase();
+      return c.includes('dulciur') || c.includes('desert') || 
+             /ciocolat|biscuit|biscuiți|prajitur|prăjitură|tort|miere|dulceat|dulceață|gem|clatit|clătite|croissant|brio|brioșă|napolitan|inghetat|înghețată|budinc|budincă|pancakes|waffle|gofre|bomboane|nutella/i.test(n);
+    };
+
+    // Filtered lists for Legume & Fructe and Dulciuri (ingredients + matching recipes)
+    const fruitVegList = [
+      ...ingredientsList.filter(isFruitVeg),
+      ...recipesList.filter(isFruitVeg)
+    ];
+
+    const sweetsList = [
+      ...ingredientsList.filter(isSweet),
+      ...recipesList.filter(isSweet)
+    ];
+
     const favoritesList = favorites.map(f => ({
       ...f,
       isFavorite: true,
@@ -2489,7 +2515,9 @@ class NutriApp {
     const selectedMap = new Map(); // id -> { id, isIngredient, servings, name }
     const servingsMap = new Map(); // id -> servings number
 
-    let currentFilterTab = favoritesList.length > 0 ? 'favorites' : 'all';
+    // If opening for snack / gustare, default to favorites or fruit_veg
+    const isSnackMeal = (meal || '').toLowerCase().includes('snack') || (meal || '').toLowerCase().includes('gustar');
+    let currentFilterTab = favoritesList.length > 0 ? 'favorites' : (isSnackMeal ? 'fruit_veg' : 'all');
     let searchQuery = '';
 
     const html = `
@@ -2510,11 +2538,17 @@ class NutriApp {
           <button type="button" data-meal-modal-tab="favorites" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'favorites' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
             ⭐ Favorite (${favoritesList.length})
           </button>
+          <button type="button" data-meal-modal-tab="fruit_veg" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'fruit_veg' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
+            🍓 Legume & Fructe (${fruitVegList.length})
+          </button>
+          <button type="button" data-meal-modal-tab="sweets" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'sweets' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
+            🍫 Dulciuri (${sweetsList.length})
+          </button>
           <button type="button" data-meal-modal-tab="recipes" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'recipes' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
             🍲 Rețete (${recipesList.length})
           </button>
           <button type="button" data-meal-modal-tab="ingredients" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'ingredients' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
-            🍎 Alimente (${ingredientsList.length})
+            🍎 Toate Alimentele (${ingredientsList.length})
           </button>
           <button type="button" data-meal-modal-tab="all" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'all' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
             Toate
@@ -2523,7 +2557,7 @@ class NutriApp {
 
         <!-- Search Bar -->
         <div class="relative">
-          <input type="text" id="modal-meal-search" placeholder="Caută rețetă sau aliment (ex: omletă, banană, orez)..." autocomplete="off" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#6D4AE8]">
+          <input type="text" id="modal-meal-search" placeholder="Caută fructe, legume, dulciuri sau rețete (ex: mere, banană, ciocolată)..." autocomplete="off" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#6D4AE8]">
           <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </div>
       </div>
@@ -2553,7 +2587,7 @@ class NutriApp {
       </div>
     `;
 
-    this.openModal(html, { position: 'top' });
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-2xl' });
 
     const container = document.getElementById('modal-meal-items-container');
     const searchInput = document.getElementById('modal-meal-search');
@@ -2575,17 +2609,33 @@ class NutriApp {
       let baseList = [];
       if (currentFilterTab === 'favorites') {
         baseList = favoritesList;
+      } else if (currentFilterTab === 'fruit_veg') {
+        baseList = fruitVegList;
+      } else if (currentFilterTab === 'sweets') {
+        baseList = sweetsList;
       } else if (currentFilterTab === 'recipes') {
         baseList = recipesList;
       } else if (currentFilterTab === 'ingredients') {
         baseList = ingredientsList;
       } else {
-        // 'all': show favorites first, then recipes, then ingredients
+        // 'all': show favorites first, then fruitVeg, then sweets, then recipes, then ingredients without duplicates
         const seen = new Set();
         baseList = [];
         favoritesList.forEach(f => {
           seen.add(f.id);
           baseList.push(f);
+        });
+        fruitVegList.forEach(fv => {
+          if (!seen.has(fv.id)) {
+            seen.add(fv.id);
+            baseList.push(fv);
+          }
+        });
+        sweetsList.forEach(sw => {
+          if (!seen.has(sw.id)) {
+            seen.add(sw.id);
+            baseList.push(sw);
+          }
         });
         recipesList.forEach(r => {
           if (!seen.has(r.id)) {
@@ -2603,7 +2653,13 @@ class NutriApp {
 
       if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase().trim();
-        return baseList.filter(it => it.name.toLowerCase().includes(q) || it.category.toLowerCase().includes(q));
+        return baseList.filter(it => {
+          const nameMatch = it.name.toLowerCase().includes(q);
+          const catMatch = (it.category || '').toLowerCase().includes(q);
+          const fruitVegMatch = (q.includes('fruct') || q.includes('legum')) && isFruitVeg(it);
+          const sweetMatch = (q.includes('dulc') || q.includes('desert') || q.includes('snack') || q.includes('ciocolat')) && isSweet(it);
+          return nameMatch || catMatch || fruitVegMatch || sweetMatch;
+        });
       }
       return baseList;
     };
@@ -2624,21 +2680,49 @@ class NutriApp {
         return;
       }
 
-      // If favorites tab or empty search on favorites, render section header
-      const isFavTab = currentFilterTab === 'favorites';
-
-      container.innerHTML = `
-        ${isFavTab ? `
+      // Header banner for specific tabs
+      let bannerHtml = '';
+      if (currentFilterTab === 'favorites') {
+        bannerHtml = `
           <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2 mb-1">
             <span>⭐</span>
-            <span class="font-bold">Mesele cele mai frecvente pentru ${meal} în ultimele 2 săptămâni</span>
+            <span class="font-bold">Mesele și gustările cele mai frecvente pentru ${meal} în ultimele 2 săptămâni</span>
           </div>
-        ` : ''}
+        `;
+      } else if (currentFilterTab === 'fruit_veg') {
+        bannerHtml = `
+          <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2 mb-1">
+            <span>🍓</span>
+            <span class="font-bold">Legume & Fructe proaspete ideale pentru gustări (Snack) sau preparate</span>
+          </div>
+        `;
+      } else if (currentFilterTab === 'sweets') {
+        bannerHtml = `
+          <div class="p-2.5 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-800 dark:text-pink-300 text-xs flex items-center gap-2 mb-1">
+            <span>🍫</span>
+            <span class="font-bold">Dulciuri, deserturi și gustări dulci</span>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        ${bannerHtml}
 
         <div class="space-y-2">
           ${visible.map(it => {
             const isSelected = selectedMap.has(it.id);
             const servings = servingsMap.get(it.id) || 1.0;
+
+            let badgeHtml = '';
+            if (it.category === 'Legume & Fructe' || isFruitVeg(it)) {
+              badgeHtml = `<span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 flex-shrink-0">🍓 Legume & Fructe</span>`;
+            } else if (it.category === 'Dulciuri' || isSweet(it)) {
+              badgeHtml = `<span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-pink-500/15 text-pink-700 dark:text-pink-300 flex-shrink-0">🍫 Dulciuri</span>`;
+            } else if (it.isIngredient) {
+              badgeHtml = `<span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex-shrink-0">Aliment</span>`;
+            } else {
+              badgeHtml = `<span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] flex-shrink-0">Rețetă</span>`;
+            }
 
             return `
               <div class="p-3 rounded-2xl border transition shadow-2xs cursor-pointer flex items-center justify-between gap-3 ${
@@ -2658,15 +2742,7 @@ class NutriApp {
                           ⭐ Favorit (${it.count}×)
                         </span>
                       ` : ''}
-                      ${it.isIngredient ? `
-                        <span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex-shrink-0">
-                          Aliment
-                        </span>
-                      ` : `
-                        <span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] flex-shrink-0">
-                          Rețetă
-                        </span>
-                      `}
+                      ${badgeHtml}
                     </div>
 
                     <!-- Single line macros -->
@@ -2706,7 +2782,7 @@ class NutriApp {
     };
 
     const toggleItemSelection = (id) => {
-      const allItems = [...favoritesList, ...recipesList, ...ingredientsList];
+      const allItems = [...favoritesList, ...fruitVegList, ...sweetsList, ...recipesList, ...ingredientsList];
       const target = allItems.find(x => x.id === id);
       if (!target) return;
 
@@ -2782,7 +2858,7 @@ class NutriApp {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const id = btn.getAttribute('data-meal-quick-add');
-          const allItems = [...favoritesList, ...recipesList, ...ingredientsList];
+          const allItems = [...favoritesList, ...fruitVegList, ...sweetsList, ...recipesList, ...ingredientsList];
           const target = allItems.find(x => x.id === id);
           if (!target) return;
           const s = servingsMap.get(id) || 1.0;
