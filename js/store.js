@@ -51,6 +51,40 @@ class NutriStore {
             parsed.activeProfileId = 'prof_default';
           }
 
+          // Ensure plansByProfile exists and isolates weekly plans per profile
+          const createEmptyWeekPlan = () => ({
+            'Luni': [],
+            'Marți': [],
+            'Miercuri': [],
+            'Joi': [],
+            'Vineri': [],
+            'Sâmbătă': [],
+            'Duminică': []
+          });
+
+          if (!parsed.plansByProfile || typeof parsed.plansByProfile !== 'object') {
+            parsed.plansByProfile = {};
+            const defaultId = (parsed.profiles && parsed.profiles[0]?.id) || 'prof_default';
+            parsed.plansByProfile[defaultId] = JSON.parse(JSON.stringify(parsed.weeklyPlan || createEmptyWeekPlan()));
+          }
+
+          // Ensure every profile has its own isolated plan
+          if (Array.isArray(parsed.profiles)) {
+            parsed.profiles.forEach((p, idx) => {
+              if (!parsed.plansByProfile[p.id]) {
+                parsed.plansByProfile[p.id] = (idx === 0)
+                  ? JSON.parse(JSON.stringify(parsed.weeklyPlan || createEmptyWeekPlan()))
+                  : createEmptyWeekPlan();
+              }
+            });
+          }
+
+          const currentActive = parsed.activeProfileId || (parsed.profiles && parsed.profiles[0]?.id) || 'prof_default';
+          if (!parsed.plansByProfile[currentActive]) {
+            parsed.plansByProfile[currentActive] = createEmptyWeekPlan();
+          }
+          parsed.weeklyPlan = parsed.plansByProfile[currentActive];
+
           // If corrupted items were purged or recipes/profiles updated, save cleaned state
           try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed)); } catch(e) {}
           return parsed;
@@ -77,11 +111,20 @@ class NutriStore {
       }
     ];
     initial.activeProfileId = 'prof_default';
+    initial.plansByProfile = {
+      'prof_default': JSON.parse(JSON.stringify(initial.weeklyPlan || {}))
+    };
     return initial;
   }
 
   saveState() {
     try {
+      if (!this.data.plansByProfile) {
+        this.data.plansByProfile = {};
+      }
+      const activeId = this.data.activeProfileId || 'prof_default';
+      this.data.plansByProfile[activeId] = this.data.weeklyPlan;
+
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
       console.error('Failed to save to localStorage:', e);
@@ -204,7 +247,8 @@ class NutriStore {
 
     // Filter by main tab: 'proprii' (personal/custom) vs 'comune' (shared/common)
     if (mainTab === 'proprii') {
-      list = list.filter(r => !!r.isCustom);
+      const activeId = this.data.activeProfileId || 'prof_default';
+      list = list.filter(r => !!r.isCustom && (!r.profileId || r.profileId === activeId));
     } else if (mainTab === 'comune') {
       list = list.filter(r => !r.isCustom);
     }
@@ -221,9 +265,10 @@ class NutriStore {
 
   getRecipeCounts() {
     const list = this.data.recipes || [];
+    const activeId = this.data.activeProfileId || 'prof_default';
     return {
       total: list.length,
-      custom: list.filter(r => !!r.isCustom).length,
+      custom: list.filter(r => !!r.isCustom && (!r.profileId || r.profileId === activeId)).length,
       common: list.filter(r => !r.isCustom).length
     };
   }
@@ -235,7 +280,8 @@ class NutriStore {
       ...orig,
       id: 'rec_' + Date.now(),
       name: `${orig.name} (Proprie)`,
-      isCustom: true
+      isCustom: true,
+      profileId: this.data.activeProfileId || 'prof_default'
     };
     this.data.recipes.unshift(cloned);
     this.saveState();
@@ -373,7 +419,8 @@ class NutriStore {
       servings: Math.max(0.1, parseFloat(rec.servings) || 1),
       ingredients: rec.ingredients || [],
       notes: rec.notes || '',
-      isCustom: rec.isCustom !== undefined ? !!rec.isCustom : true
+      isCustom: rec.isCustom !== undefined ? !!rec.isCustom : true,
+      profileId: rec.profileId || this.data.activeProfileId || 'prof_default'
     };
     this.data.recipes.unshift(newRecipe);
     this.saveState();
@@ -771,7 +818,34 @@ class NutriStore {
     const list = this.getProfiles();
     const found = list.find(p => p.id === profileId);
     if (!found) return null;
+
+    // 1. Save current active plan before switching
+    if (!this.data.plansByProfile) {
+      this.data.plansByProfile = {};
+    }
+    const currentId = this.data.activeProfileId || 'prof_default';
+    if (this.data.weeklyPlan) {
+      this.data.plansByProfile[currentId] = JSON.parse(JSON.stringify(this.data.weeklyPlan));
+    }
+
+    // 2. Set new active profile id
     this.data.activeProfileId = profileId;
+
+    // 3. Switch weeklyPlan to new profile's plan
+    const createEmptyWeekPlan = () => ({
+      'Luni': [],
+      'Marți': [],
+      'Miercuri': [],
+      'Joi': [],
+      'Vineri': [],
+      'Sâmbătă': [],
+      'Duminică': []
+    });
+
+    if (!this.data.plansByProfile[profileId]) {
+      this.data.plansByProfile[profileId] = createEmptyWeekPlan();
+    }
+    this.data.weeklyPlan = this.data.plansByProfile[profileId];
 
     // Synchronize daily targets with active profile
     this.updateTargets({
@@ -801,6 +875,21 @@ class NutriStore {
       createdAt: Date.now()
     };
     this.data.profiles.push(newProfile);
+
+    // Initialize clean, blank weekly plan for this new profile
+    if (!this.data.plansByProfile) {
+      this.data.plansByProfile = {};
+    }
+    this.data.plansByProfile[newProfile.id] = {
+      'Luni': [],
+      'Marți': [],
+      'Miercuri': [],
+      'Joi': [],
+      'Vineri': [],
+      'Sâmbătă': [],
+      'Duminică': []
+    };
+
     this.setActiveProfile(newProfile.id);
     return newProfile;
   }
@@ -845,6 +934,9 @@ class NutriStore {
       return false; // Can't delete the only profile
     }
     this.data.profiles = list.filter(p => p.id !== profileId);
+    if (this.data.plansByProfile && this.data.plansByProfile[profileId]) {
+      delete this.data.plansByProfile[profileId];
+    }
     if (this.data.activeProfileId === profileId) {
       this.setActiveProfile(this.data.profiles[0].id);
     } else {
