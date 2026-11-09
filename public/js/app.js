@@ -4337,7 +4337,26 @@ class NutriApp {
               <label class="block text-xs font-bold text-slate-800 dark:text-white mb-1">
                 Ingrediente de la care pornim:
               </label>
-              <textarea id="asst-recipe-input" rows="2" placeholder="Scrie ingredientele tale, ex: piept de pui, orez basmati, ciuperci, smântână de gătit..." class="w-full bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#A390F5] focus:ring-2 focus:ring-[#A390F5]/20 shadow-xs resize-none"></textarea>
+              <textarea id="asst-recipe-input" rows="2" placeholder="Scrie ingredientele tale, ex: faina 60g, oua 3 buc, lapte 250ml, piept de pui..." class="w-full bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#A390F5] focus:ring-2 focus:ring-[#A390F5]/20 shadow-xs resize-none"></textarea>
+            </div>
+
+            <!-- Photo Import Button & Status Bar -->
+            <div class="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+              <label for="asst-photo-input" class="cursor-pointer btn-pill btn-pill-white text-[11px] sm:text-xs py-1.5 px-3 shadow-2xs flex items-center gap-1.5 hover:border-[#A390F5] transition" title="Încarcă o poză cu o rețetă sau ingrediente">
+                <svg class="w-4 h-4 text-[#6D4AE8] dark:text-[#C4B5FD]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="4" stroke-width="2"/></svg>
+                <span class="font-extrabold text-slate-700 dark:text-slate-200">📸 Încarcă Poză Rețetă</span>
+                <input type="file" id="asst-photo-input" accept="image/*" class="hidden">
+              </label>
+              <span class="text-[11px] text-slate-400">Recunoaște gramaje: <em>faina 60g, oua 3 buc</em> etc.</span>
+            </div>
+
+            <!-- Photo Processing Status Banner (hidden by default) -->
+            <div id="asst-photo-status-banner" class="hidden bg-brand-lilac/10 border border-[#A390F5]/30 rounded-2xl p-3 flex items-center gap-3">
+              <div class="w-6 h-6 border-2 border-[#6D4AE8] border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold text-[#6D4AE8] dark:text-[#C4B5FD]" id="asst-photo-status-title">Analiză imagine...</div>
+                <div class="text-[10px] text-slate-500 truncate" id="asst-photo-status-desc">Extragere ingrediente și calcul rețetă</div>
+              </div>
             </div>
 
             <!-- Quick Add from Pantry Chips -->
@@ -4354,15 +4373,25 @@ class NutriApp {
 
             <!-- Controls: Portions, Meal Type, Goal -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/60 dark:border-white/10">
-              <!-- Portions -->
+              <!-- Custom Portions -->
               <div>
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Număr Porții:</label>
-                <div class="flex items-center gap-1" id="asst-portions-group">
-                  ${[1, 2, 3, 4, 6].map(p => `
-                    <button type="button" data-asst-servings="${p}" class="flex-1 py-1.5 rounded-xl text-xs font-bold transition ${p === currentServings ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400'}">
-                      ${p}
-                    </button>
-                  `).join('')}
+                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Număr Porții (Custom):</label>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" id="btn-asst-servings-dec" class="w-8 h-8 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white flex items-center justify-center font-black text-sm hover:bg-slate-100 dark:hover:bg-white/15 transition active:scale-95" title="Scade o porție">
+                    −
+                  </button>
+                  <input type="number" id="asst-custom-servings-input" min="1" max="99" value="${currentServings}" class="w-14 sm:w-16 text-center font-black text-xs sm:text-sm bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-xl py-1.5 text-slate-900 dark:text-white focus:outline-none focus:border-[#A390F5] shadow-xs">
+                  <button type="button" id="btn-asst-servings-inc" class="w-8 h-8 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white flex items-center justify-center font-black text-sm hover:bg-slate-100 dark:hover:bg-white/15 transition active:scale-95" title="Adaugă o porție">
+                    +
+                  </button>
+                  <!-- Presets -->
+                  <div class="flex items-center gap-1 ml-auto">
+                    ${[1, 2, 4, 6, 8].map(p => `
+                      <button type="button" data-asst-preset-servings="${p}" class="px-2 py-1 rounded-lg text-[10px] font-bold transition ${p === currentServings ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319]' : 'bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-400'}">
+                        ${p}p
+                      </button>
+                    `).join('')}
+                  </div>
                 </div>
               </div>
 
@@ -4391,10 +4420,10 @@ class NutriApp {
               </div>
             </div>
 
-            <!-- Generate Button -->
-            <button id="btn-asst-generate-recipe" type="button" class="w-full btn-pill btn-pill-primary py-3 text-sm font-extrabold flex items-center justify-center gap-2 shadow-md">
-              <svg class="w-4 h-4 animate-pulse text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span>Generează Rețetă Inteligentă</span>
+            <!-- Generate Button (overflow-safe with compact loading text) -->
+            <button id="btn-asst-generate-recipe" type="button" class="w-full btn-pill btn-pill-primary min-h-[46px] py-2.5 px-4 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 shadow-md overflow-hidden">
+              <svg class="w-4 h-4 animate-pulse text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span class="truncate max-w-full text-center">Generează Rețetă Inteligentă</span>
             </button>
           </div>
 
@@ -4405,7 +4434,7 @@ class NutriApp {
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
               </div>
               <h4 class="font-extrabold text-sm text-slate-800 dark:text-white">Ce gătim bun azi?</h4>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">Scrie mai sus ce ingrediente ai la dispoziție sau alege din cămară, iar asistentul îți va calcula automat gramajele per porție, costul și toți macronutrienții.</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">Scrie ingredientele dorite (ex: <em>faina 60g, oua 3 buc</em>) sau încarcă o poză, iar asistentul îți va calcula automat gramajele per porție, costul și macronutrienții.</p>
             </div>
           </div>
         </div>
@@ -4512,6 +4541,7 @@ class NutriApp {
     // --- Tab 1: Recipe Generator Wireup ---
     const recipeInput = document.getElementById('asst-recipe-input');
     const resultContainer = document.getElementById('asst-recipe-result-container');
+    const servingsInput = document.getElementById('asst-custom-servings-input');
 
     // Pantry chips click
     document.querySelectorAll('[data-asst-pantry-chip]').forEach(chip => {
@@ -4525,15 +4555,84 @@ class NutriApp {
       });
     });
 
-    // Portion buttons
-    document.querySelectorAll('[data-asst-servings]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        currentServings = parseInt(e.currentTarget.getAttribute('data-asst-servings')) || 2;
-        document.querySelectorAll('[data-asst-servings]').forEach(b => {
-          b.className = 'flex-1 py-1.5 rounded-xl text-xs font-bold transition bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400';
-        });
-        e.currentTarget.className = 'flex-1 py-1.5 rounded-xl text-xs font-bold transition bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs';
+    // Custom Servings Control (+ / - / direct input / presets)
+    const updateServings = (newVal) => {
+      const parsed = Math.max(1, Math.min(99, parseInt(newVal) || 1));
+      currentServings = parsed;
+      if (servingsInput) servingsInput.value = parsed;
+
+      // Update preset buttons styling
+      document.querySelectorAll('[data-asst-preset-servings]').forEach(b => {
+        const p = parseInt(b.getAttribute('data-asst-preset-servings'));
+        if (p === currentServings) {
+          b.className = 'px-2 py-1 rounded-lg text-[10px] font-bold transition bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs';
+        } else {
+          b.className = 'px-2 py-1 rounded-lg text-[10px] font-bold transition bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-400';
+        }
       });
+
+      // If a recipe is currently rendered, live-recalculate it with the new servings
+      if (currentGeneratedRecipe) {
+        currentGeneratedRecipe.servings = currentServings;
+        window.nutriAssistant.recalculateRecipe(currentGeneratedRecipe);
+        renderRecipeResult(currentGeneratedRecipe);
+      }
+    };
+
+    document.getElementById('btn-asst-servings-dec')?.addEventListener('click', () => {
+      updateServings(currentServings - 1);
+    });
+
+    document.getElementById('btn-asst-servings-inc')?.addEventListener('click', () => {
+      updateServings(currentServings + 1);
+    });
+
+    servingsInput?.addEventListener('change', (e) => {
+      updateServings(e.target.value);
+    });
+
+    document.querySelectorAll('[data-asst-preset-servings]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const p = parseInt(e.currentTarget.getAttribute('data-asst-preset-servings')) || 2;
+        updateServings(p);
+      });
+    });
+
+    // Photo Import Handler (Camera or Image Upload)
+    const photoInput = document.getElementById('asst-photo-input');
+    const photoBanner = document.getElementById('asst-photo-status-banner');
+    const photoTitle = document.getElementById('asst-photo-status-title');
+    const photoDesc = document.getElementById('asst-photo-status-desc');
+
+    photoInput?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if (photoBanner) photoBanner.classList.remove('hidden');
+      const updateProgress = (pct, text) => {
+        if (photoTitle) photoTitle.textContent = text;
+        if (photoDesc) photoDesc.textContent = `Progres: ${pct}% • Identificare ingrediente`;
+      };
+
+      try {
+        const res = await window.nutriAssistant.extractRecipeFromImage(file, updateProgress);
+        if (photoBanner) photoBanner.classList.add('hidden');
+
+        if (res && res.recipe) {
+          if (recipeInput && res.rawIngredientText) {
+            recipeInput.value = res.rawIngredientText;
+          }
+          currentGeneratedRecipe = res.recipe;
+          renderRecipeResult(res.recipe);
+          this.showToast('Rețeta și ingredientele au fost extrase din imagine!', 'success');
+        }
+      } catch (err) {
+        console.error('Photo recipe extraction error:', err);
+        if (photoBanner) photoBanner.classList.add('hidden');
+        this.showToast('Nu s-a putut citi imaginea. Te rugăm să încerci o altă poză!', 'error');
+      } finally {
+        photoInput.value = '';
+      }
     });
 
     // Meal Type & Goal select
@@ -4544,7 +4643,7 @@ class NutriApp {
       currentGoal = e.target.value;
     });
 
-    // Generate Recipe Button
+    // Generate Recipe Button (Compact loading text to prevent overflow)
     const generateBtn = document.getElementById('btn-asst-generate-recipe');
     generateBtn?.addEventListener('click', async () => {
       const text = recipeInput?.value.trim();
@@ -4555,8 +4654,8 @@ class NutriApp {
 
       generateBtn.disabled = true;
       generateBtn.innerHTML = `
-        <svg class="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-        <span>NutriChef calculează rețeta, gramajele și costul...</span>
+        <svg class="w-4 h-4 animate-spin text-white flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+        <span class="truncate max-w-full text-center">Calculez rețeta și nutrienții...</span>
       `;
 
       try {
@@ -4575,8 +4674,8 @@ class NutriApp {
       } finally {
         generateBtn.disabled = false;
         generateBtn.innerHTML = `
-          <svg class="w-4 h-4 animate-pulse text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          <span>Generează Rețetă Inteligentă</span>
+          <svg class="w-4 h-4 animate-pulse text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span class="truncate max-w-full text-center">Generează Rețetă Inteligentă</span>
         `;
       }
     });
@@ -4585,32 +4684,38 @@ class NutriApp {
       if (!resultContainer) return;
 
       resultContainer.innerHTML = `
-        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 space-y-4 shadow-md">
-          <!-- Recipe Header & Badges -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-4 sm:p-5 space-y-4 shadow-md">
+          
+          <!-- Recipe Header & Editable Name -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
                 <span class="pill-badge pill-badge-translucent">${recipe.category}</span>
                 <span class="text-xs font-bold text-slate-500 dark:text-slate-400">⏱️ ${recipe.prepTime}</span>
                 <span class="text-xs font-bold text-slate-500 dark:text-slate-400">• Dificultate: ${recipe.difficulty}</span>
               </div>
-              <h4 class="text-lg sm:text-xl font-black font-display text-slate-900 dark:text-white tracking-tight">${recipe.name}</h4>
-              ${recipe.chefTips ? `<p class="text-xs text-brand-lilac-dark dark:text-[#C4B5FD] font-semibold mt-1">✨ ${recipe.chefTips}</p>` : ''}
+              <div class="flex items-center gap-2">
+                <button id="btn-asst-save-recipe" type="button" class="btn-pill btn-pill-dark text-xs py-1.5 px-3.5 shadow flex items-center gap-1.5 whitespace-nowrap">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                  <span>Salvează în Rețetar</span>
+                </button>
+                <button id="btn-asst-add-to-plan" type="button" class="btn-pill btn-pill-primary text-xs py-1.5 px-3.5 shadow flex items-center gap-1.5 whitespace-nowrap">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <span>+ În Plan (${this.activeDay})</span>
+                </button>
+              </div>
             </div>
-            <div class="flex items-center justify-center sm:justify-end gap-2 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0">
-              <button id="btn-asst-save-recipe" type="button" class="flex-1 sm:flex-initial btn-pill btn-pill-dark text-xs py-2 px-3.5 shadow flex items-center justify-center gap-1.5 whitespace-nowrap">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                <span>Salvează în Rețetar</span>
-              </button>
-              <button id="btn-asst-add-to-plan" type="button" class="flex-1 sm:flex-initial btn-pill btn-pill-primary text-xs py-2 px-3.5 shadow flex items-center justify-center gap-1.5 whitespace-nowrap">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                <span>+ În Plan (${this.activeDay})</span>
-              </button>
+
+            <!-- Editable Recipe Name Input -->
+            <div>
+              <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1">Nume Rețetă (Editabil):</label>
+              <input type="text" id="asst-recipe-edit-name" value="${recipe.name}" class="w-full bg-slate-50 dark:bg-[#121319] border border-[#E5E0F5] dark:border-white/10 rounded-xl px-3.5 py-2 font-black text-base sm:text-lg text-slate-900 dark:text-white focus:outline-none focus:border-[#A390F5] shadow-xs" placeholder="Numele rețetei...">
             </div>
+            ${recipe.chefTips ? `<p class="text-xs text-brand-lilac-dark dark:text-[#C4B5FD] font-semibold">✨ ${recipe.chefTips}</p>` : ''}
           </div>
 
-          <!-- Nutritional & Cost Bento Grid (Per Portion & Total) -->
-          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-center">
+          <!-- Nutritional & Cost Bento Grid (Live Recalculated) -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center" id="asst-recipe-macro-bento">
             <div class="bg-emerald-50 dark:bg-emerald-500/10 p-2.5 rounded-2xl border border-emerald-500/20">
               <div class="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase">Cost / Porție</div>
               <div class="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-400 mt-0.5">${recipe.perServing.cost.toFixed(2)} <span class="text-xs">RON</span></div>
@@ -4638,46 +4743,182 @@ class NutriApp {
             </div>
           </div>
 
-          <!-- Ingredients List with Grammages -->
-          <div class="space-y-2">
+          <!-- Fully Editable Ingredients List with Grammages -->
+          <div class="space-y-2.5">
             <div class="text-xs font-extrabold text-slate-800 dark:text-white flex items-center justify-between">
-              <span>Ingrediente & Gramaje Exacte:</span>
-              <span class="text-[11px] font-bold text-slate-400">${recipe.servings} ${recipe.servings === 1 ? 'porție' : 'porții'}</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span>Ingrediente & Gramaje Exacte:</span>
+                <span class="text-[10px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] bg-[#6D4AE8]/10 px-2 py-0.5 rounded-full">Poți edita orice cantitate</span>
+              </div>
+              <span class="text-[11px] font-bold text-slate-400" id="asst-servings-badge">${recipe.servings} ${recipe.servings === 1 ? 'porție' : 'porții'}</span>
             </div>
-            <div class="divide-y divide-slate-100 dark:divide-white/5 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-slate-200/60 dark:border-white/10 overflow-hidden">
-              ${recipe.ingredients.map(ing => `
-                <div class="p-3 flex items-center justify-between text-xs">
-                  <div>
-                    <span class="font-extrabold text-slate-800 dark:text-white">${ing.name}</span>
-                    <span class="text-[11px] text-slate-400 ml-1.5">(${ing.gramsPerServing}g / porție)</span>
+
+            <div id="asst-ingredients-table" class="divide-y divide-slate-100 dark:divide-white/5 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-slate-200/60 dark:border-white/10 overflow-hidden">
+              ${recipe.ingredients.map((ing, idx) => `
+                <div class="p-2.5 sm:p-3 flex items-center justify-between gap-2 text-xs" data-ing-row="${idx}">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-extrabold text-slate-800 dark:text-white truncate">${ing.name}</div>
+                    <div class="text-[11px] text-slate-400">(${ing.gramsPerServing}g / porție • ${ing.costTotal.toFixed(2)} RON)</div>
                   </div>
-                  <div class="text-right">
-                    <span class="font-black text-[#6D4AE8] dark:text-[#C4B5FD]">${ing.totalGrams}g total</span>
-                    <span class="text-[11px] text-emerald-600 font-bold ml-1.5">${ing.costTotal.toFixed(2)} RON</span>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <input type="number" min="1" step="5" data-asst-edit-qty="${idx}" value="${ing.totalGrams}" class="w-16 sm:w-20 px-2 py-1 text-center font-black text-xs sm:text-sm bg-white dark:bg-[#121319] border border-slate-200 dark:border-white/10 rounded-lg focus:outline-none focus:border-[#A390F5] shadow-2xs">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400">g total</span>
+                    <button type="button" data-asst-delete-ing="${idx}" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition ml-1" title="Șterge ingredient">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
                   </div>
                 </div>
               `).join('')}
+            </div>
+
+            <!-- Add New Ingredient Row -->
+            <div class="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-white/3 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
+              <input type="text" id="asst-add-new-ing-input" placeholder="Adaugă ingredient nou (ex: 50g parmezan, 2 oua, 100g spanac)..." class="flex-1 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#A390F5]">
+              <button type="button" id="btn-asst-add-ing-row" class="btn-pill btn-pill-white text-xs py-1.5 px-3 font-bold shadow-xs whitespace-nowrap flex items-center gap-1 hover:border-[#A390F5]">
+                <svg class="w-3.5 h-3.5 text-[#6D4AE8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                <span>+ Adaugă</span>
+              </button>
             </div>
           </div>
 
           <!-- Step by Step Instructions -->
           <div class="space-y-2">
             <div class="text-xs font-extrabold text-slate-800 dark:text-white">Mod de Preparare Pas cu Pas:</div>
-            <div class="space-y-2 text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-[#FAF9FD] dark:bg-white/5 p-4 rounded-2xl border border-slate-200/60 dark:border-white/10">
+            <div class="space-y-1.5 text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-[#FAF9FD] dark:bg-white/5 p-4 rounded-2xl border border-slate-200/60 dark:border-white/10">
               ${recipe.instructions.map(step => `
-                <p class="py-1">${step}</p>
+                <p class="py-0.5">${step}</p>
               `).join('')}
             </div>
           </div>
         </div>
       `;
 
+      // Live Title Sync
+      document.getElementById('asst-recipe-edit-name')?.addEventListener('input', (e) => {
+        recipe.name = e.target.value;
+      });
+
+      // Live Ingredient Quantity Edit Listeners
+      document.querySelectorAll('[data-asst-edit-qty]').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-asst-edit-qty'));
+          const newQty = Math.max(1, parseFloat(e.target.value) || 0);
+          if (recipe.ingredients[idx]) {
+            recipe.ingredients[idx].quantityGrams = newQty;
+            recipe.ingredients[idx].totalGrams = newQty;
+            window.nutriAssistant.recalculateRecipe(recipe);
+
+            // Update row text
+            const row = document.querySelector(`[data-ing-row="${idx}"]`);
+            if (row) {
+              const sub = row.querySelector('.text-\\[11px\\]');
+              if (sub) {
+                sub.textContent = `(${recipe.ingredients[idx].gramsPerServing}g / porție • ${recipe.ingredients[idx].costTotal.toFixed(2)} RON)`;
+              }
+            }
+
+            // Update macro bento
+            const bento = document.getElementById('asst-recipe-macro-bento');
+            if (bento) {
+              bento.innerHTML = `
+                <div class="bg-emerald-50 dark:bg-emerald-500/10 p-2.5 rounded-2xl border border-emerald-500/20">
+                  <div class="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase">Cost / Porție</div>
+                  <div class="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-400 mt-0.5">${recipe.perServing.cost.toFixed(2)} <span class="text-xs">RON</span></div>
+                  <div class="text-[10px] text-emerald-600/70 mt-0.5">Total: ${recipe.totals.cost.toFixed(2)} RON</div>
+                </div>
+                <div class="bg-indigo-50 dark:bg-indigo-500/10 p-2.5 rounded-2xl border border-indigo-500/20">
+                  <div class="text-[10px] font-bold text-indigo-800 dark:text-indigo-300 uppercase">Calorii</div>
+                  <div class="text-base sm:text-lg font-black text-[#6D4AE8] dark:text-[#C4B5FD] mt-0.5">${recipe.perServing.calories} <span class="text-xs">kcal</span></div>
+                  <div class="text-[10px] text-indigo-500/70 mt-0.5">Total: ${recipe.totals.calories} kcal</div>
+                </div>
+                <div class="bg-rose-50 dark:bg-rose-500/10 p-2.5 rounded-2xl border border-rose-500/20">
+                  <div class="text-[10px] font-bold text-rose-800 dark:text-rose-300 uppercase">Proteine</div>
+                  <div class="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 mt-0.5">${recipe.perServing.protein} <span class="text-xs">g</span></div>
+                  <div class="text-[10px] text-rose-500/70 mt-0.5">Total: ${recipe.totals.protein}g</div>
+                </div>
+                <div class="bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-2xl border border-amber-500/20">
+                  <div class="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase">Carbohidrați</div>
+                  <div class="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 mt-0.5">${recipe.perServing.carbs} <span class="text-xs">g</span></div>
+                  <div class="text-[10px] text-amber-500/70 mt-0.5">Total: ${recipe.totals.carbs}g</div>
+                </div>
+                <div class="bg-sky-50 dark:bg-sky-500/10 p-2.5 rounded-2xl border border-sky-500/20 col-span-2 sm:col-span-1">
+                  <div class="text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">Grăsimi</div>
+                  <div class="text-base sm:text-lg font-black text-sky-600 dark:text-sky-400 mt-0.5">${recipe.perServing.fat} <span class="text-xs">g</span></div>
+                  <div class="text-[10px] text-sky-500/70 mt-0.5">Total: ${recipe.totals.fat}g</div>
+                </div>
+              `;
+            }
+          }
+        });
+      });
+
+      // Delete Ingredient Listeners
+      document.querySelectorAll('[data-asst-delete-ing]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-asst-delete-ing'));
+          if (recipe.ingredients.length <= 1) {
+            this.showToast('Rețeta trebuie să aibă cel puțin un ingredient!', 'warning');
+            return;
+          }
+          recipe.ingredients.splice(idx, 1);
+          window.nutriAssistant.recalculateRecipe(recipe);
+          renderRecipeResult(recipe);
+          this.showToast('Ingredient eliminat din rețetă.', 'info');
+        });
+      });
+
+      // Add New Ingredient Row Listener
+      const newIngInput = document.getElementById('asst-add-new-ing-input');
+      const addIngBtn = document.getElementById('btn-asst-add-ing-row');
+      const handleAddNewIng = () => {
+        const val = newIngInput?.value.trim();
+        if (!val) return;
+
+        const parsedToken = window.nutriAssistant.parseIngredientToken(val, recipe.servings);
+        if (!parsedToken) return;
+
+        let matched = window.store ? window.store.findIngredientByName(parsedToken.name) : null;
+        let est = window.nutriAssistant.estimateMarketData(parsedToken.name);
+
+        const ingName = matched ? matched.name : parsedToken.name;
+        const totalQty = parsedToken.explicitGrams !== null ? parsedToken.explicitGrams : Math.round(100 * recipe.servings);
+
+        recipe.ingredients.push({
+          name: ingName,
+          quantityGrams: totalQty,
+          totalGrams: totalQty,
+          gramsPerServing: Math.max(1, Math.round(totalQty / recipe.servings)),
+          calories100g: matched ? matched.calories : est.calories,
+          protein100g: matched ? matched.protein : est.protein,
+          carbs100g: matched ? matched.carbs : est.carbs,
+          fat100g: matched ? matched.fat : est.fat,
+          pricePer100g: matched ? matched.pricePer100g : est.pricePer100g,
+          category: matched ? matched.category : est.category,
+          existingId: matched ? matched.id : null
+        });
+
+        window.nutriAssistant.recalculateRecipe(recipe);
+        renderRecipeResult(recipe);
+        this.showToast(`Adăugat: ${ingName} (${totalQty}g)`, 'success');
+      };
+
+      addIngBtn?.addEventListener('click', handleAddNewIng);
+      newIngInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleAddNewIng();
+        }
+      });
+
       // Save to store button click
       document.getElementById('btn-asst-save-recipe')?.addEventListener('click', (e) => {
-        const saved = window.nutriAssistant.saveRecipeToStore(currentGeneratedRecipe);
+        const editName = document.getElementById('asst-recipe-edit-name')?.value.trim();
+        if (editName) recipe.name = editName;
+
+        const saved = window.nutriAssistant.saveRecipeToStore(recipe);
         if (saved) {
           e.currentTarget.disabled = true;
-          e.currentTarget.className = 'flex-1 sm:flex-initial btn-pill bg-emerald-600 text-white text-xs py-2 px-3.5 shadow whitespace-nowrap cursor-default flex items-center justify-center gap-1.5';
+          e.currentTarget.className = 'btn-pill bg-emerald-600 text-white text-xs py-1.5 px-3.5 shadow whitespace-nowrap cursor-default flex items-center gap-1.5';
           e.currentTarget.innerHTML = `<span>✓ Salvat în Rețetar</span>`;
           this.showToast(`Rețeta "${saved.name}" a fost salvată în Rețetar!`, 'success');
         }
@@ -4685,19 +4926,23 @@ class NutriApp {
 
       // Add to current day plan
       document.getElementById('btn-asst-add-to-plan')?.addEventListener('click', (e) => {
-        let saved = window.store.getRecipes().find(r => r.name === currentGeneratedRecipe.name);
+        const editName = document.getElementById('asst-recipe-edit-name')?.value.trim();
+        if (editName) recipe.name = editName;
+
+        let saved = window.store.getRecipes().find(r => r.name === recipe.name);
         if (!saved) {
-          saved = window.nutriAssistant.saveRecipeToStore(currentGeneratedRecipe);
+          saved = window.nutriAssistant.saveRecipeToStore(recipe);
         }
         if (saved) {
-          window.store.addPlanItem(this.activeDay, currentGeneratedRecipe.category || 'Prânz', saved.id, 1.0);
+          window.store.addPlanItem(this.activeDay, recipe.category || 'Prânz', saved.id, 1.0);
           e.currentTarget.disabled = true;
-          e.currentTarget.className = 'flex-1 sm:flex-initial btn-pill bg-emerald-600 text-white text-xs py-2 px-3.5 shadow whitespace-nowrap cursor-default flex items-center justify-center gap-1.5';
+          e.currentTarget.className = 'btn-pill bg-emerald-600 text-white text-xs py-1.5 px-3.5 shadow whitespace-nowrap cursor-default flex items-center gap-1.5';
           e.currentTarget.innerHTML = `<span>✓ Adăugat la ${this.activeDay}</span>`;
           this.showToast(`Adăugat cu succes în planul de ${this.activeDay}!`, 'success');
         }
       });
     };
+
 
     // --- Tab 2: Online Search Wireup ---
     const onlineInput = document.getElementById('asst-online-search-input');

@@ -551,14 +551,130 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
     return this.buildRecipeWithSmartEngine(rawInput, servings, mealType, goal);
   }
 
-  // Built-in intelligent recipe synthesis algorithm
+  // Smart Natural Language Ingredient & Quantity Parser
+  // Examples: "faina 60g", "ouă 3 buc", "3 oua", "lapte 250ml", "1 kg cartofi", "2 linguri ulei"
+  parseIngredientToken(rawToken, servings = 1) {
+    if (!rawToken || typeof rawToken !== 'string') return null;
+    let str = rawToken.trim().toLowerCase();
+    if (!str) return null;
+
+    // Standard piece and unit weights in grams (Romanian standard supermarket reference)
+    const PIECE_WEIGHTS = [
+      { regex: /\b(ou[aă]?|oua|oou[aă]?)\b/i, weight: 55, defaultName: 'Ouă' },
+      { regex: /\b(banana|banane)\b/i, weight: 120, defaultName: 'Banane' },
+      { regex: /\b(m[aă]r|mere)\b/i, weight: 150, defaultName: 'Mere' },
+      { regex: /\b(par[aă]|pere)\b/i, weight: 160, defaultName: 'Pere' },
+      { regex: /\b(ceap[aă]|cepe)\b/i, weight: 90, defaultName: 'Ceapă' },
+      { regex: /\b(ro[sș]ie|ro[sș]ii)\b/i, weight: 120, defaultName: 'Roșii' },
+      { regex: /\b(cartof|cartofi)\b/i, weight: 150, defaultName: 'Cartofi' },
+      { regex: /\b(castravete|castrave[tț]i)\b/i, weight: 120, defaultName: 'Castraveți' },
+      { regex: /\b(avocado)\b/i, weight: 160, defaultName: 'Avocado' },
+      { regex: /\b(l[aă]m[aâ]ie|l[aă]m[aâ]i)\b/i, weight: 80, defaultName: 'Lămâie' },
+      { regex: /\b(portocal[aă]|portocale)\b/i, weight: 180, defaultName: 'Portocale' },
+      { regex: /\b(ardei)\b/i, weight: 120, defaultName: 'Ardei' },
+      { regex: /\b(morcov|morcovi)\b/i, weight: 80, defaultName: 'Morcovi' },
+      { regex: /\b(dovlecel|dovlecei|zucchini)\b/i, weight: 200, defaultName: 'Dovlecei' },
+      { regex: /\b(usturoi|c[aă][tț]el.*usturoi)\b/i, weight: 5, defaultName: 'Usturoi' },
+      { regex: /\b(felie|felii)\b/i, weight: 35, defaultName: 'Pâine toast' },
+      { regex: /\b(lipie|lipii|tortilla)\b/i, weight: 60, defaultName: 'Lipie' },
+      { regex: /\b(covrig|covrigi)\b/i, weight: 90, defaultName: 'Covrig' },
+      { regex: /\b(conserv[aă]|conserve)\b/i, weight: 160, defaultName: 'Conservă' }
+    ];
+
+    let explicitGrams = null;
+    let parsedName = str;
+    let isPieceCount = false;
+    let pieceCount = 1;
+
+    // 1. Check for grams/kg/ml/l: e.g. "60g", "60 g", "60gr", "0.5kg", "250ml", "1l"
+    const gramRegex = /([0-9]+(?:[.,][0-9]+)?)\s*(kg|kilograme?|kile|g|gr|grame|ml|mililitri|l|litri)\b/i;
+    const matchGram = str.match(gramRegex);
+    if (matchGram) {
+      let val = parseFloat(matchGram[1].replace(',', '.'));
+      const unit = matchGram[2].toLowerCase();
+      if (unit.startsWith('k') || unit === 'l' || unit === 'litri' || unit === 'litru') {
+        val = val * 1000;
+      }
+      explicitGrams = Math.round(val);
+      parsedName = str.replace(matchGram[0], '').trim();
+    }
+
+    // 2. Check for spoons / tablespoons / teaspoons: "2 linguri", "1 lingurita"
+    if (explicitGrams === null) {
+      const spoonRegex = /([0-9]+(?:[.,][0-9]+)?)\s*(linguri[tț][aă]|linguri[tț]e|lingur[aă]|linguri)\b/i;
+      const matchSpoon = str.match(spoonRegex);
+      if (matchSpoon) {
+        const count = parseFloat(matchSpoon[1].replace(',', '.'));
+        const isTeaspoon = /linguri[tț]/i.test(matchSpoon[2]);
+        explicitGrams = Math.round(count * (isTeaspoon ? 5 : 15));
+        parsedName = str.replace(matchSpoon[0], '').trim();
+      }
+    }
+
+    // 3. Check for pieces / bucăți: e.g. "ouă 3 buc", "3 oua", "2 mere", "1 avocado"
+    if (explicitGrams === null) {
+      const bucRegex = /([0-9]+(?:[.,][0-9]+)?)\s*(buc[aă][tț][aă]|buc[aă][tț]i|buc|pieces?)\b/i;
+      const matchBuc = str.match(bucRegex);
+      if (matchBuc) {
+        pieceCount = parseFloat(matchBuc[1].replace(',', '.'));
+        isPieceCount = true;
+        parsedName = str.replace(matchBuc[0], '').trim();
+      } else {
+        // Match start number: "3 oua", "2 mere", "1 banana"
+        const startNumRegex = /^([0-9]+(?:[.,][0-9]+)?)\s+([a-zA-ZăâîșțĂÂÎȘȚ].*)$/i;
+        const matchStart = str.match(startNumRegex);
+        if (matchStart) {
+          pieceCount = parseFloat(matchStart[1].replace(',', '.'));
+          isPieceCount = true;
+          parsedName = matchStart[2].trim();
+        } else {
+          // Match end number: "oua 3", "mere 2"
+          const endNumRegex = /^(.*?)\s+([0-9]+(?:[.,][0-9]+)?)$/i;
+          const matchEnd = str.match(endNumRegex);
+          if (matchEnd) {
+            pieceCount = parseFloat(matchEnd[2].replace(',', '.'));
+            isPieceCount = true;
+            parsedName = matchEnd[1].trim();
+          }
+        }
+      }
+
+      if (isPieceCount) {
+        const matchedPiece = PIECE_WEIGHTS.find(pw => pw.regex.test(parsedName) || pw.regex.test(str));
+        if (matchedPiece) {
+          explicitGrams = Math.round(pieceCount * matchedPiece.weight);
+        } else {
+          explicitGrams = Math.round(pieceCount * 100);
+        }
+      }
+    }
+
+    // Clean parsed name: strip extra connecting words and punctuation
+    parsedName = parsedName
+      .replace(/\b(de|cu|buc|bucati|bucata)\b/gi, ' ')
+      .replace(/[^a-zA-ZăâîșțĂÂÎȘȚ0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!parsedName) {
+      parsedName = rawToken.trim();
+    }
+
+    return {
+      raw: rawToken,
+      name: parsedName.charAt(0).toUpperCase() + parsedName.slice(1),
+      explicitGrams: explicitGrams
+    };
+  }
+
+  // Built-in intelligent recipe synthesis algorithm with Natural Language Grammage Recognition
   buildRecipeWithSmartEngine(rawInput, servings, mealType, goal) {
-    const rawTokens = rawInput.toLowerCase()
+    const rawTokens = (rawInput || '').toLowerCase()
       .split(/[,;\n+]+/)
       .map(s => s.trim())
-      .filter(s => s.length > 1);
+      .filter(s => s.length > 0);
 
-    const ingTokens = rawTokens.length > 0 ? rawTokens : ['piept de pui', 'orez', 'legume'];
+    const initialTokens = rawTokens.length > 0 ? rawTokens : ['piept de pui', 'orez', 'legume'];
 
     // Resolve ingredients and calculate quantities per portion
     const ingredientsList = [];
@@ -571,43 +687,57 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
     let mainCarbName = '';
     let mainVeggieName = '';
 
-    ingTokens.forEach((token, idx) => {
-      // 1. Look in store ingredients
-      let matched = (typeof window !== 'undefined' && window.store) ? window.store.findIngredientByName(token) : null;
-      let est = this.estimateMarketData(token);
+    initialTokens.forEach((token) => {
+      const parsedToken = this.parseIngredientToken(token, servings);
+      if (!parsedToken) return;
 
-      const ingName = matched ? matched.name : (token.charAt(0).toUpperCase() + token.slice(1));
+      const lookupName = parsedToken.name;
+
+      // 1. Look in store ingredients
+      let matched = (typeof window !== 'undefined' && window.store) ? window.store.findIngredientByName(lookupName) : null;
+      let est = this.estimateMarketData(lookupName);
+
+      const ingName = matched ? matched.name : lookupName;
       const calories = matched ? matched.calories : est.calories;
       const protein = matched ? matched.protein : est.protein;
       const carbs = matched ? matched.carbs : est.carbs;
       const fat = matched ? matched.fat : est.fat;
       const pricePer100g = matched ? matched.pricePer100g : est.pricePer100g;
 
-      // Determine portion size based on macronutrient profile & role
+      // Determine portion size based on macronutrient profile & role, or use explicit grams
+      let totalQuantity = 100;
       let gramsPerServing = 100;
-      if (protein > 15 && carbs < 10) {
-        // Meat / Fish / Tofu
-        gramsPerServing = goal === 'high_protein' ? 220 : 175;
-        hasProtein = true;
-        if (!mainProteinName) mainProteinName = ingName;
-      } else if (carbs > 40) {
-        // Grains, Rice, Pasta, Oats
-        gramsPerServing = goal === 'low_calorie' || goal === 'keto' ? 45 : (goal === 'high_protein' ? 80 : 70);
-        hasCarb = true;
-        if (!mainCarbName) mainCarbName = ingName;
-      } else if (fat > 30) {
-        // Oils, Nuts, Butter
-        gramsPerServing = 15;
-      } else if (calories < 60) {
-        // Veggies / Greens
-        gramsPerServing = 120;
-        hasVeggie = true;
-        if (!mainVeggieName) mainVeggieName = ingName;
-      } else {
-        gramsPerServing = 100;
-      }
 
-      const totalQuantity = Math.round(gramsPerServing * servings);
+      if (parsedToken.explicitGrams !== null && parsedToken.explicitGrams > 0) {
+        // User explicitly stated the quantity (e.g. "faina 60g" -> 60g total, "ouă 3 buc" -> 165g total)
+        totalQuantity = parsedToken.explicitGrams;
+        gramsPerServing = Math.max(1, Math.round(totalQuantity / servings));
+
+        // Mark role
+        if (protein > 15 && carbs < 10) { hasProtein = true; if (!mainProteinName) mainProteinName = ingName; }
+        else if (carbs > 40) { hasCarb = true; if (!mainCarbName) mainCarbName = ingName; }
+        else if (calories < 60) { hasVeggie = true; if (!mainVeggieName) mainVeggieName = ingName; }
+      } else {
+        // Auto-calculate portion per serving based on role & goal
+        if (protein > 15 && carbs < 10) {
+          gramsPerServing = goal === 'high_protein' ? 220 : 175;
+          hasProtein = true;
+          if (!mainProteinName) mainProteinName = ingName;
+        } else if (carbs > 40) {
+          gramsPerServing = goal === 'low_calorie' || goal === 'keto' ? 45 : (goal === 'high_protein' ? 80 : 70);
+          hasCarb = true;
+          if (!mainCarbName) mainCarbName = ingName;
+        } else if (fat > 30) {
+          gramsPerServing = 15;
+        } else if (calories < 60) {
+          gramsPerServing = 120;
+          hasVeggie = true;
+          if (!mainVeggieName) mainVeggieName = ingName;
+        } else {
+          gramsPerServing = 100;
+        }
+        totalQuantity = Math.round(gramsPerServing * servings);
+      }
 
       ingredientsList.push({
         name: ingName,
@@ -625,16 +755,17 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
 
     // Generate enticing title
     let recipeTitle = '';
+    const firstTwo = ingredientsList.slice(0, 2).map(i => i.name).join(' & ');
     if (mealType === 'Mic Dejun') {
       if (mainProteinName.toLowerCase().includes('ou')) {
         recipeTitle = `Omletă Sățioasă cu ${mainVeggieName || 'Verdețuri'} & Brânză`;
       } else if (mainCarbName.toLowerCase().includes('ovaz')) {
         recipeTitle = `Bol Cald de Ovăz Proteic cu Fructe`;
       } else {
-        recipeTitle = `Mic Dejun Nutritiv cu ${ingTokens.slice(0, 2).join(' & ')}`;
+        recipeTitle = `Mic Dejun Nutritiv cu ${firstTwo || 'Ingrediente Proaspete'}`;
       }
     } else if (mealType === 'Snacks') {
-      recipeTitle = `Gustare Rapidă cu ${ingTokens.slice(0, 2).join(' & ')}`;
+      recipeTitle = `Gustare Rapidă cu ${firstTwo || 'Ingrediente Alese'}`;
     } else {
       // Lunch / Dinner
       if (mainProteinName && mainCarbName) {
@@ -642,7 +773,7 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
       } else if (mainProteinName) {
         recipeTitle = `${mainProteinName} la Cuptor cu Ierburi Aromatice & Garnitură`;
       } else {
-        recipeTitle = `Preparat Sănătos cu ${ingTokens.slice(0, 2).join(', ')}`;
+        recipeTitle = `Preparat Delicios cu ${firstTwo || 'Ingrediente Sănătoase'}`;
       }
     }
 
@@ -672,16 +803,19 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
     }, servings, mealType);
   }
 
-  // Process and calculate full macro & cost totals
-  processGeneratedRecipe(recipeData, servings, mealType) {
+  // Live Recalculate Recipe Totals when Ingredients or Portions are Edited by User
+  recalculateRecipe(recipe) {
+    const servings = Math.max(1, parseInt(recipe.servings) || 1);
+    recipe.servings = servings;
+
     let totalCalories = 0;
     let totalProtein = 0;
     let totalCarbs = 0;
     let totalFat = 0;
     let totalCost = 0;
 
-    const processedIngredients = (recipeData.ingredients || []).map(ing => {
-      const qty = parseFloat(ing.quantityGrams) || 100;
+    recipe.ingredients = (recipe.ingredients || []).map(ing => {
+      const qty = Math.max(0, parseFloat(ing.quantityGrams ?? ing.totalGrams) || 0);
       const cals = ((parseFloat(ing.calories100g) || 0) * qty) / 100;
       const prot = ((parseFloat(ing.protein100g) || 0) * qty) / 100;
       const carbs = ((parseFloat(ing.carbs100g) || 0) * qty) / 100;
@@ -696,8 +830,9 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
 
       return {
         ...ing,
+        quantityGrams: qty,
         totalGrams: qty,
-        gramsPerServing: Math.round(qty / servings),
+        gramsPerServing: Math.max(1, Math.round(qty / servings)),
         caloriesTotal: Math.round(cals),
         proteinTotal: parseFloat(prot.toFixed(1)),
         carbsTotal: parseFloat(carbs.toFixed(1)),
@@ -706,31 +841,171 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
       };
     });
 
-    return {
+    recipe.totals = {
+      calories: Math.round(totalCalories),
+      protein: parseFloat(totalProtein.toFixed(1)),
+      carbs: parseFloat(totalCarbs.toFixed(1)),
+      fat: parseFloat(totalFat.toFixed(1)),
+      cost: parseFloat(totalCost.toFixed(2))
+    };
+
+    recipe.perServing = {
+      calories: Math.round(totalCalories / servings),
+      protein: parseFloat((totalProtein / servings).toFixed(1)),
+      carbs: parseFloat((totalCarbs / servings).toFixed(1)),
+      fat: parseFloat((totalFat / servings).toFixed(1)),
+      cost: parseFloat((totalCost / servings).toFixed(2))
+    };
+
+    return recipe;
+  }
+
+  // Process and calculate full macro & cost totals
+  processGeneratedRecipe(recipeData, servings, mealType) {
+    const rec = {
       name: recipeData.name || 'Rețetă Asistent AI',
       category: mealType || recipeData.category || 'Prânz',
-      servings,
+      servings: Math.max(1, parseInt(servings) || 2),
       prepTime: recipeData.prepTime || '20 min',
       difficulty: recipeData.difficulty || 'Ușor',
       chefTips: recipeData.chefTips || '',
-      ingredients: processedIngredients,
-      instructions: recipeData.instructions || [],
-      totals: {
-        calories: Math.round(totalCalories),
-        protein: parseFloat(totalProtein.toFixed(1)),
-        carbs: parseFloat(totalCarbs.toFixed(1)),
-        fat: parseFloat(totalFat.toFixed(1)),
-        cost: parseFloat(totalCost.toFixed(2))
-      },
-      perServing: {
-        calories: Math.round(totalCalories / servings),
-        protein: parseFloat((totalProtein / servings).toFixed(1)),
-        carbs: parseFloat((totalCarbs / servings).toFixed(1)),
-        fat: parseFloat((totalFat / servings).toFixed(1)),
-        cost: parseFloat((totalCost / servings).toFixed(2))
+      ingredients: recipeData.ingredients || [],
+      instructions: recipeData.instructions || []
+    };
+
+    return this.recalculateRecipe(rec);
+  }
+
+  // Multimodal Recipe Extraction from Photos (Camera or Uploaded Image)
+  async extractRecipeFromImage(fileOrDataUrl, onProgress = null) {
+    if (onProgress) onProgress(15, 'Procesare imagine recepționată...');
+
+    // Convert file to dataURL if necessary
+    let dataUrl = '';
+    if (typeof fileOrDataUrl === 'string') {
+      dataUrl = fileOrDataUrl;
+    } else if (fileOrDataUrl instanceof Blob || fileOrDataUrl instanceof File) {
+      dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(fileOrDataUrl);
+      });
+    }
+
+    // 1. Try Generative Multimodal AI (Gemini 2.0 Flash) if key exists
+    if (this.geminiApiKey) {
+      try {
+        if (onProgress) onProgress(35, 'Analiză inteligentă cu Google Gemini Multimodal...');
+        const base64Data = dataUrl.split(',')[1];
+        const mimeType = dataUrl.match(/data:([^;]+);/)?.[1] || 'image/jpeg';
+
+        const prompt = `Analizează această imagine (poză cu mâncare, rețetă scrisă, captură de ecran din social media sau bon/ingrediente).
+Identifică rețeta sau preparatul, lista completă de ingrediente cu gramajele sau cantitățile specificate (ex: "faina 60g", "ouă 3 buc", "200g piept pui").
+Dacă gramajele nu sunt scrise explicit în imagine, estimează-le realist pentru 2 porții.
+Răspunde STRICT în format JSON valid fără markdown:
+{
+  "name": "Numele Rețetei",
+  "category": "Prânz",
+  "servings": 2,
+  "prepTime": "25 min",
+  "difficulty": "Ușor",
+  "rawIngredientText": "faina 60g, oua 3 buc, lapte 200ml...",
+  "ingredients": [
+    { "name": "făină", "quantityGrams": 60, "calories100g": 348, "protein100g": 10.5, "carbs100g": 73.5, "fat100g": 1.0, "pricePer100g": 0.45 }
+  ],
+  "instructions": [
+    "Pasul 1...",
+    "Pasul 2..."
+  ],
+  "chefTips": "Sfat nutrițional"
+}`;
+
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType, data: base64Data } }
+              ]
+            }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 1400 }
+          })
+        });
+
+        if (resp.ok) {
+          if (onProgress) onProgress(85, 'Construire macronutrienți rețetă...');
+          const resJson = await resp.json();
+          let text = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const parsed = JSON.parse(text);
+          const processed = this.processGeneratedRecipe(parsed, parsed.servings || 2, parsed.category || 'Prânz');
+          if (onProgress) onProgress(100, 'Rețetă extrasă cu succes!');
+          return {
+            recipe: processed,
+            rawIngredientText: parsed.rawIngredientText || parsed.ingredients.map(i => `${i.name} ${i.quantityGrams}g`).join(', ')
+          };
+        }
+      } catch (geminiErr) {
+        console.warn('Gemini multimodal extraction failed, falling back to OCR:', geminiErr);
       }
+    }
+
+    // 2. Fallback to Tesseract OCR Engine + Smart Romanian Text Extractor
+    if (onProgress) onProgress(40, 'Scanare text cu motorul OCR Tesseract...');
+    let ocrText = '';
+    if (window.Tesseract && typeof window.Tesseract.recognize === 'function') {
+      try {
+        const result = await window.Tesseract.recognize(
+          dataUrl,
+          'eng+ron',
+          {
+            logger: (m) => {
+              if (m.status === 'recognizing text' && onProgress) {
+                const p = Math.round(40 + (m.progress * 45));
+                onProgress(p, `Recunoaștere caractere (OCR): ${Math.round(m.progress * 100)}%`);
+              }
+            }
+          }
+        );
+        ocrText = result.data ? result.data.text : '';
+      } catch (ocrErr) {
+        console.warn('Tesseract recognition error:', ocrErr);
+      }
+    }
+
+    if (onProgress) onProgress(85, 'Interpretare ingrediente și gramaje...');
+
+    // Extract lines that look like ingredients
+    const lines = ocrText.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 2 && !/^(total|bon|tva|data|ora|lei|ron|cui)/i.test(l));
+
+    const candidateTokens = [];
+    lines.forEach(line => {
+      // Clean noise
+      const cleanLine = line.replace(/[^a-zA-ZăâîșțĂÂÎȘȚ0-9\s.,/%-]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (cleanLine.length >= 3) {
+        candidateTokens.push(cleanLine);
+      }
+    });
+
+    const rawIngredientText = candidateTokens.length > 0 
+      ? candidateTokens.slice(0, 10).join(', ') 
+      : 'piept de pui 200g, orez 80g, broccoli 150g';
+
+    if (onProgress) onProgress(95, 'Sinteză rețetă...');
+    const builtRecipe = this.buildRecipeWithSmartEngine(rawIngredientText, 2, 'Prânz', 'balanced');
+    if (onProgress) onProgress(100, 'Rețetă extrasă cu succes!');
+
+    return {
+      recipe: builtRecipe,
+      rawIngredientText
     };
   }
+
 
   // 3. Save generated recipe into store database
   saveRecipeToStore(recipeObj) {
