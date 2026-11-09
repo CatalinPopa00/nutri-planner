@@ -19,6 +19,7 @@ class NutriApp {
   }
 
   init() {
+    window.alert = (msg) => this.showToast(msg, 'info');
     this.bindEvents();
     window.store.subscribe(() => {
       this.renderCurrentView();
@@ -598,9 +599,16 @@ class NutriApp {
     const clearBtn = document.getElementById('btn-clear-day');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
-        if (confirm(`Ești sigur că vrei să golești planul pentru ziua de ${this.activeDay}?`)) {
-          window.store.clearDay(this.activeDay);
-        }
+        this.showConfirmModal({
+          title: 'Golește Planul Zilei',
+          message: `Ești sigur că vrei să golești toate mesele planificate pentru ziua de ${this.activeDay}?`,
+          confirmText: 'Da, golește',
+          isDanger: true,
+          onConfirm: () => {
+            window.store.clearDay(this.activeDay);
+            this.showToast(`Planul pentru ziua de ${this.activeDay} a fost golit.`, 'info');
+          }
+        });
       });
     }
 
@@ -836,9 +844,16 @@ class NutriApp {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-recipe-delete');
         const raw = window.store.getRecipeById(id);
-        if (confirm(`Ești sigur că vrei să ștergi rețeta "${raw?.name}"?`)) {
-          window.store.deleteRecipe(id);
-        }
+        this.showConfirmModal({
+          title: 'Șterge Rețeta',
+          message: `Ești sigur că vrei să ștergi definitiv rețeta "${raw?.name}"? Această acțiune nu poate fi anulată.`,
+          confirmText: 'Șterge rețeta',
+          isDanger: true,
+          onConfirm: () => {
+            window.store.deleteRecipe(id);
+            this.showToast(`Rețeta "${raw?.name}" a fost ștearsă.`, 'info');
+          }
+        });
       });
     });
   }
@@ -1099,9 +1114,16 @@ class NutriApp {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-ing-delete');
         const item = window.store.getIngredientById(id);
-        if (confirm(`Ești sigur că vrei să ștergi "${item?.name}"?`)) {
-          window.store.deleteIngredient(id);
-        }
+        this.showConfirmModal({
+          title: 'Șterge Ingredient',
+          message: `Ești sigur că vrei să ștergi definitiv ingredientul "${item?.name}" din baza de date?`,
+          confirmText: 'Șterge ingredient',
+          isDanger: true,
+          onConfirm: () => {
+            window.store.deleteIngredient(id);
+            this.showToast(`Ingredientul "${item?.name}" a fost șters.`, 'info');
+          }
+        });
       });
     });
   }
@@ -1353,7 +1375,7 @@ class NutriApp {
               this.handleEanFound(code);
             });
           } catch (err) {
-            alert('Nu am putut accesa camera. Te rugăm să folosești introducerea manuală a codului EAN.');
+            this.showToast('Nu am putut accesa camera. Te rugăm să folosești introducerea manuală a codului EAN.', 'error');
             placeholder.classList.remove('hidden');
             video.classList.add('hidden');
             overlay.classList.add('hidden');
@@ -1374,7 +1396,7 @@ class NutriApp {
         if (code) {
           this.handleEanFound(code);
         } else {
-          alert('Te rugăm să introduci un cod EAN.');
+          this.showToast('Te rugăm să introduci un cod EAN.', 'warning');
         }
       });
     }
@@ -1480,129 +1502,24 @@ class NutriApp {
   }
 
   async handleEanFound(eanCode) {
-    const card = document.getElementById('ean-result-card');
-    if (!card) return;
-
-    card.classList.remove('hidden');
-    card.innerHTML = `
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-md flex items-center justify-center gap-3 py-8">
-        <svg class="w-6 h-6 text-emerald-600 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-        <span class="text-sm font-semibold text-slate-700">Se caută produsul în Open Food Facts & Baza de date...</span>
+    this.openModal(`
+      <div class="p-8 text-center space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+          <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Identificare Produs</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Se caută codul EAN <span class="font-mono font-bold text-slate-700 dark:text-slate-200">${eanCode}</span> în Open Food Facts & Baza de date...</p>
+        </div>
       </div>
-    `;
+    `);
 
     try {
       const res = await window.barcodeScanner.lookupEan(eanCode);
-      const d = res.data;
-
-      card.innerHTML = `
-        <div class="bg-white rounded-2xl border border-emerald-500 shadow-md overflow-hidden modal-enter">
-          <div class="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex items-center justify-between">
-            <span class="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              ${res.isExisting ? 'Produs Găsit în Baza Ta de Date' : 'Informații Extrase cu Succes'}
-            </span>
-            <span class="text-[11px] font-mono text-slate-500">EAN: ${d.ean}</span>
-          </div>
-
-          <div class="p-4 space-y-4">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600">${d.category}</span>
-                <h3 class="font-bold text-base text-slate-800 mt-1">${d.name}</h3>
-                ${d.brand ? `<div class="text-xs text-slate-500">Brand: ${d.brand}</div>` : ''}
-              </div>
-              <div class="text-right">
-                <div class="text-xs text-slate-500">Gramaj Pachet</div>
-                <div class="font-bold text-sm text-slate-800">${d.packageQuantity}g</div>
-              </div>
-            </div>
-
-            <!-- Nutrition 100g -->
-            <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
-              <div class="text-xs font-semibold text-slate-600 mb-2">Valori Nutriționale per 100g:</div>
-              <div class="grid grid-cols-4 gap-2 text-center text-xs">
-                <div class="bg-white p-1.5 rounded-lg border border-slate-200">
-                  <div class="text-slate-400 text-[10px]">Calorii</div>
-                  <div class="font-bold text-purple-700">${Math.round(d.calories)} kcal</div>
-                </div>
-                <div class="bg-white p-1.5 rounded-lg border border-slate-200">
-                  <div class="text-slate-400 text-[10px]">Proteine</div>
-                  <div class="font-bold text-rose-600">${d.protein}g</div>
-                </div>
-                <div class="bg-white p-1.5 rounded-lg border border-slate-200">
-                  <div class="text-slate-400 text-[10px]">Carbi</div>
-                  <div class="font-bold text-amber-600">${d.carbs}g</div>
-                </div>
-                <div class="bg-white p-1.5 rounded-lg border border-slate-200">
-                  <div class="text-slate-400 text-[10px]">Grăsimi</div>
-                  <div class="font-bold text-sky-600">${d.fat}g</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Price input -->
-            <div class="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <label class="block text-xs font-bold text-emerald-900">Preț Pachet Plătit (RON)</label>
-                <div class="text-[11px] text-emerald-700">Prețul per 100g va fi calculat automat: (Preț / ${d.packageQuantity}) * 100</div>
-              </div>
-              <div class="w-full sm:w-36">
-                <input type="number" step="0.01" id="scanned-price-input" value="${d.packagePrice || ''}" placeholder="ex: 12.50" class="w-full bg-white border border-emerald-300 rounded-lg px-3 py-1.5 text-sm font-bold text-emerald-900 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-              </div>
-            </div>
-
-            <!-- Action button -->
-            <div class="flex justify-end gap-2">
-              <button id="btn-cancel-scanned" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Anulează</button>
-              <button id="btn-save-scanned-to-db" class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow transition">
-                ${res.isExisting ? 'Actualizează Prețul în DB' : 'Adaugă în Baza de Date'}
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('btn-cancel-scanned')?.addEventListener('click', () => {
-        card.classList.add('hidden');
-      });
-
-      document.getElementById('btn-save-scanned-to-db')?.addEventListener('click', () => {
-        const priceVal = parseFloat(document.getElementById('scanned-price-input')?.value) || 0;
-        if (priceVal <= 0) {
-          alert('Te rugăm să introduci prețul plătit pe pachet.');
-          return;
-        }
-
-        if (res.isExisting && res.ingredient) {
-          window.store.updateIngredient(res.ingredient.id, {
-            packagePrice: priceVal,
-            packageQuantity: d.packageQuantity
-          });
-          alert(`Prețul pentru "${d.name}" a fost actualizat la ${priceVal.toFixed(2)} RON!`);
-        } else {
-          window.store.addIngredient({
-            name: d.name,
-            category: d.category,
-            packageQuantity: d.packageQuantity,
-            packagePrice: priceVal,
-            calories: d.calories,
-            protein: d.protein,
-            carbs: d.carbs,
-            fat: d.fat,
-            ean: d.ean
-          });
-          alert(`Produsul "${d.name}" a fost salvat cu succes în baza de date!`);
-        }
-        card.classList.add('hidden');
-      });
-
+      this.openScannedEanModal(res);
     } catch (err) {
-      card.innerHTML = `
-        <div class="bg-rose-50 text-rose-700 p-4 rounded-xl border border-rose-200 text-xs">
-          A apărut o eroare la căutarea codului EAN: ${err.message}
-        </div>
-      `;
+      this.closeModal();
+      this.showToast(`A apărut o eroare la căutarea codului EAN: ${err.message}`, 'error');
     }
   }
 
@@ -1677,128 +1594,31 @@ class NutriApp {
   }
 
   renderReceiptResults(parsed) {
-    const container = document.getElementById('receipt-result-container');
-    if (!container) return;
+    this.openReceiptModal(parsed);
 
-    container.classList.remove('hidden');
-    container.innerHTML = `
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden space-y-4 p-4 sm:p-5 modal-enter">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+    const container = document.getElementById('receipt-result-container');
+    if (container) {
+      container.classList.remove('hidden');
+      container.innerHTML = `
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div>
             <div class="flex items-center gap-2">
-              <h3 class="font-bold text-base text-slate-800">${parsed.store}</h3>
-              <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Data: ${parsed.date}</span>
+              <span class="font-extrabold text-sm text-slate-900 dark:text-white">${parsed.store}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">${parsed.items.length} articole</span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">S-au detectat ${parsed.items.length} produse pe bonul fiscal</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Total: <span class="font-bold text-slate-700 dark:text-slate-200">${parsed.totalCalculated.toFixed(2)} RON</span> • Data: ${parsed.date}</p>
           </div>
-          <div class="text-right">
-            <span class="text-xs text-slate-500">Total Produse Extrase:</span>
-            <div class="font-bold text-base text-emerald-700">${parsed.totalCalculated.toFixed(2)} RON</div>
-          </div>
-        </div>
-
-        <!-- Parsed Products Table -->
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
-                <th class="p-2.5 w-8">
-                  <input type="checkbox" id="check-all-receipt-items" checked class="rounded text-emerald-600 focus:ring-emerald-500">
-                </th>
-                <th class="p-2.5 font-semibold">Produs Bon Fiscal</th>
-                <th class="p-2.5 font-semibold">Status Bază Date</th>
-                <th class="p-2.5 font-semibold">Gramaj</th>
-                <th class="p-2.5 font-semibold">Preț Bon</th>
-                <th class="p-2.5 font-semibold text-emerald-700">Preț / 100g</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              ${parsed.items.map((it, idx) => `
-                <tr class="hover:bg-slate-50/70 transition">
-                  <td class="p-2.5">
-                    <input type="checkbox" data-receipt-item-check="${idx}" checked class="receipt-item-checkbox rounded text-emerald-600 focus:ring-emerald-500">
-                  </td>
-                  <td class="p-2.5 font-medium text-slate-800">
-                    <div>${it.name}</div>
-                    <div class="text-[10px] text-slate-400 font-mono">${it.rawLine}</div>
-                  </td>
-                  <td class="p-2.5">
-                    ${it.isMatched ? `
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        Potrivit: ${it.matchedIngredient.name}
-                      </span>
-                    ` : `
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                        + Produs Nou
-                      </span>
-                    `}
-                  </td>
-                  <td class="p-2.5 text-slate-600">${it.quantity}g</td>
-                  <td class="p-2.5 font-bold text-slate-800">${it.price.toFixed(2)} RON</td>
-                  <td class="p-2.5 font-bold text-emerald-700">${it.pricePer100g.toFixed(2)} RON</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Bottom Action Bar -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100">
-          <div class="text-xs text-slate-500">
-            Selectează produsele pe care dorești să le actualizezi sau să le introduci în baza de date.
-          </div>
-          <button id="btn-import-receipt-items" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow transition">
-            Actualizează / Importă în Bază de Date
+          <button id="btn-reopen-receipt-popup" class="btn-pill btn-pill-primary text-xs sm:text-sm self-start sm:self-auto shadow">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <span>Verifică & Completează</span>
           </button>
         </div>
-      </div>
-    `;
+      `;
 
-    // Check all checkbox
-    const checkAll = document.getElementById('check-all-receipt-items');
-    if (checkAll) {
-      checkAll.addEventListener('change', (e) => {
-        document.querySelectorAll('.receipt-item-checkbox').forEach(cb => {
-          cb.checked = e.target.checked;
-        });
+      document.getElementById('btn-reopen-receipt-popup')?.addEventListener('click', () => {
+        this.openReceiptModal(parsed);
       });
     }
-
-    // Import batch button
-    document.getElementById('btn-import-receipt-items')?.addEventListener('click', () => {
-      let updatedCount = 0;
-      let newCount = 0;
-
-      parsed.items.forEach((it, idx) => {
-        const cb = document.querySelector(`[data-receipt-item-check="${idx}"]`);
-        if (cb && cb.checked) {
-          if (it.isMatched && it.matchedIngredient) {
-            window.store.updateIngredient(it.matchedIngredient.id, {
-              packagePrice: it.price,
-              packageQuantity: it.quantity
-            });
-            updatedCount++;
-          } else {
-            window.store.addIngredient({
-              name: it.name,
-              category: 'Ingrediente',
-              packageQuantity: it.quantity,
-              packagePrice: it.price,
-              calories: 100,
-              protein: 5,
-              carbs: 10,
-              fat: 2
-            });
-            newCount++;
-          }
-        }
-      });
-
-      alert(`Succes! S-au actualizat ${updatedCount} ingrediente și s-au adăugat ${newCount} produse noi.`);
-      container.classList.add('hidden');
-      this.switchTab('ingredients');
-    });
   }
 
   // ==========================================
@@ -1930,7 +1750,7 @@ class NutriApp {
         text += `[ ] ${it.name} - ${it.totalGrams}g (Cumpără ${it.packagesToBuy} pachete ~ ${it.estimatedCost.toFixed(2)} RON)\n`;
       });
       navigator.clipboard.writeText(text).then(() => {
-        alert('Lista de cumpărături a fost copiată în clipboard!');
+        this.showToast('Lista de cumpărături a fost copiată în clipboard!', 'success');
       });
     });
 
@@ -1958,10 +1778,10 @@ class NutriApp {
           reader.onload = (event) => {
             const ok = window.store.importDataJson(event.target.result);
             if (ok) {
-              alert('Datele au fost importate cu succes!');
+              this.showToast('Datele au fost importate cu succes!', 'success');
               this.renderCurrentView();
             } else {
-              alert('Fișierul JSON nu are formatul corect.');
+              this.showToast('Fișierul JSON nu are formatul corect.', 'error');
             }
           };
           reader.readAsText(file);
@@ -1972,11 +1792,17 @@ class NutriApp {
 
     // Reset defaults
     document.getElementById('btn-reset-defaults')?.addEventListener('click', () => {
-      if (confirm('Ești sigur că vrei să resetezi toate datele la starea inițială din Google Sheet?')) {
-        window.store.resetToDefaults();
-        alert('Datele au fost resetate la starea inițială!');
-        this.renderCurrentView();
-      }
+      this.showConfirmModal({
+        title: 'Resetare Date Inițiale',
+        message: 'Ești sigur că vrei să resetezi toate datele la starea inițială din Google Sheet? Toate rețetele și ingredientele adăugate vor fi resetate.',
+        confirmText: 'Resetează tot',
+        isDanger: true,
+        onConfirm: () => {
+          window.store.resetToDefaults();
+          this.showToast('Datele au fost resetate la starea inițială!', 'success');
+          this.renderCurrentView();
+        }
+      });
     });
   }
 
@@ -2024,6 +1850,420 @@ class NutriApp {
       this.activeModal = null;
       document.body.style.overflow = '';
     }
+  }
+
+  showToast(message, type = 'success', duration = 3500) {
+    let toastContainer = document.getElementById('app-toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'app-toast-container';
+      toastContainer.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2 pointer-events-none px-4 w-full max-w-md';
+      document.body.appendChild(toastContainer);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#121319]/95 dark:bg-[#1E202E]/95 text-white backdrop-blur-xl border border-white/15 shadow-2xl transition-all duration-300 transform -translate-y-2 opacity-0 text-xs sm:text-sm font-semibold max-w-full';
+
+    let iconSvg = '';
+    if (type === 'success') {
+      iconSvg = `<div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>`;
+    } else if (type === 'error') {
+      iconSvg = `<div class="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></div>`;
+    } else if (type === 'warning') {
+      iconSvg = `<div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>`;
+    } else {
+      iconSvg = `<div class="w-6 h-6 rounded-full bg-brand-lilac/20 text-brand-lilac flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>`;
+    }
+
+    toast.innerHTML = `
+      ${iconSvg}
+      <span class="flex-1">${message}</span>
+      <button class="text-white/40 hover:text-white transition p-1" onclick="this.parentElement.remove()">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    `;
+
+    toastContainer.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.classList.remove('-translate-y-2', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+    });
+
+    setTimeout(() => {
+      toast.classList.add('opacity-0', '-translate-y-2');
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  showConfirmModal({ title, message, confirmText = 'Da, confirmă', cancelText = 'Anulează', onConfirm, isDanger = false }) {
+    const html = `
+      <div class="p-5 sm:p-6 text-center space-y-4">
+        <div class="w-12 h-12 rounded-2xl ${isDanger ? 'bg-rose-500/15 text-rose-500' : 'bg-brand-lilac/15 text-brand-lilac'} flex items-center justify-center mx-auto">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            ${isDanger 
+              ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>'
+              : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'}
+          </svg>
+        </div>
+
+        <div>
+          <h3 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">${title}</h3>
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">${message}</p>
+        </div>
+
+        <div class="flex items-center justify-center gap-3 pt-2">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs sm:text-sm px-5 py-2.5">
+            ${cancelText}
+          </button>
+          <button id="modal-confirm-action-btn" class="btn-pill ${isDanger ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'btn-pill-primary'} text-xs sm:text-sm px-5 py-2.5 shadow">
+            ${confirmText}
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.openModal(html);
+    document.getElementById('modal-confirm-action-btn')?.addEventListener('click', () => {
+      this.closeModal();
+      if (typeof onConfirm === 'function') onConfirm();
+    });
+  }
+
+  // --- Modal: Scanned EAN Ingredient Pop-up ---
+  openScannedEanModal(res) {
+    const d = res.data;
+    const categories = ['Carne & Pește', 'Lactate', 'Cereale & Carbi', 'Legume & Fructe', 'Grăsimi & Uleiuri', 'Condimente & Sosuri', 'Altele'];
+
+    const initialPrice = d.packagePrice ? parseFloat(d.packagePrice).toFixed(2) : '';
+    const initialQty = d.packageQuantity || 100;
+    const initialP100 = (initialPrice && initialQty > 0) ? ((parseFloat(initialPrice) / initialQty) * 100).toFixed(2) : '0.00';
+
+    const html = `
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white truncate">Produs Identificat</h3>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${res.isExisting ? 'bg-brand-lilac/20 text-brand-dark dark:text-brand-lilac' : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'} flex-shrink-0">
+                ${res.isExisting ? 'Existent în DB' : 'Open Food Facts'}
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">EAN: ${d.ean || '-'}</p>
+          </div>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition" title="Închide">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Form Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <!-- Name & Category -->
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80 mb-1">Denumire Produs</label>
+            <input type="text" id="scan-modal-name" value="${d.name || ''}" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-white/80 mb-1">Categorie</label>
+              <select id="scan-modal-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+                ${categories.map(c => `
+                  <option value="${c}" ${d.category === c ? 'selected' : ''}>${c}</option>
+                `).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-white/80 mb-1">Brand / Magazin (opțional)</label>
+              <input type="text" id="scan-modal-brand" value="${d.brand || ''}" placeholder="ex: Pilos, K-Classic..." class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+            </div>
+          </div>
+        </div>
+
+        <!-- Package Weight & Price Card -->
+        <div class="bento-card bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 p-3.5 sm:p-4 rounded-2xl space-y-2.5">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-emerald-950 dark:text-emerald-200 mb-1">Gramaj Pachet (g)</label>
+              <input type="number" id="scan-modal-qty" value="${initialQty}" class="w-full bg-white dark:bg-[#181924] border border-emerald-300 dark:border-emerald-500/40 rounded-xl px-3 py-2 text-sm font-extrabold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-emerald-950 dark:text-emerald-200 mb-1">Preț Pachet (RON)</label>
+              <input type="number" step="0.01" id="scan-modal-price" value="${initialPrice}" placeholder="ex: 8.50" class="w-full bg-white dark:bg-[#181924] border border-emerald-300 dark:border-emerald-500/40 rounded-xl px-3 py-2 text-sm font-extrabold text-emerald-700 dark:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-xs pt-1.5 border-t border-emerald-500/20">
+            <span class="text-emerald-900 dark:text-emerald-200 font-medium">Preț calculat per 100g:</span>
+            <span id="scan-modal-calc-p100" class="font-black text-sm text-emerald-700 dark:text-emerald-400">${initialP100} lei/100g</span>
+          </div>
+        </div>
+
+        <!-- Nutrition Inputs (per 100g) -->
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-3.5 sm:p-4 rounded-2xl space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-extrabold text-slate-800 dark:text-white">Valori Nutriționale per 100g</label>
+            <span class="text-[10px] text-slate-400 dark:text-slate-500">Introdu ce mai este necesar</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <div class="bg-brand-lilac/15 dark:bg-brand-lilac/10 p-2 sm:p-2.5 rounded-xl border border-brand-lilac/30">
+              <div class="text-[10px] font-bold text-brand-dark dark:text-brand-lilac">Calorii</div>
+              <input type="number" id="scan-modal-cals" value="${Math.round(d.calories || 0)}" class="w-full text-center bg-white dark:bg-[#181924] border border-brand-lilac/40 rounded-lg py-1 mt-1 text-xs font-black text-brand-dark dark:text-white focus:outline-none">
+              <div class="text-[9px] text-slate-400 mt-0.5">kcal</div>
+            </div>
+            <div class="bg-brand-pink/15 dark:bg-brand-pink/10 p-2 sm:p-2.5 rounded-xl border border-brand-pink/30">
+              <div class="text-[10px] font-bold text-rose-700 dark:text-brand-pink">Proteine</div>
+              <input type="number" step="0.1" id="scan-modal-prot" value="${d.protein || 0}" class="w-full text-center bg-white dark:bg-[#181924] border border-brand-pink/40 rounded-lg py-1 mt-1 text-xs font-black text-rose-600 dark:text-brand-pink focus:outline-none">
+              <div class="text-[9px] text-slate-400 mt-0.5">g</div>
+            </div>
+            <div class="bg-brand-apricot/15 dark:bg-brand-apricot/10 p-2 sm:p-2.5 rounded-xl border border-brand-apricot/30">
+              <div class="text-[10px] font-bold text-amber-800 dark:text-brand-apricot">Carbi</div>
+              <input type="number" step="0.1" id="scan-modal-carbs" value="${d.carbs || 0}" class="w-full text-center bg-white dark:bg-[#181924] border border-brand-apricot/40 rounded-lg py-1 mt-1 text-xs font-black text-amber-600 dark:text-brand-apricot focus:outline-none">
+              <div class="text-[9px] text-slate-400 mt-0.5">g</div>
+            </div>
+            <div class="bg-brand-sky/15 dark:bg-brand-sky/10 p-2 sm:p-2.5 rounded-xl border border-brand-sky/30">
+              <div class="text-[10px] font-bold text-sky-800 dark:text-brand-sky">Grăsimi</div>
+              <input type="number" step="0.1" id="scan-modal-fat" value="${d.fat || 0}" class="w-full text-center bg-white dark:bg-[#181924] border border-brand-sky/40 rounded-lg py-1 mt-1 text-xs font-black text-sky-600 dark:text-brand-sky focus:outline-none">
+              <div class="text-[9px] text-slate-400 mt-0.5">g</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-end gap-2.5 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+        <button id="btn-save-scanned-modal" class="btn-pill btn-pill-primary text-xs sm:text-sm shadow">
+          ${res.isExisting ? 'Actualizează în DB' : 'Salvează în Baza de Date'}
+        </button>
+      </div>
+    `;
+
+    this.openModal(html);
+
+    // Live price per 100g recalculation
+    const qtyIn = document.getElementById('scan-modal-qty');
+    const priceIn = document.getElementById('scan-modal-price');
+    const p100El = document.getElementById('scan-modal-calc-p100');
+
+    const updateCalc = () => {
+      const q = parseFloat(qtyIn?.value) || 0;
+      const p = parseFloat(priceIn?.value) || 0;
+      if (q > 0 && p > 0) {
+        p100El.textContent = ((p / q) * 100).toFixed(2) + ' lei/100g';
+      } else {
+        p100El.textContent = '0.00 lei/100g';
+      }
+    };
+
+    qtyIn?.addEventListener('input', updateCalc);
+    priceIn?.addEventListener('input', updateCalc);
+
+    // Save button logic
+    document.getElementById('btn-save-scanned-modal')?.addEventListener('click', () => {
+      const name = document.getElementById('scan-modal-name')?.value.trim();
+      const category = document.getElementById('scan-modal-cat')?.value || 'Altele';
+      const brand = document.getElementById('scan-modal-brand')?.value.trim();
+      const packageQuantity = parseFloat(qtyIn?.value) || 100;
+      const packagePrice = parseFloat(priceIn?.value) || 0;
+      const calories = parseFloat(document.getElementById('scan-modal-cals')?.value) || 0;
+      const protein = parseFloat(document.getElementById('scan-modal-prot')?.value) || 0;
+      const carbs = parseFloat(document.getElementById('scan-modal-carbs')?.value) || 0;
+      const fat = parseFloat(document.getElementById('scan-modal-fat')?.value) || 0;
+
+      if (!name) {
+        this.showToast('Te rugăm să introduci denumirea produsului.', 'warning');
+        return;
+      }
+      if (packagePrice <= 0) {
+        this.showToast('Te rugăm să introduci prețul plătit pe pachet.', 'warning');
+        return;
+      }
+
+      if (res.isExisting && res.ingredient) {
+        window.store.updateIngredient(res.ingredient.id, {
+          name,
+          category,
+          packageQuantity,
+          packagePrice,
+          calories,
+          protein,
+          carbs,
+          fat,
+          brand
+        });
+        this.showToast(`Prețul și datele pentru "${name}" au fost actualizate!`, 'success');
+      } else {
+        window.store.addIngredient({
+          name,
+          category,
+          packageQuantity,
+          packagePrice,
+          calories,
+          protein,
+          carbs,
+          fat,
+          brand,
+          ean: d.ean
+        });
+        this.showToast(`Produsul "${name}" a fost salvat cu succes în baza de date!`, 'success');
+      }
+
+      this.closeModal();
+      if (window.barcodeScanner && window.barcodeScanner.isScanning) {
+        window.barcodeScanner.stopCamera();
+        const cameraBtn = document.getElementById('btn-toggle-camera');
+        if (cameraBtn) {
+          cameraBtn.textContent = 'Pornește Camera';
+          cameraBtn.classList.remove('bg-rose-600');
+          cameraBtn.classList.add('bg-emerald-600');
+        }
+      }
+    });
+  }
+
+  // --- Modal: Scanned Receipt (Bon Fiscal) Pop-up ---
+  openReceiptModal(parsed) {
+    const categories = ['Carne & Pește', 'Lactate', 'Cereale & Carbi', 'Legume & Fructe', 'Grăsimi & Uleiuri', 'Condimente & Sosuri', 'Altele'];
+
+    const html = `
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 rounded-2xl bg-brand-lilac/15 text-brand-lilac flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white truncate">${parsed.store}</h3>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex-shrink-0">
+                ${parsed.items.length} articole
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${parsed.date} • Total: ${parsed.totalCalculated.toFixed(2)} RON</p>
+          </div>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition" title="Închide">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Body with Items -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 space-y-2.5">
+        <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between pb-1">
+          <span>Verifică și ajustează datele extrase:</span>
+          <label class="flex items-center gap-1.5 cursor-pointer font-bold text-brand-dark dark:text-brand-lilac text-[11px]">
+            <input type="checkbox" id="modal-receipt-check-all" checked class="rounded border-slate-300">
+            <span>Selectează tot</span>
+          </label>
+        </div>
+
+        ${parsed.items.map((it, idx) => `
+          <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 space-y-2 shadow-2xs" data-receipt-idx="${idx}">
+            <div class="flex items-start gap-2.5">
+              <input type="checkbox" data-receipt-item-cb="${idx}" checked class="mt-1 rounded border-slate-300 text-brand-lilac flex-shrink-0">
+              <div class="flex-1 min-w-0 space-y-1.5">
+                <div class="flex items-center justify-between gap-2">
+                  <input type="text" data-receipt-name="${idx}" value="${it.name}" class="w-full font-bold text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 dark:border-white/20 focus:border-brand-lilac focus:outline-none text-slate-900 dark:text-white pb-0.5">
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${it.isMatched ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'}">
+                    ${it.isMatched ? 'Găsit în DB' : 'Produs Nou'}
+                  </span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                  <div class="flex items-center gap-1">
+                    <span class="text-slate-400 text-[11px]">Gramaj:</span>
+                    <input type="number" data-receipt-qty="${idx}" value="${it.quantity}" class="w-16 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-2 py-1 text-xs font-bold text-center text-slate-800 dark:text-white">
+                    <span class="text-slate-400 text-[11px]">g</span>
+                  </div>
+
+                  <div class="flex items-center gap-1">
+                    <span class="text-slate-400 text-[11px]">Preț:</span>
+                    <input type="number" step="0.01" data-receipt-price="${idx}" value="${it.price.toFixed(2)}" class="w-20 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-2 py-1 text-xs font-black text-emerald-600 dark:text-emerald-400 text-right">
+                    <span class="text-slate-400 text-[11px]">lei</span>
+                  </div>
+
+                  <div class="flex items-center gap-1">
+                    <span class="text-slate-400 text-[11px]">Cat:</span>
+                    <select data-receipt-cat="${idx}" class="bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-800 dark:text-white">
+                      ${categories.map(c => `
+                        <option value="${c}" ${(it.matchedIngredient && it.matchedIngredient.category === c) ? 'selected' : ''}>${c}</option>
+                      `).join('')}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-2.5 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+        <button id="btn-import-receipt-modal" class="btn-pill btn-pill-primary text-xs sm:text-sm shadow">
+          Importă în Baza de Date
+        </button>
+      </div>
+    `;
+
+    this.openModal(html);
+
+    // Toggle select all
+    const checkAll = document.getElementById('modal-receipt-check-all');
+    if (checkAll) {
+      checkAll.addEventListener('change', (e) => {
+        document.querySelectorAll('[data-receipt-item-cb]').forEach(cb => {
+          cb.checked = e.target.checked;
+        });
+      });
+    }
+
+    // Import button
+    document.getElementById('btn-import-receipt-modal')?.addEventListener('click', () => {
+      let updatedCount = 0;
+      let newCount = 0;
+
+      parsed.items.forEach((it, idx) => {
+        const cb = document.querySelector(`[data-receipt-item-cb="${idx}"]`);
+        if (cb && cb.checked) {
+          const name = document.querySelector(`[data-receipt-name="${idx}"]`)?.value.trim() || it.name;
+          const qty = parseFloat(document.querySelector(`[data-receipt-qty="${idx}"]`)?.value) || it.quantity || 100;
+          const price = parseFloat(document.querySelector(`[data-receipt-price="${idx}"]`)?.value) || it.price || 0;
+          const category = document.querySelector(`[data-receipt-cat="${idx}"]`)?.value || 'Altele';
+
+          if (it.isMatched && it.matchedIngredient) {
+            window.store.updateIngredient(it.matchedIngredient.id, {
+              name,
+              packagePrice: price,
+              packageQuantity: qty,
+              category
+            });
+            updatedCount++;
+          } else {
+            window.store.addIngredient({
+              name,
+              category,
+              packageQuantity: qty,
+              packagePrice: price,
+              calories: 100,
+              protein: 5,
+              carbs: 10,
+              fat: 2
+            });
+            newCount++;
+          }
+        }
+      });
+
+      this.closeModal();
+      this.showToast(`Succes! S-au actualizat ${updatedCount} ingrediente și s-au adăugat ${newCount} produse noi.`, 'success');
+      this.switchTab('ingredients');
+    });
   }
 
   // --- Modal: Add Recipe to Meal ---
@@ -2543,11 +2783,11 @@ class NutriApp {
       const finalServings = parseFloat(document.getElementById('recipe-builder-servings')?.value) || 1;
 
       if (!name) {
-        alert('Te rugăm să completezi numele rețetei.');
+        this.showToast('Te rugăm să completezi numele rețetei.', 'warning');
         return;
       }
       if (curIngredients.length === 0) {
-        alert('Adaugă cel puțin un ingredient în rețetă.');
+        this.showToast('Adaugă cel puțin un ingredient în rețetă.', 'warning');
         return;
       }
 
@@ -2558,6 +2798,7 @@ class NutriApp {
           servings: finalServings,
           ingredients: curIngredients
         });
+        this.showToast(`Rețeta "${name}" a fost actualizată!`, 'success');
       } else {
         window.store.addRecipe({
           name,
@@ -2565,6 +2806,7 @@ class NutriApp {
           servings: finalServings,
           ingredients: curIngredients
         });
+        this.showToast(`Rețeta "${name}" a fost salvată cu succes!`, 'success');
       }
 
       this.closeModal();
@@ -2689,7 +2931,7 @@ class NutriApp {
       const fat = parseFloat(document.getElementById('ing-form-fat')?.value) || 0;
 
       if (!name) {
-        alert('Te rugăm să completezi numele ingredientului.');
+        this.showToast('Te rugăm să completezi numele ingredientului.', 'warning');
         return;
       }
 
@@ -2697,10 +2939,12 @@ class NutriApp {
         window.store.updateIngredient(existingIng.id, {
           name, category: cat, ean, packageQuantity: pkgQty, packagePrice: pkgPrice, calories, protein, carbs, fat
         });
+        this.showToast(`Ingredientul "${name}" a fost actualizat!`, 'success');
       } else {
         window.store.addIngredient({
           name, category: cat, ean, packageQuantity: pkgQty, packagePrice: pkgPrice, calories, protein, carbs, fat
         });
+        this.showToast(`Ingredientul "${name}" a fost adăugat cu succes!`, 'success');
       }
 
       this.closeModal();
@@ -2762,7 +3006,7 @@ class NutriApp {
       const meal = document.getElementById('quick-plan-meal')?.value;
       const servings = parseFloat(document.getElementById('quick-plan-servings')?.value) || 1.0;
       window.store.addPlanItem(day, meal, recipeId, servings);
-      alert(`Rețeta "${raw.name}" a fost adăugată la ${meal} pentru ziua de ${day}!`);
+      this.showToast(`Rețeta "${raw.name}" a fost adăugată la ${meal} pentru ziua de ${day}!`, 'success');
       this.closeModal();
       this.switchTab('planner');
     });
@@ -2804,7 +3048,7 @@ class NutriApp {
       const target = document.getElementById('copy-target-day')?.value;
       if (target) {
         window.store.copyDayPlan(this.activeDay, target);
-        alert(`Planul din ziua de ${this.activeDay} a fost copiat în ${target}!`);
+        this.showToast(`Planul din ziua de ${this.activeDay} a fost copiat în ${target}!`, 'success');
         this.closeModal();
       }
     });
