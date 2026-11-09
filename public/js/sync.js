@@ -35,11 +35,23 @@ class NutriCloudSync {
   loadConfig() {
     try {
       const stored = localStorage.getItem(this.CONFIG_KEY);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.apiKey) return parsed;
+      }
     } catch (e) {
       console.warn('Could not load Firebase config from localStorage:', e);
     }
-    return null;
+    // Default built-in Firebase project configuration (nutri-planner-f849e)
+    return {
+      apiKey: "AIzaSyACPzEY-ohBWnsXjLXYVPoHqA4sjNq9tFE",
+      authDomain: "nutri-planner-f849e.firebaseapp.com",
+      projectId: "nutri-planner-f849e",
+      storageBucket: "nutri-planner-f849e.firebasestorage.app",
+      messagingSenderId: "676427466914",
+      appId: "1:676427466914:web:e6ac65ebe7de347265effb",
+      measurementId: "G-3MGK78RTM4"
+    };
   }
 
   saveConfig(cfg) {
