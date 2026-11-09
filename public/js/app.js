@@ -1184,19 +1184,17 @@ class NutriApp {
                     Tabel & Cost
                   </button>
                   <div class="flex items-center gap-1.5">
-                    ${!isOwnedByActive ? `
-                      <button data-recipe-copy-custom="${r.id}" class="btn-pill btn-pill-outline text-xs py-1.5 px-2.5 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold flex items-center gap-1" title="Copiază în rețetele mele proprii pentru a o personaliza">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                        <span>Copiază</span>
-                      </button>
-                    ` : ''}
+                    <button data-recipe-copy-custom="${r.id}" class="btn-pill btn-pill-outline text-xs py-1.5 px-2.5 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold flex items-center gap-1" title="Copiază pe un profil și editează">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                      <span>Copiază</span>
+                    </button>
                     <button data-recipe-plan="${r.id}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3" title="Adaugă în planificator">
                       + Planifică
                     </button>
+                    <button data-recipe-edit="${r.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează rețeta">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
                     ${isOwnedByActive ? `
-                      <button data-recipe-edit="${r.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                      </button>
                       <button data-recipe-delete="${r.id}" class="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
@@ -1222,17 +1220,11 @@ class NutriApp {
       });
     });
 
-    // Copy common recipe to custom
+    // Copy recipe to a profile
     document.querySelectorAll('[data-recipe-copy-custom]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-recipe-copy-custom');
-        const cloned = window.store.cloneRecipeToCustom(id);
-        if (cloned) {
-          this.recipeMainTab = 'proprii';
-          localStorage.setItem('nutri_recipe_tab', 'proprii');
-          this.showToast(`Rețeta "${cloned.name}" a fost copiată în secțiunea Proprii!`, 'success');
-          this.renderCurrentView();
-        }
+        this.openCopyRecipeModal(id);
       });
     });
 
@@ -3477,14 +3469,174 @@ class NutriApp {
       </div>
 
       <!-- Fixed Footer -->
-      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex justify-end bg-white dark:bg-[#181924]">
-        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-2 bg-white dark:bg-[#181924]">
+        <div class="flex items-center gap-2">
+          <button data-recipe-copy-from-modal="${r.id}" class="btn-pill btn-pill-outline text-xs py-2 px-3 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold flex items-center gap-1.5" title="Copiază această rețetă pe un profil">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <span>Copiază pe Profil</span>
+          </button>
+          <button data-recipe-edit-from-modal="${r.id}" class="btn-pill btn-pill-white text-xs py-2 px-3 flex items-center gap-1.5" title="Editează rețeta">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <span>Editează</span>
+          </button>
+        </div>
+        <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs py-2 px-4">
           Închide
         </button>
       </div>
     `;
 
     this.openModal(html);
+
+    document.querySelector('[data-recipe-copy-from-modal]')?.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-recipe-copy-from-modal');
+      this.openCopyRecipeModal(id);
+    });
+
+    document.querySelector('[data-recipe-edit-from-modal]')?.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-recipe-edit-from-modal');
+      const rec = window.store.getRecipeById(id);
+      if (rec) {
+        this.openRecipeBuilderModal(rec);
+      }
+    });
+  }
+
+  // --- Modal: Copy Recipe to Profile ---
+  openCopyRecipeModal(recipeId) {
+    const raw = window.store.getRecipeById(recipeId);
+    if (!raw) return;
+    const r = window.store.calculateRecipe(raw);
+    const profiles = window.store.getProfiles ? window.store.getProfiles() : [];
+    const activeProfileId = window.store.data.activeProfileId || profiles[0]?.id || 'prof_default';
+
+    const html = `
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">Copiază Rețeta pe un Profil</h3>
+            <p class="text-xs text-slate-500 dark:text-white/60">Alege profilul unde dorești să o adaugi și personalizezi</p>
+          </div>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-4 sm:p-6 space-y-4">
+        <!-- Selected Recipe Summary Card -->
+        <div class="p-3.5 bg-slate-50/80 dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 flex items-center justify-between">
+          <div>
+            <span class="pill-badge pill-badge-translucent text-[10px] mb-1">${r.category}</span>
+            <div class="font-extrabold text-sm text-slate-900 dark:text-white">${r.name}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${r.servings} porții • ${r.ingredients.length} ingrediente</div>
+          </div>
+          <div class="text-right">
+            <div class="font-black text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
+            <div class="text-[10px] text-slate-400">${Math.round(r.perServing.calories)} kcal / p</div>
+          </div>
+        </div>
+
+        <!-- Target Profile Selector -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Profilul pe care dorești să copiezi rețeta:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="copy-profile-list">
+            ${profiles.map(p => {
+              const isSelected = p.id === activeProfileId;
+              return `
+                <label class="flex items-center gap-2.5 p-3 rounded-2xl border cursor-pointer transition copy-prof-option ${
+                  isSelected 
+                    ? 'border-[#6D4AE8] bg-brand-lilac/10 text-slate-900 dark:text-white ring-2 ring-[#6D4AE8]/20'
+                    : 'border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-white/5 hover:border-brand-lilac/40 text-slate-700 dark:text-slate-300'
+                }">
+                  <input type="radio" name="copy-target-profile" value="${p.id}" ${isSelected ? 'checked' : ''} class="accent-[#6D4AE8]">
+                  <div class="w-7 h-7 rounded-full bg-[#121319] dark:bg-white text-white dark:text-[#121319] font-black text-xs flex items-center justify-center overflow-hidden flex-shrink-0">
+                    ${p.photo ? `<img src="${p.photo}" class="w-full h-full object-cover">` : p.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-extrabold truncate">${p.name}</div>
+                    <div class="text-[10px] text-slate-400">${p.calories} kcal/zi ${isSelected ? '• Profil Activ' : ''}</div>
+                  </div>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- New Recipe Name -->
+        <div class="space-y-1">
+          <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Nume rețetă pe profilul ales:</label>
+          <input type="text" id="copy-recipe-new-name" value="${r.name} (Proprie)" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
+        </div>
+      </div>
+
+      <!-- Footer with Actions -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-2 bg-white dark:bg-[#181924]">
+        <button data-modal-close="true" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition">
+          Anulează
+        </button>
+        <div class="flex items-center gap-2">
+          <button id="btn-copy-just-save" class="btn-pill btn-pill-outline text-xs py-2 px-3 text-slate-700 dark:text-slate-200">
+            Doar Copiază
+          </button>
+          <button id="btn-copy-and-edit" class="btn-pill btn-pill-primary text-xs py-2 px-3.5 sm:px-4 shadow-sm flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <span>Copiază & Editează</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.openModal(html);
+
+    // Dynamic style update on radio change
+    document.querySelectorAll('input[name="copy-target-profile"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.copy-prof-option').forEach(opt => {
+          const isChk = opt.querySelector('input')?.checked;
+          if (isChk) {
+            opt.className = 'flex items-center gap-2.5 p-3 rounded-2xl border cursor-pointer transition copy-prof-option border-[#6D4AE8] bg-brand-lilac/10 text-slate-900 dark:text-white ring-2 ring-[#6D4AE8]/20';
+          } else {
+            opt.className = 'flex items-center gap-2.5 p-3 rounded-2xl border cursor-pointer transition copy-prof-option border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-white/5 hover:border-brand-lilac/40 text-slate-700 dark:text-slate-300';
+          }
+        });
+      });
+    });
+
+    document.getElementById('btn-copy-and-edit')?.addEventListener('click', () => {
+      const targetProf = document.querySelector('input[name="copy-target-profile"]:checked')?.value || activeProfileId;
+      const customName = document.getElementById('copy-recipe-new-name')?.value.trim() || `${r.name} (Proprie)`;
+      const cloned = window.store.cloneRecipeToCustom(recipeId, targetProf, customName);
+      if (cloned) {
+        window.store.setActiveProfile(targetProf);
+        this.recipeMainTab = 'proprii';
+        localStorage.setItem('nutri_recipe_tab', 'proprii');
+        this.updateHeaderProfile();
+        this.renderCurrentView();
+        this.openRecipeBuilderModal(cloned);
+        this.showToast(`Rețeta a fost copiată pe profilul ales! O poți edita acum.`, 'success');
+      }
+    });
+
+    document.getElementById('btn-copy-just-save')?.addEventListener('click', () => {
+      const targetProf = document.querySelector('input[name="copy-target-profile"]:checked')?.value || activeProfileId;
+      const customName = document.getElementById('copy-recipe-new-name')?.value.trim() || `${r.name} (Proprie)`;
+      const cloned = window.store.cloneRecipeToCustom(recipeId, targetProf, customName);
+      if (cloned) {
+        window.store.setActiveProfile(targetProf);
+        this.recipeMainTab = 'proprii';
+        localStorage.setItem('nutri_recipe_tab', 'proprii');
+        this.updateHeaderProfile();
+        this.closeModal();
+        this.renderCurrentView();
+        this.showToast(`Rețeta "${cloned.name}" a fost adăugată în secțiunea Proprii!`, 'success');
+      }
+    });
   }
 
   // --- Modal: Recipe Builder (Create / Edit) ---
@@ -3492,6 +3644,8 @@ class NutriApp {
     const isEdit = !!existingRecipe;
     const allIngredients = window.store.getIngredients();
     const categories = window.INITIAL_DATA.recipeCategories?.filter(c => c !== 'Toate') || ['Mese Mari', 'Snacks / Mic Dejun'];
+    const profiles = window.store.getProfiles ? window.store.getProfiles() : [];
+    const activeProfileId = window.store.data.activeProfileId || profiles[0]?.id || 'prof_default';
 
     // Temporary list of recipe ingredients
     let curIngredients = existingRecipe
@@ -3500,7 +3654,24 @@ class NutriApp {
           { ingredientId: allIngredients[0]?.id || '', name: allIngredients[0]?.name || '', quantity: 200 }
         ];
 
+    // Auto-match ingredients by name if ingredientId is missing or invalid in DB
+    curIngredients.forEach(item => {
+      if (!item.ingredientId || !allIngredients.some(i => i.id === item.ingredientId)) {
+        const itemLower = (item.name || '').toLowerCase().trim();
+        const matched = allIngredients.find(i => i.name.toLowerCase().trim() === itemLower) ||
+                        allIngredients.find(i => i.name.toLowerCase().includes(itemLower) || itemLower.includes(i.name.toLowerCase()));
+        if (matched) {
+          item.ingredientId = matched.id;
+          item.name = matched.name;
+        } else if (allIngredients.length > 0) {
+          item.ingredientId = allIngredients[0].id;
+        }
+      }
+    });
+
     let servings = existingRecipe?.servings || 1;
+    const isExistingGeneral = existingRecipe ? !existingRecipe.isCustom : false;
+    const assignedProfileId = existingRecipe?.profileId || activeProfileId;
 
     const renderRows = () => {
       if (curIngredients.length === 0) {
@@ -3592,8 +3763,8 @@ class NutriApp {
           <input type="text" id="recipe-builder-name" value="${existingRecipe?.name || ''}" placeholder="ex: Souvlaki cu Cartofi" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac">
         </div>
 
-        <!-- 2-Column Grid: Categorie & Număr Porții -->
-        <div class="grid grid-cols-2 gap-3">
+        <!-- 3-Column Grid: Categorie, Număr Porții & Destinație / Profil -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="space-y-1">
             <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Categorie</label>
             <select id="recipe-builder-cat" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3 py-2 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac truncate">
@@ -3609,6 +3780,19 @@ class NutriApp {
               <input type="number" step="0.5" min="0.5" id="recipe-builder-servings" value="${servings}" class="w-full text-center font-extrabold text-xs bg-transparent text-slate-800 dark:text-white focus:outline-none">
               <button type="button" id="btn-servings-plus" class="w-7 h-7 rounded-xl bg-white dark:bg-white/10 text-slate-700 dark:text-white font-bold flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/20 transition shadow-xs active:scale-95 text-xs">+</button>
             </div>
+          </div>
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Destinație / Profil</label>
+            <select id="recipe-builder-profile" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3 py-2 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac truncate">
+              ${profiles.map(p => `
+                <option value="${p.id}" ${(!isExistingGeneral && p.id === assignedProfileId) ? 'selected' : ''}>
+                  👤 ${p.name} ${p.id === activeProfileId ? '(Profil Activ)' : ''}
+                </option>
+              `).join('')}
+              <option value="comune" ${isExistingGeneral ? 'selected' : ''}>
+                🌐 Rețetă Generală (Comună)
+              </option>
+            </select>
           </div>
         </div>
 
@@ -3643,8 +3827,18 @@ class NutriApp {
           <button data-modal-close="true" class="px-3 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition">
             Anulează
           </button>
+          ${isEdit ? `
+            <button type="button" id="btn-builder-delete" class="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition" title="Șterge definitiv rețeta">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          ` : ''}
+          ${(isEdit && isExistingGeneral) ? `
+            <button type="button" id="btn-builder-save-as-custom" class="btn-pill btn-pill-outline text-xs py-2 px-3 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold" title="Salvează ca o copie proprie fără a modifica rețeta generală">
+              Salvează ca Rețetă Proprie
+            </button>
+          ` : ''}
           <button id="btn-builder-save" class="btn-pill btn-pill-primary text-xs py-2 px-3.5 sm:px-4 shadow-sm">
-            ${isEdit ? 'Salvează' : 'Creează'}
+            ${isEdit ? 'Salvează Modificările' : 'Creează Rețeta'}
           </button>
         </div>
       </div>
@@ -3754,6 +3948,9 @@ class NutriApp {
       const name = document.getElementById('recipe-builder-name')?.value.trim();
       const cat = document.getElementById('recipe-builder-cat')?.value;
       const finalServings = parseFloat(document.getElementById('recipe-builder-servings')?.value) || 1;
+      const profVal = document.getElementById('recipe-builder-profile')?.value || 'comune';
+      const isCustomRecipe = profVal !== 'comune';
+      const selectedProfileId = isCustomRecipe ? profVal : null;
 
       if (!name) {
         this.showToast('Te rugăm să completezi numele rețetei.', 'warning');
@@ -3769,8 +3966,19 @@ class NutriApp {
           name,
           category: cat,
           servings: finalServings,
-          ingredients: curIngredients
+          ingredients: curIngredients,
+          isCustom: isCustomRecipe,
+          profileId: selectedProfileId
         });
+        if (isCustomRecipe && selectedProfileId) {
+          window.store.setActiveProfile(selectedProfileId);
+          this.recipeMainTab = 'proprii';
+          localStorage.setItem('nutri_recipe_tab', 'proprii');
+          this.updateHeaderProfile();
+        } else if (!isCustomRecipe) {
+          this.recipeMainTab = 'comune';
+          localStorage.setItem('nutri_recipe_tab', 'comune');
+        }
         this.showToast(`Rețeta "${name}" a fost actualizată!`, 'success');
       } else {
         window.store.addRecipe({
@@ -3778,16 +3986,75 @@ class NutriApp {
           category: cat,
           servings: finalServings,
           ingredients: curIngredients,
-          isCustom: true
+          isCustom: isCustomRecipe,
+          profileId: selectedProfileId
         });
-        this.recipeMainTab = 'proprii';
-        localStorage.setItem('nutri_recipe_tab', 'proprii');
-        this.showToast(`Rețeta "${name}" a fost salvată în secțiunea Proprii!`, 'success');
+        if (isCustomRecipe && selectedProfileId) {
+          window.store.setActiveProfile(selectedProfileId);
+          this.recipeMainTab = 'proprii';
+          localStorage.setItem('nutri_recipe_tab', 'proprii');
+          this.updateHeaderProfile();
+        } else {
+          this.recipeMainTab = 'comune';
+          localStorage.setItem('nutri_recipe_tab', 'comune');
+        }
+        this.showToast(`Rețeta "${name}" a fost salvată!`, 'success');
       }
 
       this.closeModal();
       this.renderCurrentView();
     });
+
+    document.getElementById('btn-builder-save-as-custom')?.addEventListener('click', () => {
+      const name = document.getElementById('recipe-builder-name')?.value.trim();
+      const cat = document.getElementById('recipe-builder-cat')?.value;
+      const finalServings = parseFloat(document.getElementById('recipe-builder-servings')?.value) || 1;
+      const profVal = document.getElementById('recipe-builder-profile')?.value;
+      const targetP = (profVal && profVal !== 'comune') ? profVal : activeProfileId;
+
+      if (!name) {
+        this.showToast('Te rugăm să completezi numele rețetei.', 'warning');
+        return;
+      }
+      if (curIngredients.length === 0) {
+        this.showToast('Adaugă cel puțin un ingredient în rețetă.', 'warning');
+        return;
+      }
+
+      const customName = name.includes('(Proprie)') ? name : `${name} (Proprie)`;
+      window.store.addRecipe({
+        name: customName,
+        category: cat,
+        servings: finalServings,
+        ingredients: curIngredients,
+        isCustom: true,
+        profileId: targetP
+      });
+      window.store.setActiveProfile(targetP);
+      this.recipeMainTab = 'proprii';
+      localStorage.setItem('nutri_recipe_tab', 'proprii');
+      this.updateHeaderProfile();
+      this.showToast(`Rețeta "${customName}" a fost salvată ca rețetă proprie!`, 'success');
+      this.closeModal();
+      this.renderCurrentView();
+    });
+
+    if (isEdit) {
+      document.getElementById('btn-builder-delete')?.addEventListener('click', () => {
+        this.showConfirmModal({
+          title: 'Șterge Rețeta',
+          message: `Ești sigur că vrei să ștergi definitiv rețeta "${existingRecipe.name}"?`,
+          confirmText: 'Șterge rețeta',
+          isDanger: true,
+          onConfirm: () => {
+            window.store.deleteRecipe(existingRecipe.id);
+            this.closeModal();
+            this.renderCurrentView();
+            this.showToast(`Rețeta "${existingRecipe.name}" a fost ștearsă.`, 'info');
+          }
+        });
+      });
+    }
   }
 
   // --- Modal: Ingredient Add / Edit ---

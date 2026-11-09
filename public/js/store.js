@@ -296,15 +296,18 @@ class NutriStore {
     };
   }
 
-  cloneRecipeToCustom(recipeId) {
+  cloneRecipeToCustom(recipeId, targetProfileId = null, customName = null) {
     const orig = this.getRecipeById(recipeId);
     if (!orig) return null;
+    const pId = targetProfileId || this.data.activeProfileId || 'prof_default';
+    const name = (customName && customName.trim()) ? customName.trim() : `${orig.name} (Proprie)`;
     const cloned = {
       ...orig,
       id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-      name: `${orig.name} (Proprie)`,
+      name: name,
       isCustom: true,
-      profileId: this.data.activeProfileId || 'prof_default'
+      profileId: pId,
+      ingredients: JSON.parse(JSON.stringify(orig.ingredients || []))
     };
     this.data.recipes.unshift(cloned);
     this.saveState();
@@ -897,7 +900,7 @@ class NutriStore {
   addProfile(profileData) {
     const list = this.getProfiles();
     const newProfile = {
-      id: 'prof_' + Date.now(),
+      id: 'prof_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       name: (profileData.name || 'Profil Nou').trim(),
       photo: profileData.photo || '',
       gender: profileData.gender || 'masculin',
