@@ -1021,8 +1021,8 @@ class NutriApp {
 
           <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">
             ${this.recipeMainTab === 'proprii' 
-              ? 'Rețete personalizate create de tine din baza comună de ingrediente' 
-              : 'Rețete standard din catalogul comun (pot fi copiate și adaptate în Proprii)'}
+              ? 'Rețete create pe profilul tău curent (izolate și gestionate de tine)' 
+              : 'Rețete standard din catalogul comun + create pe oricare alt profil conectat'}
           </div>
         </div>
 
@@ -1054,9 +1054,9 @@ class NutriApp {
                 <div class="w-16 h-16 rounded-3xl bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center mx-auto mb-3">
                   <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
-                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Nu ai creat încă nicio rețetă proprie</h3>
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Nu ai creat încă nicio rețetă pe acest profil</h3>
                 <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 mb-5">
-                  Creează rețete personalizate folosind produsele din supermarket sau copiază o rețetă existentă din tab-ul <strong>Comune</strong> pentru a o ajusta la gramajele și gustul tău.
+                  Creează rețete personalizate pentru acest profil sau copiază o rețetă existentă din tab-ul <strong>Comune</strong> (create de alte profiluri sau din catalogul comun).
                 </p>
                 <div class="flex items-center justify-center gap-3 flex-wrap">
                   <button id="btn-empty-create-recipe" class="btn-pill btn-pill-primary text-xs shadow-sm flex items-center gap-2">
@@ -1078,24 +1078,41 @@ class NutriApp {
             `
           ) : recipes.map(rawRecipe => {
             const r = window.store.calculateRecipe(rawRecipe);
-            const isCustom = !!rawRecipe.isCustom;
+            const isOwnedByActive = window.store.isRecipeOwnedByActiveProfile
+              ? window.store.isRecipeOwnedByActiveProfile(rawRecipe)
+              : (!!rawRecipe.isCustom && rawRecipe.profileId === (window.store.data.activeProfileId || 'prof_default'));
+            const isFromOtherProfile = !!rawRecipe.isCustom && !isOwnedByActive;
+            let creatorName = '';
+            if (isFromOtherProfile) {
+              const allProfiles = window.store.getProfiles ? window.store.getProfiles() : [];
+              const creatorProfile = allProfiles.find(p => p.id === rawRecipe.profileId);
+              creatorName = creatorProfile ? creatorProfile.name : 'Alt profil';
+            }
             return `
               <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
                 <div>
                   <!-- Card Header -->
                   <div class="p-5 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-3">
                     <div>
-                      <div class="flex items-center gap-1.5 mb-1">
+                      <div class="flex items-center gap-1.5 mb-1 flex-wrap">
                         <span class="pill-badge pill-badge-translucent text-[10px]">
                           ${r.category}
                         </span>
-                        ${isCustom ? `
+                        ${isOwnedByActive ? `
                           <span class="pill-badge bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] text-[10px] font-bold">
                             Proprie
                           </span>
-                        ` : `
+                        ` : isFromOtherProfile ? `
                           <span class="pill-badge bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
                             Comună
+                          </span>
+                          <span class="pill-badge bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] text-[10px] font-extrabold flex items-center gap-1" title="Creată pe profilul ${creatorName}">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            <span>De la: ${creatorName}</span>
+                          </span>
+                        ` : `
+                          <span class="pill-badge bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                            Catalog Comun
                           </span>
                         `}
                       </div>
@@ -1167,7 +1184,7 @@ class NutriApp {
                     Tabel & Cost
                   </button>
                   <div class="flex items-center gap-1.5">
-                    ${!isCustom ? `
+                    ${!isOwnedByActive ? `
                       <button data-recipe-copy-custom="${r.id}" class="btn-pill btn-pill-outline text-xs py-1.5 px-2.5 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold flex items-center gap-1" title="Copiază în rețetele mele proprii pentru a o personaliza">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                         <span>Copiază</span>
@@ -1176,7 +1193,7 @@ class NutriApp {
                     <button data-recipe-plan="${r.id}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3" title="Adaugă în planificator">
                       + Planifică
                     </button>
-                    ${isCustom ? `
+                    ${isOwnedByActive ? `
                       <button data-recipe-edit="${r.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>

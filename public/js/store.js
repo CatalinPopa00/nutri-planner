@@ -242,15 +242,30 @@ class NutriStore {
   }
 
   // --- RECIPES & CALCULATOR ---
+  getRecipeOwnerId(recipe) {
+    if (!recipe.isCustom) return null;
+    if (recipe.profileId) return recipe.profileId;
+    const profiles = this.getProfiles ? this.getProfiles() : (this.data.profiles || []);
+    return profiles[0]?.id || 'prof_default';
+  }
+
+  isRecipeOwnedByActiveProfile(recipe) {
+    if (!recipe.isCustom) return false;
+    const ownerId = this.getRecipeOwnerId(recipe);
+    const activeId = this.data.activeProfileId || (this.data.profiles && this.data.profiles[0]?.id) || 'prof_default';
+    return ownerId === activeId;
+  }
+
   getRecipes(category = 'Toate', searchQuery = '', mainTab = 'all') {
     let list = this.data.recipes || [];
 
-    // Filter by main tab: 'proprii' (personal/custom) vs 'comune' (shared/common)
+    // Filter by main tab:
+    // 'proprii' = strictly recipes created on the currently active profile
+    // 'comune'  = standard catalog recipes + recipes created on ANY other connected profile
     if (mainTab === 'proprii') {
-      const activeId = this.data.activeProfileId || 'prof_default';
-      list = list.filter(r => !!r.isCustom && (!r.profileId || r.profileId === activeId));
+      list = list.filter(r => this.isRecipeOwnedByActiveProfile(r));
     } else if (mainTab === 'comune') {
-      list = list.filter(r => !r.isCustom);
+      list = list.filter(r => !this.isRecipeOwnedByActiveProfile(r));
     }
 
     if (category && category !== 'Toate') {
@@ -265,11 +280,19 @@ class NutriStore {
 
   getRecipeCounts() {
     const list = this.data.recipes || [];
-    const activeId = this.data.activeProfileId || 'prof_default';
+    let custom = 0;
+    let common = 0;
+    for (const r of list) {
+      if (this.isRecipeOwnedByActiveProfile(r)) {
+        custom++;
+      } else {
+        common++;
+      }
+    }
     return {
       total: list.length,
-      custom: list.filter(r => !!r.isCustom && (!r.profileId || r.profileId === activeId)).length,
-      common: list.filter(r => !r.isCustom).length
+      custom,
+      common
     };
   }
 
@@ -278,7 +301,7 @@ class NutriStore {
     if (!orig) return null;
     const cloned = {
       ...orig,
-      id: 'rec_' + Date.now(),
+      id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       name: `${orig.name} (Proprie)`,
       isCustom: true,
       profileId: this.data.activeProfileId || 'prof_default'
@@ -411,7 +434,7 @@ class NutriStore {
   }
 
   addRecipe(rec) {
-    const id = 'rec_' + Date.now();
+    const id = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
     const newRecipe = {
       id,
       name: rec.name.trim(),
@@ -440,10 +463,22 @@ class NutriStore {
 
   deleteRecipe(id) {
     this.data.recipes = this.data.recipes.filter(r => r.id !== id);
-    // Remove from weekly plans
-    Object.keys(this.data.weeklyPlan).forEach(day => {
-      this.data.weeklyPlan[day] = this.data.weeklyPlan[day].filter(item => item.recipeId !== id);
-    });
+    // Remove from weekly plans across all profiles
+    if (this.data.weeklyPlan) {
+      Object.keys(this.data.weeklyPlan).forEach(day => {
+        this.data.weeklyPlan[day] = (this.data.weeklyPlan[day] || []).filter(item => item.recipeId !== id);
+      });
+    }
+    if (this.data.plansByProfile) {
+      Object.keys(this.data.plansByProfile).forEach(pId => {
+        const plan = this.data.plansByProfile[pId];
+        if (plan) {
+          Object.keys(plan).forEach(day => {
+            plan[day] = (plan[day] || []).filter(item => item.recipeId !== id);
+          });
+        }
+      });
+    }
     this.saveState();
   }
 
@@ -933,12 +968,21 @@ class NutriStore {
     if (list.length <= 1) {
       return false; // Can't delete the only profile
     }
-    this.data.profiles = list.filter(p => p.id !== profileId);
+    const remaining = list.filter(p => p.id !== profileId);
+    this.data.profiles = remaining;
     if (this.data.plansByProfile && this.data.plansByProfile[profileId]) {
       delete this.data.plansByProfile[profileId];
     }
+    // Reassign recipes of deleted profile to first remaining profile
+    if (this.data.recipes) {
+      this.data.recipes.forEach(r => {
+        if (r.profileId === profileId) {
+          r.profileId = remaining[0].id;
+        }
+      });
+    }
     if (this.data.activeProfileId === profileId) {
-      this.setActiveProfile(this.data.profiles[0].id);
+      this.setActiveProfile(remaining[0].id);
     } else {
       this.saveState();
     }
