@@ -40,6 +40,36 @@ class NutriApp {
 
     this.updateHeaderProfile();
     this.bindEvents();
+
+    // Initialize Cloud Sync with Firebase
+    if (typeof window.NutriCloudSync !== 'undefined' && window.store) {
+      window.cloudSync = new window.NutriCloudSync(window.store);
+      window.cloudSync.onStatusChange(() => this.updateHeaderSyncStatus());
+      window.cloudSync.onAuthChange(() => this.updateHeaderSyncStatus());
+      this.updateHeaderSyncStatus();
+
+      // Check for auto-configure sync link (?sync_cfg=...)
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const syncCfgParam = urlParams.get('sync_cfg');
+        if (syncCfgParam) {
+          const decoded = JSON.parse(decodeURIComponent(atob(syncCfgParam)));
+          if (decoded && (decoded.apiKey || decoded.projectId)) {
+            window.cloudSync.saveConfig(decoded);
+            window.cloudSync.initFirebase(decoded);
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+            setTimeout(() => {
+              this.showToast('Configurația Firebase a fost importată automat! Te poți autentifica acum.', 'success');
+              this.openCloudSyncModal();
+            }, 600);
+          }
+        }
+      } catch (e) {
+        console.warn('Eroare la parsarea parametrului sync_cfg:', e);
+      }
+    }
+
     window.store.subscribe(() => {
       this.updateHeaderProfile();
       this.renderCurrentView();
@@ -61,6 +91,14 @@ class NutriApp {
     if (profileBtn) {
       profileBtn.addEventListener('click', () => {
         this.openProfileModal();
+      });
+    }
+
+    // Cloud Sync & Account button in header
+    const cloudSyncBtn = document.getElementById('btn-open-cloud-sync');
+    if (cloudSyncBtn) {
+      cloudSyncBtn.addEventListener('click', () => {
+        this.openCloudSyncModal();
       });
     }
 
@@ -121,9 +159,9 @@ class NutriApp {
       } else {
         // Desktop nav tab pills
         if (active) {
-          el.className = 'px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 text-[#121319] bg-white dark:bg-white dark:text-[#121319] shadow-sm';
+          el.className = 'px-3 py-1.5 lg:px-4 lg:py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 lg:gap-2 text-[#121319] bg-white dark:bg-white dark:text-[#121319] shadow-sm';
         } else {
-          el.className = 'px-4 py-2 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2';
+          el.className = 'px-3 py-1.5 lg:px-4 lg:py-2 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1.5 lg:gap-2';
         }
       }
     });
@@ -4904,6 +4942,26 @@ class NutriApp {
               }).join('')}
             </div>
           </div>
+
+          <!-- Cloud Sync Card in Profile Modal -->
+          <div class="p-3 bg-brand-lilac/10 dark:bg-brand-lilac/15 rounded-2xl border border-brand-lilac/30 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-xl bg-brand-lilac/25 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold text-slate-800 dark:text-white flex items-center gap-1.5 truncate">
+                  <span>Sincronizare Cloud & Cont</span>
+                </div>
+                <div class="text-[10.5px] text-slate-500 dark:text-white/60 truncate">
+                  ${window.cloudSync?.user ? `Conectat: ${window.cloudSync.user.email || 'Activ'}` : 'Neconectat (date salvate local pe acest dispozitiv)'}
+                </div>
+              </div>
+            </div>
+            <button id="btn-profile-open-sync" type="button" class="btn-pill btn-pill-outline text-xs py-1.5 px-3 font-bold border-brand-lilac/40 text-[#6D4AE8] dark:text-[#C4B5FD] hover:bg-brand-lilac/20 flex-shrink-0 whitespace-nowrap cursor-pointer">
+              ${window.cloudSync?.user ? 'Setări Sync' : 'Activează'}
+            </button>
+          </div>
         </div>
 
         <!-- Fixed Footer -->
@@ -4926,6 +4984,10 @@ class NutriApp {
 
       document.getElementById('btn-create-new-profile')?.addEventListener('click', () => {
         this.openProfileModal('create');
+      });
+
+      document.getElementById('btn-profile-open-sync')?.addEventListener('click', () => {
+        this.openCloudSyncModal();
       });
 
       document.querySelectorAll('[data-switch-profile]').forEach(btn => {
@@ -5601,6 +5663,375 @@ class NutriApp {
     });
 
     updateCalculations();
+  }
+
+  // --- Header Cloud Sync Status Pill ---
+  updateHeaderSyncStatus() {
+    const btn = document.getElementById('btn-open-cloud-sync');
+    if (!btn || !window.cloudSync) return;
+
+    if (window.cloudSync.user) {
+      const email = window.cloudSync.user.email || window.cloudSync.user.displayName || 'Conectat';
+      const shortEmail = email.length > 14 ? email.slice(0, 11) + '...' : email;
+      btn.className = 'hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#70D6A3]/15 text-[#2E8B5B] dark:text-[#70D6A3] border border-[#70D6A3]/30 shadow-2xs hover:bg-[#70D6A3]/25 transition flex-shrink-0 cursor-pointer';
+      btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-[#70D6A3] animate-pulse"></span><span id="header-sync-status-text">${shortEmail}</span>`;
+      btn.title = `Conectat și sincronizat: ${email}. Apasă pentru detalii sync.`;
+    } else if (window.cloudSync.config) {
+      btn.className = 'hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-2xs hover:bg-amber-500/25 transition flex-shrink-0 cursor-pointer';
+      btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span><span id="header-sync-status-text">Autentificare</span>`;
+      btn.title = 'Firebase configurat. Apasă pentru autentificare.';
+    } else {
+      btn.className = 'hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-[#6D4AE8] transition flex-shrink-0 cursor-pointer';
+      btn.innerHTML = `<svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg><span id="header-sync-status-text">Cont & Sync</span>`;
+      btn.title = 'Apasă pentru a activa contul și sincronizarea pe mobil/desktop.';
+    }
+  }
+
+  // --- Modal: Cont NutriPlanner & Sincronizare Cloud (Firebase Firestore) ---
+  openCloudSyncModal() {
+    if (!window.cloudSync) {
+      this.showToast('Modulul de sincronizare nu este disponibil.', 'warning');
+      return;
+    }
+
+    const sync = window.cloudSync;
+    const isConfigured = !!sync.config;
+    const user = sync.user;
+    let authMode = 'login'; // 'login' | 'signup'
+
+    const renderModalContent = () => {
+      let bodyHtml = '';
+
+      if (user) {
+        // --- State A: Logged In & Realtime Active ---
+        const lastSyncStr = sync.lastSyncedAt 
+          ? sync.lastSyncedAt.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          : 'Acum câteva momente';
+
+        bodyHtml = `
+          <div class="space-y-4">
+            <!-- Account Status Card -->
+            <div class="p-4 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 rounded-3xl space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-base shadow-sm flex-shrink-0">
+                    ${user.photoURL ? `<img src="${user.photoURL}" class="w-full h-full object-cover rounded-2xl">` : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-extrabold text-sm text-slate-900 dark:text-white truncate">${user.displayName || 'Utilizator NutriPlanner'}</div>
+                    <div class="text-xs text-slate-500 dark:text-white/70 truncate">${user.email || 'Autentificat'}</div>
+                  </div>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex-shrink-0">
+                  Conectat
+                </span>
+              </div>
+
+              <div class="pt-2 border-t border-emerald-500/20 flex items-center justify-between text-xs">
+                <span class="text-slate-600 dark:text-white/70 flex items-center gap-1.5 font-medium">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Sincronizare în timp real: <strong class="text-emerald-700 dark:text-emerald-300">Activă</strong>
+                </span>
+                <span class="text-slate-400 dark:text-white/50 text-[11px]">Sync: ${lastSyncStr}</span>
+              </div>
+            </div>
+
+            <!-- Sync Explanatory Info -->
+            <div class="p-3.5 bg-slate-50 dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl space-y-1.5 text-xs text-slate-600 dark:text-white/80">
+              <div class="font-bold flex items-center gap-1.5 text-slate-800 dark:text-white">
+                <span>🔄</span>
+                <span>Cum funcționează sincronizarea:</span>
+              </div>
+              <p class="leading-relaxed">
+                Orice rețetă nouă, ingredient, modificare de porții sau meniu săptămânal adăugat pe <strong>telefon</strong> sau <strong>desktop</strong> este salvat instantaneu în baza ta de date Cloud Firestore și apare pe celălalt dispozitiv în timp real!
+              </p>
+            </div>
+
+            <!-- Action Buttons: Sync Now, Mobile Connect Link, Sign Out -->
+            <div class="space-y-2 pt-1">
+              <button id="btn-sync-force-now" class="w-full py-2.5 px-4 bg-[#121319] dark:bg-white text-white dark:text-[#121319] text-xs font-black rounded-2xl hover:opacity-95 transition shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span>Forțează Sincronizarea Acum</span>
+              </button>
+
+              <button id="btn-sync-copy-mobile-link" class="w-full py-2.5 px-4 bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] border border-brand-lilac/30 text-xs font-bold rounded-2xl hover:bg-brand-lilac/25 transition flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                <span>Copiază Linkul de Conectare pentru Telefon</span>
+              </button>
+
+              <button id="btn-sync-do-signout" class="w-full py-2 px-4 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-bold rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                <span>Deconectează-te de pe acest dispozitiv</span>
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (isConfigured) {
+        // --- State B: Firebase Configured, Needs Login/Signup ---
+        bodyHtml = `
+          <div class="space-y-4">
+            <!-- Mode Switcher Tabs (Autentificare vs Înregistrare) -->
+            <div class="flex items-center p-1 bg-slate-100 dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10">
+              <button type="button" id="tab-sync-login" class="flex-1 py-2 text-xs font-extrabold rounded-xl transition ${authMode === 'login' ? 'bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}">
+                Autentificare
+              </button>
+              <button type="button" id="tab-sync-signup" class="flex-1 py-2 text-xs font-extrabold rounded-xl transition ${authMode === 'signup' ? 'bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}">
+                Creează Cont Nou
+              </button>
+            </div>
+
+            <!-- Google One-Click Button -->
+            <div>
+              <button type="button" id="btn-sync-google-auth" class="w-full py-2.5 px-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl flex items-center justify-center gap-2.5 font-bold text-xs sm:text-sm text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-white/10 transition shadow-2xs cursor-pointer">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>Continuă cu Google</span>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2 text-slate-400 text-xs my-2">
+              <span class="flex-1 h-px bg-slate-200 dark:bg-white/10"></span>
+              <span class="text-[11px] font-semibold">sau cu email</span>
+              <span class="flex-1 h-px bg-slate-200 dark:bg-white/10"></span>
+            </div>
+
+            <!-- Email & Password Form -->
+            <form id="form-sync-auth" class="space-y-3">
+              ${authMode === 'signup' ? `
+                <div class="space-y-1">
+                  <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Numele Tău</label>
+                  <input type="text" id="sync-input-name" placeholder="ex: Cătălin" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac" required>
+                </div>
+              ` : ''}
+
+              <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Adresă de Email</label>
+                <input type="email" id="sync-input-email" placeholder="nume@exemplu.ro" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac" required>
+              </div>
+
+              <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Parolă</label>
+                <input type="password" id="sync-input-password" placeholder="••••••••" minlength="6" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-3.5 py-2 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac" required>
+              </div>
+
+              <button type="submit" id="btn-sync-submit-auth" class="w-full py-2.5 px-4 bg-[#121319] dark:bg-white text-white dark:text-[#121319] text-xs font-black rounded-2xl hover:opacity-95 transition shadow-sm mt-2 flex items-center justify-center gap-2 cursor-pointer">
+                <span>${authMode === 'login' ? 'Intră în Cont' : 'Creează Contul și Sincronizează'}</span>
+              </button>
+            </form>
+
+            <div class="pt-2 text-center">
+              <button type="button" id="btn-sync-reconfig" class="text-[11px] font-bold text-slate-400 hover:text-slate-700 dark:hover:text-white underline cursor-pointer">
+                ⚙️ Schimbă configurația Firebase
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        // --- State C: Firebase Not Yet Configured ---
+        bodyHtml = `
+          <div class="space-y-4">
+            <div class="p-4 bg-brand-lilac/10 dark:bg-brand-lilac/15 border border-brand-lilac/30 rounded-3xl space-y-2 text-xs">
+              <div class="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>🔥</span>
+                <span>Conectare Firebase / Google Cloud Firestore</span>
+              </div>
+              <p class="text-slate-600 dark:text-white/70 leading-relaxed">
+                Pentru a sincroniza rețetele și planul alimentar între telefon și calculator, introdu configurația proiectului tău Firebase (gratuit pe <a href="https://console.firebase.google.com" target="_blank" class="underline font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">console.firebase.google.com</a>):
+              </p>
+              <ol class="list-decimal list-inside space-y-1 text-slate-600 dark:text-white/80 pt-1 font-medium text-[11.5px]">
+                <li>Mergi în <strong>Project Settings</strong> (General) &gt; <em>Your apps</em> &gt; <em>Web app</em>.</li>
+                <li>Copiază blocul <code>const firebaseConfig = { ... }</code>.</li>
+                <li>Lipește-l în căsuța de mai jos și apasă <strong>Conectează</strong>!</li>
+              </ol>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-700 dark:text-white/80">Lipește configurația Firebase (JSON sau cod JS):</label>
+              <textarea id="sync-input-config-paste" rows="5" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "proiectul-tau.firebaseapp.com",\n  "projectId": "proiectul-tau",\n  "storageBucket": "proiectul-tau.appspot.com",\n  "messagingSenderId": "...",\n  "appId": "..."\n}' class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl p-3 text-xs font-mono text-slate-800 dark:text-white focus:outline-none focus:border-brand-lilac resize-none"></textarea>
+            </div>
+
+            <button type="button" id="btn-sync-save-config" class="w-full py-2.5 px-4 bg-[#121319] dark:bg-white text-white dark:text-[#121319] text-xs font-black rounded-2xl hover:opacity-95 transition shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Conectează Proiectul Firebase</span>
+            </button>
+          </div>
+        `;
+      }
+
+      return `
+        <!-- Fixed Header -->
+        <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#FFB259] via-[#FF6FA4] to-[#6D4AE8] text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white leading-tight">Cont & Sincronizare Cloud</h3>
+              <p class="text-xs text-slate-500 dark:text-white/60">Sincronizează datele pe mobil și desktop în timp real</p>
+            </div>
+          </div>
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6" id="sync-modal-body">
+          ${bodyHtml}
+        </div>
+      `;
+    };
+
+    const attachModalHandlers = () => {
+      // Tab switcher (login vs signup)
+      document.getElementById('tab-sync-login')?.addEventListener('click', () => {
+        authMode = 'login';
+        this.openModal(renderModalContent());
+        attachModalHandlers();
+      });
+      document.getElementById('tab-sync-signup')?.addEventListener('click', () => {
+        authMode = 'signup';
+        this.openModal(renderModalContent());
+        attachModalHandlers();
+      });
+
+      // Google Auth button
+      document.getElementById('btn-sync-google-auth')?.addEventListener('click', async () => {
+        try {
+          this.showToast('Se deschide autentificarea Google...', 'info');
+          await sync.signInWithGoogle();
+          this.closeModal();
+          this.showToast('Autentificat cu succes prin Google!', 'success');
+        } catch (err) {
+          console.error(err);
+          this.showToast(err.message || 'Eroare la autentificarea Google.', 'warning');
+        }
+      });
+
+      // Email / Password Form Submit
+      document.getElementById('form-sync-auth')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('sync-input-email')?.value.trim();
+        const pass = document.getElementById('sync-input-password')?.value;
+        const name = document.getElementById('sync-input-name')?.value.trim();
+
+        if (!email || !pass) return;
+
+        try {
+          if (authMode === 'login') {
+            await sync.signInWithEmail(email, pass);
+            this.closeModal();
+            this.showToast(`Bine ai revenit, ${email}! Sincronizarea este activă.`, 'success');
+          } else {
+            await sync.signUpWithEmail(email, pass, name);
+            this.closeModal();
+            this.showToast(`Cont creat cu succes pentru ${email}!`, 'success');
+          }
+        } catch (err) {
+          console.error(err);
+          let msg = err.message || 'Eroare la autentificare.';
+          if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+            msg = 'Email sau parolă incorectă.';
+          } else if (err.code === 'auth/email-already-in-use') {
+            msg = 'Acest email este deja înregistrat. Te rugăm să te autentifici.';
+          } else if (err.code === 'auth/weak-password') {
+            msg = 'Parola este prea scurtă (minim 6 caractere).';
+          }
+          this.showToast(msg, 'warning');
+        }
+      });
+
+      // Force Sync Now button
+      document.getElementById('btn-sync-force-now')?.addEventListener('click', async () => {
+        this.showToast('Se trimit datele către Cloud Firestore...', 'info');
+        await sync.uploadCurrentState(true);
+        this.showToast('Sincronizare finalizată cu succes!', 'success');
+        this.openModal(renderModalContent());
+        attachModalHandlers();
+      });
+
+      // Copy Mobile Connect Link button
+      document.getElementById('btn-sync-copy-mobile-link')?.addEventListener('click', () => {
+        if (!sync.config) return;
+        const encodedCfg = btoa(encodeURIComponent(JSON.stringify(sync.config)));
+        const mobileUrl = `${window.location.origin}${window.location.pathname}?sync_cfg=${encodedCfg}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(mobileUrl);
+          this.showToast('Linkul de conectare a fost copiat în clipboard! Trimite-l pe telefon (WhatsApp/Email) și deschide-l.', 'success');
+        } else {
+          prompt('Copiază acest link și deschide-l pe telefon:', mobileUrl);
+        }
+      });
+
+      // Sign Out button
+      document.getElementById('btn-sync-do-signout')?.addEventListener('click', async () => {
+        await sync.signOut();
+        this.showToast('Te-ai deconectat cu succes.', 'info');
+        this.openModal(renderModalContent());
+        attachModalHandlers();
+      });
+
+      // Reconfigure Firebase button
+      document.getElementById('btn-sync-reconfig')?.addEventListener('click', () => {
+        sync.saveConfig(null);
+        this.openModal(renderModalContent());
+        attachModalHandlers();
+      });
+
+      // Save Firebase Config Paste
+      document.getElementById('btn-sync-save-config')?.addEventListener('click', () => {
+        const raw = document.getElementById('sync-input-config-paste')?.value.trim();
+        if (!raw) {
+          this.showToast('Te rugăm să lipești configurația Firebase.', 'warning');
+          return;
+        }
+
+        let parsedConfig = null;
+        try {
+          // Attempt standard JSON parse
+          parsedConfig = JSON.parse(raw);
+        } catch (e) {
+          // Extract keys using smart regex if user pasted JS snippet `const firebaseConfig = { ... }`
+          try {
+            const extractKey = (key) => {
+              const match = raw.match(new RegExp(`${key}\\s*:\\s*["']([^"']+)["']`, 'i'));
+              return match ? match[1] : '';
+            };
+            parsedConfig = {
+              apiKey: extractKey('apiKey'),
+              authDomain: extractKey('authDomain'),
+              projectId: extractKey('projectId'),
+              storageBucket: extractKey('storageBucket'),
+              messagingSenderId: extractKey('messagingSenderId'),
+              appId: extractKey('appId')
+            };
+          } catch (err) {
+            console.error('Regex parse error:', err);
+          }
+        }
+
+        if (!parsedConfig || !parsedConfig.apiKey || !parsedConfig.projectId) {
+          this.showToast('Nu s-au putut extrage cheile Firebase. Verifică dacă textul conține apiKey și projectId.', 'warning');
+          return;
+        }
+
+        const success = sync.initFirebase(parsedConfig);
+        if (success) {
+          this.showToast('Proiectul Firebase a fost conectat cu succes!', 'success');
+          this.openModal(renderModalContent());
+          attachModalHandlers();
+        } else {
+          this.showToast('Eroare la conectarea Firebase. Verifică datele introduse.', 'warning');
+        }
+      });
+    };
+
+    this.openModal(renderModalContent());
+    attachModalHandlers();
   }
 
   // --- Modal: Asistent NutriChef AI (Creează Rețete & Căutare Valori Online) ---
