@@ -598,20 +598,26 @@ html.dark .btn-pill-outline:hover {
 .floating-island-container {
   position: -webkit-sticky;
   position: sticky;
-  top: 64px;
-  top: calc(64px + env(safe-area-inset-top, 0px));
-  z-index: 38;
+  top: 68px;
+  top: calc(68px + env(safe-area-inset-top, 0px));
+  z-index: 45;
   display: flex;
   justify-content: center;
-  padding: 8px 16px 10px 16px;
+  padding: 4px 16px 8px 16px;
   pointer-events: none;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (max-width: 640px) {
   .floating-island-container {
-    top: 64px;
-    padding: 6px 12px 8px 12px;
+    top: 2px;
+    top: calc(2px + env(safe-area-inset-top, 0px));
+    padding: 2px 8px 4px 8px;
+  }
+
+  .floating-day-island {
+    padding: 4px 12px 4px 8px;
+    gap: 6px;
   }
 }
 
