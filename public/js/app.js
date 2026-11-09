@@ -4772,11 +4772,11 @@ class NutriApp {
             </div>
 
             <!-- Add New Ingredient Row -->
-            <div class="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-white/3 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
-              <input type="text" id="asst-add-new-ing-input" placeholder="Adaugă ingredient nou (ex: 50g parmezan, 2 oua, 100g spanac)..." class="flex-1 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#A390F5]">
-              <button type="button" id="btn-asst-add-ing-row" class="btn-pill btn-pill-white text-xs py-1.5 px-3 font-bold shadow-xs whitespace-nowrap flex items-center gap-1 hover:border-[#A390F5]">
-                <svg class="w-3.5 h-3.5 text-[#6D4AE8]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                <span>+ Adaugă</span>
+            <div class="flex items-center gap-1.5 p-1.5 bg-slate-50 dark:bg-white/3 rounded-xl border border-dashed border-slate-200 dark:border-white/10 w-full max-w-full box-border overflow-hidden">
+              <input type="text" id="asst-add-new-ing-input" placeholder="Adaugă ingredient nou (ex: 50g nuci, 3 oua)..." class="flex-1 min-w-0 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#A390F5]">
+              <button type="button" id="btn-asst-add-ing-row" class="btn-pill btn-pill-white text-xs py-1.5 px-2.5 sm:px-3 font-bold shadow-xs whitespace-nowrap flex-shrink-0 flex items-center gap-1 hover:border-[#A390F5]">
+                <svg class="w-3.5 h-3.5 text-[#6D4AE8] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                <span>Adaugă</span>
               </button>
             </div>
           </div>
