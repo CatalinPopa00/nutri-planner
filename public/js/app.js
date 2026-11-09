@@ -4597,12 +4597,12 @@ class NutriApp {
               <h4 class="text-lg sm:text-xl font-black font-display text-slate-900 dark:text-white tracking-tight">${recipe.name}</h4>
               ${recipe.chefTips ? `<p class="text-xs text-brand-lilac-dark dark:text-[#C4B5FD] font-semibold mt-1">✨ ${recipe.chefTips}</p>` : ''}
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <button id="btn-asst-save-recipe" type="button" class="btn-pill btn-pill-dark text-xs py-2 px-3.5 shadow flex items-center gap-1.5 whitespace-nowrap">
+            <div class="flex items-center justify-center sm:justify-end gap-2 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0">
+              <button id="btn-asst-save-recipe" type="button" class="flex-1 sm:flex-initial btn-pill btn-pill-dark text-xs py-2 px-3.5 shadow flex items-center justify-center gap-1.5 whitespace-nowrap">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                 <span>Salvează în Rețetar</span>
               </button>
-              <button id="btn-asst-add-to-plan" type="button" class="btn-pill btn-pill-primary text-xs py-2 px-3.5 shadow flex items-center gap-1.5 whitespace-nowrap">
+              <button id="btn-asst-add-to-plan" type="button" class="flex-1 sm:flex-initial btn-pill btn-pill-primary text-xs py-2 px-3.5 shadow flex items-center justify-center gap-1.5 whitespace-nowrap">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 <span>+ În Plan (${this.activeDay})</span>
               </button>
@@ -4677,7 +4677,7 @@ class NutriApp {
         const saved = window.nutriAssistant.saveRecipeToStore(currentGeneratedRecipe);
         if (saved) {
           e.currentTarget.disabled = true;
-          e.currentTarget.className = 'btn-pill bg-emerald-600 text-white text-xs py-2 px-3.5 shadow whitespace-nowrap cursor-default';
+          e.currentTarget.className = 'flex-1 sm:flex-initial btn-pill bg-emerald-600 text-white text-xs py-2 px-3.5 shadow whitespace-nowrap cursor-default flex items-center justify-center gap-1.5';
           e.currentTarget.innerHTML = `<span>✓ Salvat în Rețetar</span>`;
           this.showToast(`Rețeta "${saved.name}" a fost salvată în Rețetar!`, 'success');
         }
@@ -4692,7 +4692,7 @@ class NutriApp {
         if (saved) {
           window.store.addPlanItem(this.activeDay, currentGeneratedRecipe.category || 'Prânz', saved.id, 1.0);
           e.currentTarget.disabled = true;
-          e.currentTarget.className = 'btn-pill bg-emerald-600 text-white text-xs py-2 px-3.5 shadow whitespace-nowrap cursor-default';
+          e.currentTarget.className = 'flex-1 sm:flex-initial btn-pill bg-emerald-600 text-white text-xs py-2 px-3.5 shadow whitespace-nowrap cursor-default flex items-center justify-center gap-1.5';
           e.currentTarget.innerHTML = `<span>✓ Adăugat la ${this.activeDay}</span>`;
           this.showToast(`Adăugat cu succes în planul de ${this.activeDay}!`, 'success');
         }
@@ -4823,15 +4823,15 @@ class NutriApp {
                   </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="flex items-center justify-end gap-2 pt-1">
-                  <button type="button" data-asst-add-to-recipe="${idx}" class="btn-pill btn-pill-white text-xs py-1.5 px-3 shadow-2xs flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>Folosește în Rețetă</span>
+                <!-- Action Buttons: Perfectly Centered & Responsive -->
+                <div class="flex items-center justify-center gap-2 pt-2.5 border-t border-slate-100 dark:border-white/5 w-full">
+                  <button type="button" data-asst-add-to-recipe="${idx}" class="flex-1 sm:flex-initial sm:min-w-[150px] btn-pill btn-pill-white text-xs py-2 px-2.5 shadow-2xs flex items-center justify-center gap-1.5 min-w-0 transition">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span class="truncate">Folosește în Rețetă</span>
                   </button>
-                  <button type="button" data-asst-save-db="${idx}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3.5 shadow flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5 text-[#70D6A3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"/></svg>
-                    <span>Salvează în Ingrediente</span>
+                  <button type="button" data-asst-save-db="${idx}" class="flex-1 sm:flex-initial sm:min-w-[150px] btn-pill btn-pill-dark text-xs py-2 px-2.5 shadow flex items-center justify-center gap-1.5 min-w-0 transition">
+                    <svg class="w-3.5 h-3.5 text-[#70D6A3] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"/></svg>
+                    <span class="truncate">Salvează în Cămară</span>
                   </button>
                 </div>
               </div>
@@ -4861,8 +4861,8 @@ class NutriApp {
 
           if (savedIng) {
             saveBtn.disabled = true;
-            saveBtn.className = 'btn-pill bg-emerald-600 text-white text-xs py-1.5 px-3 shadow cursor-default';
-            saveBtn.innerHTML = `<span>✓ Salvat</span>`;
+            saveBtn.className = 'flex-1 sm:flex-initial sm:min-w-[150px] btn-pill bg-emerald-600 text-white text-xs py-2 px-2.5 shadow cursor-default flex items-center justify-center gap-1.5 min-w-0';
+            saveBtn.innerHTML = `<span>✓ Salvat în Cămară</span>`;
             this.showToast(`"${prod.name}" a fost adăugat în baza de ingrediente!`, 'success');
           }
         });
