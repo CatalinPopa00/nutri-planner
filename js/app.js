@@ -5908,7 +5908,14 @@ class NutriApp {
           this.showToast('Autentificat cu succes prin Google!', 'success');
         } catch (err) {
           console.error(err);
-          this.showToast(err.message || 'Eroare la autentificarea Google.', 'warning');
+          let msg = err.message || 'Eroare la autentificarea Google.';
+          if (err.code === 'auth/unauthorized-domain') {
+            const host = window.location.hostname || 'domeniul tău';
+            msg = `Domeniul "${host}" nu este autorizat în Firebase pentru Google Sign-In. Adaugă-l în Firebase Console > Authentication > Settings > Authorized domains, sau autentifică-te mai jos direct cu Email și Parolă!`;
+          } else if (err.code === 'auth/popup-closed-by-user') {
+            msg = 'Fereastra de autentificare Google a fost închisă.';
+          }
+          this.showToast(msg, 'warning');
         }
       });
 
