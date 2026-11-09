@@ -22,17 +22,62 @@ class NutriStore {
             if (/^[xX*]$/i.test(ing.name.trim())) return false;
             return true;
           });
-          // If corrupted items were purged, save the cleaned state immediately
-          if (parsed.ingredients.length !== originalLength) {
-            try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed)); } catch(e) {}
+          // Classify recipes into custom (Proprii) vs common (Comune)
+          const defaultCommonIds = ['rec_1', 'rec_2', 'rec_3', 'rec_4', 'rec_5', 'rec_6', 'rec_7', 'rec_8', 'rec_9'];
+          parsed.recipes.forEach(r => {
+            if (r.isCustom === undefined) {
+              r.isCustom = !defaultCommonIds.includes(r.id);
+            }
+          });
+
+          // Ensure profiles array and activeProfileId exist
+          if (!parsed.profiles || !Array.isArray(parsed.profiles) || parsed.profiles.length === 0) {
+            const curTargets = parsed.targets || { calories: 2000, protein: 140, carbs: 220, fat: 65 };
+            parsed.profiles = [
+              {
+                id: 'prof_default',
+                name: 'Utilizator',
+                photo: '',
+                gender: 'masculin',
+                weight: 75,
+                height: 178,
+                calories: curTargets.calories || 2000,
+                protein: curTargets.protein || 140,
+                carbs: curTargets.carbs || 220,
+                fat: curTargets.fat || 65,
+                createdAt: Date.now()
+              }
+            ];
+            parsed.activeProfileId = 'prof_default';
           }
+
+          // If corrupted items were purged or recipes/profiles updated, save cleaned state
+          try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed)); } catch(e) {}
           return parsed;
         }
       }
     } catch (e) {
       console.warn('Could not read from localStorage, using initial data:', e);
     }
-    return JSON.parse(JSON.stringify(window.INITIAL_DATA));
+    const initial = JSON.parse(JSON.stringify(window.INITIAL_DATA));
+    initial.recipes.forEach(r => { r.isCustom = false; });
+    initial.profiles = [
+      {
+        id: 'prof_default',
+        name: 'Utilizator',
+        photo: '',
+        gender: 'masculin',
+        weight: 75,
+        height: 178,
+        calories: 2000,
+        protein: 140,
+        carbs: 220,
+        fat: 65,
+        createdAt: Date.now()
+      }
+    ];
+    initial.activeProfileId = 'prof_default';
+    return initial;
   }
 
   saveState() {
@@ -154,8 +199,16 @@ class NutriStore {
   }
 
   // --- RECIPES & CALCULATOR ---
-  getRecipes(category = 'Toate', searchQuery = '') {
+  getRecipes(category = 'Toate', searchQuery = '', mainTab = 'all') {
     let list = this.data.recipes || [];
+
+    // Filter by main tab: 'proprii' (personal/custom) vs 'comune' (shared/common)
+    if (mainTab === 'proprii') {
+      list = list.filter(r => !!r.isCustom);
+    } else if (mainTab === 'comune') {
+      list = list.filter(r => !r.isCustom);
+    }
+
     if (category && category !== 'Toate') {
       list = list.filter(r => r.category === category);
     }
@@ -164,6 +217,29 @@ class NutriStore {
       list = list.filter(r => r.name.toLowerCase().includes(q));
     }
     return list;
+  }
+
+  getRecipeCounts() {
+    const list = this.data.recipes || [];
+    return {
+      total: list.length,
+      custom: list.filter(r => !!r.isCustom).length,
+      common: list.filter(r => !r.isCustom).length
+    };
+  }
+
+  cloneRecipeToCustom(recipeId) {
+    const orig = this.getRecipeById(recipeId);
+    if (!orig) return null;
+    const cloned = {
+      ...orig,
+      id: 'rec_' + Date.now(),
+      name: `${orig.name} (Proprie)`,
+      isCustom: true
+    };
+    this.data.recipes.unshift(cloned);
+    this.saveState();
+    return cloned;
   }
 
   getRecipeById(id) {
@@ -294,11 +370,12 @@ class NutriStore {
       id,
       name: rec.name.trim(),
       category: rec.category || 'Mese Mari',
-      servings: Math.max(1, parseFloat(rec.servings) || 1),
+      servings: Math.max(0.1, parseFloat(rec.servings) || 1),
       ingredients: rec.ingredients || [],
-      notes: rec.notes || ''
+      notes: rec.notes || '',
+      isCustom: rec.isCustom !== undefined ? !!rec.isCustom : true
     };
-    this.data.recipes.push(newRecipe);
+    this.data.recipes.unshift(newRecipe);
     this.saveState();
     return newRecipe;
   }
@@ -657,6 +734,123 @@ class NutriStore {
     if (targets.carbs !== undefined) this.data.targets.carbs = Math.max(10, parseFloat(targets.carbs) || 220);
     if (targets.fat !== undefined) this.data.targets.fat = Math.max(10, parseFloat(targets.fat) || 65);
     this.saveState();
+  }
+
+  // --- PROFILES MANAGEMENT ---
+  getProfiles() {
+    if (!this.data.profiles || !Array.isArray(this.data.profiles) || this.data.profiles.length === 0) {
+      const curTargets = this.getTargets();
+      this.data.profiles = [
+        {
+          id: 'prof_default',
+          name: 'Utilizator',
+          photo: '',
+          gender: 'masculin',
+          weight: 75,
+          height: 178,
+          calories: curTargets.calories || 2000,
+          protein: curTargets.protein || 140,
+          carbs: curTargets.carbs || 220,
+          fat: curTargets.fat || 65,
+          createdAt: Date.now()
+        }
+      ];
+      this.data.activeProfileId = 'prof_default';
+      this.saveState();
+    }
+    return this.data.profiles;
+  }
+
+  getActiveProfile() {
+    const list = this.getProfiles();
+    const active = list.find(p => p.id === this.data.activeProfileId) || list[0];
+    return active;
+  }
+
+  setActiveProfile(profileId) {
+    const list = this.getProfiles();
+    const found = list.find(p => p.id === profileId);
+    if (!found) return null;
+    this.data.activeProfileId = profileId;
+
+    // Synchronize daily targets with active profile
+    this.updateTargets({
+      calories: found.calories,
+      protein: found.protein,
+      carbs: found.carbs,
+      fat: found.fat
+    });
+
+    this.saveState();
+    return found;
+  }
+
+  addProfile(profileData) {
+    const list = this.getProfiles();
+    const newProfile = {
+      id: 'prof_' + Date.now(),
+      name: (profileData.name || 'Profil Nou').trim(),
+      photo: profileData.photo || '',
+      gender: profileData.gender || 'masculin',
+      weight: parseFloat(profileData.weight) || 70,
+      height: parseFloat(profileData.height) || 175,
+      calories: Math.max(500, parseFloat(profileData.calories) || 2000),
+      protein: Math.max(10, parseFloat(profileData.protein) || 140),
+      carbs: Math.max(10, parseFloat(profileData.carbs) || 220),
+      fat: Math.max(10, parseFloat(profileData.fat) || 65),
+      createdAt: Date.now()
+    };
+    this.data.profiles.push(newProfile);
+    this.setActiveProfile(newProfile.id);
+    return newProfile;
+  }
+
+  updateProfile(profileId, patch) {
+    const list = this.getProfiles();
+    const idx = list.findIndex(p => p.id === profileId);
+    if (idx === -1) return null;
+
+    const cur = list[idx];
+    const updated = {
+      ...cur,
+      ...patch,
+      name: patch.name !== undefined ? patch.name.trim() : cur.name,
+      photo: patch.photo !== undefined ? patch.photo : cur.photo,
+      gender: patch.gender !== undefined ? patch.gender : cur.gender,
+      weight: patch.weight !== undefined ? parseFloat(patch.weight) : cur.weight,
+      height: patch.height !== undefined ? parseFloat(patch.height) : cur.height,
+      calories: patch.calories !== undefined ? Math.max(500, parseFloat(patch.calories)) : cur.calories,
+      protein: patch.protein !== undefined ? Math.max(10, parseFloat(patch.protein)) : cur.protein,
+      carbs: patch.carbs !== undefined ? Math.max(10, parseFloat(patch.carbs)) : cur.carbs,
+      fat: patch.fat !== undefined ? Math.max(10, parseFloat(patch.fat)) : cur.fat
+    };
+    this.data.profiles[idx] = updated;
+
+    if (this.data.activeProfileId === profileId) {
+      this.updateTargets({
+        calories: updated.calories,
+        protein: updated.protein,
+        carbs: updated.carbs,
+        fat: updated.fat
+      });
+    }
+
+    this.saveState();
+    return updated;
+  }
+
+  deleteProfile(profileId) {
+    const list = this.getProfiles();
+    if (list.length <= 1) {
+      return false; // Can't delete the only profile
+    }
+    this.data.profiles = list.filter(p => p.id !== profileId);
+    if (this.data.activeProfileId === profileId) {
+      this.setActiveProfile(this.data.profiles[0].id);
+    } else {
+      this.saveState();
+    }
+    return true;
   }
 
   clearDay(day) {

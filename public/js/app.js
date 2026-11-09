@@ -6,6 +6,7 @@ class NutriApp {
     this.scanSubTab = 'ean'; // 'ean' | 'receipt'
     this.recipeFilterCategory = 'Toate';
     this.recipeSearch = '';
+    this.recipeMainTab = localStorage.getItem('nutri_recipe_tab') || 'proprii'; // 'proprii' | 'comune'
     this.ingFilterCategory = 'Toate';
     this.ingSearch = '';
     this.ingSortBy = 'name';
@@ -37,8 +38,10 @@ class NutriApp {
       }
     }
 
+    this.updateHeaderProfile();
     this.bindEvents();
     window.store.subscribe(() => {
+      this.updateHeaderProfile();
       this.renderCurrentView();
     });
     this.renderCurrentView();
@@ -52,6 +55,14 @@ class NutriApp {
         this.switchTab(tab);
       });
     });
+
+    // Profile button in header (Avatar / User Greeting)
+    const profileBtn = document.getElementById('btn-header-profile');
+    if (profileBtn) {
+      profileBtn.addEventListener('click', () => {
+        this.openProfileModal();
+      });
+    }
 
     // Theme toggle button (Light / Dark mode from Pinterest Screenshot 3)
     const themeBtn = document.getElementById('btn-theme-toggle');
@@ -948,7 +959,8 @@ class NutriApp {
   // ==========================================
   renderRecipesView() {
     const categories = window.INITIAL_DATA.recipeCategories || ['Toate', 'Snacks / Mic Dejun', 'Mese Mari'];
-    const recipes = window.store.getRecipes(this.recipeFilterCategory, this.recipeSearch);
+    const counts = window.store.getRecipeCounts ? window.store.getRecipeCounts() : { total: 0, custom: 0, common: 0 };
+    const recipes = window.store.getRecipes(this.recipeFilterCategory, this.recipeSearch, this.recipeMainTab);
 
     return `
       <div class="space-y-6 pb-24">
@@ -968,10 +980,49 @@ class NutriApp {
               <svg class="w-4 h-4 animate-pulse text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
               <span>Asistent AI Rețete</span>
             </button>
-            <button id="btn-create-recipe" class="btn-pill btn-pill-dark text-xs sm:text-sm shadow">
+            <button id="btn-create-recipe" class="btn-pill btn-pill-dark text-xs sm:text-sm shadow flex items-center gap-1.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
-              <span>+ Rețetă Manuală</span>
+              <span>+ Creează Rețetă Proprie</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Primary Tabs: Proprii (FIRST) & Comune (SECOND) -->
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-2 p-1.5 bg-slate-100/80 dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10">
+            <button data-recipe-main-tab="proprii" class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 ${
+              this.recipeMainTab === 'proprii'
+                ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span>Proprii</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${
+                this.recipeMainTab === 'proprii'
+                  ? 'bg-white/20 dark:bg-black/20 text-white dark:text-[#121319]'
+                  : 'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300'
+              }">${counts.custom}</span>
+            </button>
+
+            <button data-recipe-main-tab="comune" class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center gap-2 ${
+              this.recipeMainTab === 'comune'
+                ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+            }">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+              <span>Comune</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${
+                this.recipeMainTab === 'comune'
+                  ? 'bg-white/20 dark:bg-black/20 text-white dark:text-[#121319]'
+                  : 'bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-300'
+              }">${counts.common}</span>
+            </button>
+          </div>
+
+          <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            ${this.recipeMainTab === 'proprii' 
+              ? 'Rețete personalizate create de tine din baza comună de ingrediente' 
+              : 'Rețete standard din catalogul comun (pot fi copiate și adaptate în Proprii)'}
           </div>
         </div>
 
@@ -997,23 +1048,57 @@ class NutriApp {
 
         <!-- Recipes Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          ${recipes.length === 0 ? `
-            <div class="col-span-full text-center py-12 bento-card bento-white border-2 border-dashed border-[#E5E0F5] dark:border-white/10">
-              <svg class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-              <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Nu s-a găsit nicio rețetă.</p>
-              <button id="btn-reset-recipes-filter" class="mt-2 text-xs text-[#6D4AE8] dark:text-[#C4B5FD] font-bold hover:underline">Resetează filtrele</button>
-            </div>
-          ` : recipes.map(rawRecipe => {
+          ${recipes.length === 0 ? (
+            this.recipeMainTab === 'proprii' ? `
+              <div class="col-span-full text-center py-12 px-6 bento-card bento-white border-2 border-dashed border-[#E5E0F5] dark:border-white/10 rounded-3xl">
+                <div class="w-16 h-16 rounded-3xl bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center mx-auto mb-3">
+                  <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Nu ai creat încă nicio rețetă proprie</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 mb-5">
+                  Creează rețete personalizate folosind produsele din supermarket sau copiază o rețetă existentă din tab-ul <strong>Comune</strong> pentru a o ajusta la gramajele și gustul tău.
+                </p>
+                <div class="flex items-center justify-center gap-3 flex-wrap">
+                  <button id="btn-empty-create-recipe" class="btn-pill btn-pill-primary text-xs shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+                    <span>+ Creează Prima Rețetă Proprie</span>
+                  </button>
+                  <button id="btn-empty-switch-common" class="btn-pill btn-pill-outline text-xs flex items-center gap-1.5">
+                    <span>Răsfoiește Rețetele Comune</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            ` : `
+              <div class="col-span-full text-center py-12 bento-card bento-white border-2 border-dashed border-[#E5E0F5] dark:border-white/10 rounded-3xl">
+                <svg class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Nu s-a găsit nicio rețetă comună conform căutării.</p>
+                <button id="btn-reset-recipes-filter" class="mt-2 text-xs text-[#6D4AE8] dark:text-[#C4B5FD] font-bold hover:underline">Resetează filtrele</button>
+              </div>
+            `
+          ) : recipes.map(rawRecipe => {
             const r = window.store.calculateRecipe(rawRecipe);
+            const isCustom = !!rawRecipe.isCustom;
             return `
               <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
                 <div>
                   <!-- Card Header -->
                   <div class="p-5 border-b border-slate-100 dark:border-white/5 flex items-start justify-between gap-3">
                     <div>
-                      <span class="pill-badge pill-badge-translucent mb-1">
-                        ${r.category}
-                      </span>
+                      <div class="flex items-center gap-1.5 mb-1">
+                        <span class="pill-badge pill-badge-translucent text-[10px]">
+                          ${r.category}
+                        </span>
+                        ${isCustom ? `
+                          <span class="pill-badge bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] text-[10px] font-bold">
+                            Proprie
+                          </span>
+                        ` : `
+                          <span class="pill-badge bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                            Comună
+                          </span>
+                        `}
+                      </div>
                       <h4 class="font-extrabold font-display text-lg text-slate-900 dark:text-white mt-1 leading-snug">${r.name}</h4>
                       <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         ${r.servings} ${r.servings === 1 ? 'porție' : 'porții'} • ${Math.round(r.totals.weight)}g total
@@ -1082,15 +1167,23 @@ class NutriApp {
                     Tabel & Cost
                   </button>
                   <div class="flex items-center gap-1.5">
+                    ${!isCustom ? `
+                      <button data-recipe-copy-custom="${r.id}" class="btn-pill btn-pill-outline text-xs py-1.5 px-2.5 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold flex items-center gap-1" title="Copiază în rețetele mele proprii pentru a o personaliza">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <span>Copiază</span>
+                      </button>
+                    ` : ''}
                     <button data-recipe-plan="${r.id}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3" title="Adaugă în planificator">
                       + Planifică
                     </button>
-                    <button data-recipe-edit="${r.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                    <button data-recipe-delete="${r.id}" class="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                    ${isCustom ? `
+                      <button data-recipe-edit="${r.id}" class="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-full hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button data-recipe-delete="${r.id}" class="p-2 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    ` : ''}
                   </div>
                 </div>
               </div>
@@ -1102,6 +1195,47 @@ class NutriApp {
   }
 
   bindRecipesEvents() {
+    // Primary main tabs (Proprii vs Comune)
+    document.querySelectorAll('[data-recipe-main-tab]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tab = e.currentTarget.getAttribute('data-recipe-main-tab');
+        this.recipeMainTab = tab;
+        localStorage.setItem('nutri_recipe_tab', tab);
+        this.renderCurrentView();
+      });
+    });
+
+    // Copy common recipe to custom
+    document.querySelectorAll('[data-recipe-copy-custom]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-recipe-copy-custom');
+        const cloned = window.store.cloneRecipeToCustom(id);
+        if (cloned) {
+          this.recipeMainTab = 'proprii';
+          localStorage.setItem('nutri_recipe_tab', 'proprii');
+          this.showToast(`Rețeta "${cloned.name}" a fost copiată în secțiunea Proprii!`, 'success');
+          this.renderCurrentView();
+        }
+      });
+    });
+
+    // Empty state triggers
+    const emptyCreateBtn = document.getElementById('btn-empty-create-recipe');
+    if (emptyCreateBtn) {
+      emptyCreateBtn.addEventListener('click', () => {
+        this.openRecipeBuilderModal(null);
+      });
+    }
+
+    const emptySwitchBtn = document.getElementById('btn-empty-switch-common');
+    if (emptySwitchBtn) {
+      emptySwitchBtn.addEventListener('click', () => {
+        this.recipeMainTab = 'comune';
+        localStorage.setItem('nutri_recipe_tab', 'comune');
+        this.renderCurrentView();
+      });
+    }
+
     // Search input
     const searchInput = document.getElementById('recipe-search-input');
     if (searchInput) {
@@ -3626,12 +3760,16 @@ class NutriApp {
           name,
           category: cat,
           servings: finalServings,
-          ingredients: curIngredients
+          ingredients: curIngredients,
+          isCustom: true
         });
-        this.showToast(`Rețeta "${name}" a fost salvată cu succes!`, 'success');
+        this.recipeMainTab = 'proprii';
+        localStorage.setItem('nutri_recipe_tab', 'proprii');
+        this.showToast(`Rețeta "${name}" a fost salvată în secțiunea Proprii!`, 'success');
       }
 
       this.closeModal();
+      this.renderCurrentView();
     });
   }
 
@@ -4063,6 +4201,751 @@ class NutriApp {
         this.showToast(`"${item.recipeName}" a fost copiat la ${targetMeal} (${targetDay})!`, 'success');
       }
     });
+  }
+
+  // --- PROFILE MANAGEMENT & POPUP MODAL ---
+  updateHeaderProfile() {
+    if (!window.store || typeof window.store.getActiveProfile !== 'function') return;
+    const profile = window.store.getActiveProfile();
+    if (!profile) return;
+
+    const avatarCircle = document.getElementById('header-avatar-circle');
+    const nameEl = document.getElementById('header-user-name');
+    const subEl = document.getElementById('header-user-sub');
+
+    if (avatarCircle) {
+      if (profile.photo && profile.photo.trim() !== '') {
+        avatarCircle.innerHTML = `<img src="${profile.photo}" alt="${profile.name}" class="w-full h-full object-cover">`;
+      } else {
+        const initials = profile.name ? profile.name.trim().slice(0, 2).toUpperCase() : 'NP';
+        avatarCircle.innerHTML = `<span class="text-xs sm:text-sm font-black tracking-tight text-white dark:text-[#121319]">${initials}</span>`;
+      }
+    }
+
+    if (nameEl) {
+      nameEl.textContent = `${profile.name || 'Profil'}`;
+    }
+
+    if (subEl) {
+      const parts = [];
+      if (profile.weight) parts.push(`${profile.weight} kg`);
+      if (profile.calories) parts.push(`${Math.round(profile.calories)} kcal`);
+      subEl.textContent = parts.length > 0 ? parts.join(' • ') : 'NutriPlanner';
+    }
+  }
+
+  compressImageToThumbnail(file, maxDimension = 180) {
+    return new Promise((resolve) => {
+      if (!file || !file.type.startsWith('image/')) {
+        resolve('');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const width = img.naturalWidth || img.width;
+          const height = img.naturalHeight || img.height;
+          const minDim = Math.min(width, height);
+          const sx = (width - minDim) / 2;
+          const sy = (height - minDim) / 2;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = maxDimension;
+          canvas.height = maxDimension;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, maxDimension, maxDimension);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          resolve(dataUrl);
+        };
+        img.onerror = () => resolve('');
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  createEmojiAvatar(emoji) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 160;
+    canvas.height = 160;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#EDE9FE';
+    ctx.fillRect(0, 0, 160, 160);
+    ctx.font = '84px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 80, 86);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }
+
+  openProfileModal(mode = 'view', profileId = null) {
+    const profiles = window.store.getProfiles();
+    const activeProfile = window.store.getActiveProfile();
+    const isEdit = mode === 'edit';
+
+    if (mode === 'view') {
+      const p = activeProfile;
+      const hM = p.height ? (p.height / 100) : null;
+      const bmi = (p.weight && hM) ? (p.weight / (hM * hM)).toFixed(1) : null;
+      let bmiCategory = 'Greutate optimă';
+      let bmiColor = 'text-emerald-600 dark:text-emerald-400';
+      if (bmi) {
+        const b = parseFloat(bmi);
+        if (b < 18.5) { bmiCategory = 'Subponderal'; bmiColor = 'text-amber-500'; }
+        else if (b < 25) { bmiCategory = 'Normal (optim)'; bmiColor = 'text-emerald-500'; }
+        else if (b < 30) { bmiCategory = 'Supraponderal'; bmiColor = 'text-amber-500'; }
+        else { bmiCategory = 'Obezitate'; bmiColor = 'text-rose-500'; }
+      }
+
+      const totalMacroCals = (p.protein * 4) + (p.carbs * 4) + (p.fat * 9);
+      const baseCals = totalMacroCals > 0 ? totalMacroCals : (p.calories || 2000);
+      const protPct = Math.round((p.protein * 4 / baseCals) * 100);
+      const carbsPct = Math.round((p.carbs * 4 / baseCals) * 100);
+      const fatPct = Math.round((p.fat * 9 / baseCals) * 100);
+
+      const html = `
+        <!-- Fixed Header -->
+        <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-2xl bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center font-bold flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white leading-snug">Profiluri & Obiective</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Comută profilul activ sau configurează datele biometrice</p>
+            </div>
+          </div>
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6">
+          <!-- Active Profile Hero Card -->
+          <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 rounded-3xl shadow-sm space-y-4">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-tr from-[#B8A9FD] to-[#FF6FA4] p-0.5 shadow-md flex-shrink-0">
+                  <div class="w-full h-full rounded-full bg-[#121319] dark:bg-white flex items-center justify-center overflow-hidden">
+                    ${p.photo ? `
+                      <img src="${p.photo}" alt="${p.name}" class="w-full h-full object-cover">
+                    ` : `
+                      <span class="text-lg font-black text-white dark:text-[#121319]">${p.name ? p.name.slice(0, 2).toUpperCase() : 'NP'}</span>
+                    `}
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-lg sm:text-xl font-extrabold font-display text-slate-900 dark:text-white">${p.name}</h4>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Activ ✓</span>
+                  </div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
+                    <span>${p.gender === 'feminin' ? '♀ Feminin' : '♂ Masculin'}</span>
+                    <span>•</span>
+                    <span>${p.weight ? p.weight + ' kg' : 'Greutate nesetată'}</span>
+                    ${p.height ? `<span>•</span><span>${p.height} cm</span>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <button id="btn-edit-active-profile" class="btn-pill btn-pill-outline text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <span>Editează</span>
+              </button>
+            </div>
+
+            <!-- Biometrics & BMI -->
+            <div class="grid grid-cols-3 gap-2.5 pt-2 border-t border-slate-100 dark:border-white/5 text-center">
+              <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Greutate</div>
+                <div class="text-sm sm:text-base font-extrabold text-slate-800 dark:text-white mt-0.5">${p.weight || '--'} <span class="text-[10px] font-bold text-slate-400">kg</span></div>
+              </div>
+              <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Înălțime</div>
+                <div class="text-sm sm:text-base font-extrabold text-slate-800 dark:text-white mt-0.5">${p.height || '--'} <span class="text-[10px] font-bold text-slate-400">cm</span></div>
+              </div>
+              <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Indice BMI</div>
+                <div class="text-sm sm:text-base font-extrabold ${bmi ? bmiColor : 'text-slate-800 dark:text-white'} mt-0.5">
+                  ${bmi || '--'}
+                </div>
+                ${bmi ? `<div class="text-[9px] font-bold ${bmiColor} truncate">${bmiCategory}</div>` : ''}
+              </div>
+            </div>
+
+            <!-- Macro Targets -->
+            <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-white/5">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-white/80">
+                <span>Ținte Zilnice Active</span>
+                <span class="text-[#6D4AE8] dark:text-[#C4B5FD] font-extrabold">${p.calories} kcal / zi</span>
+              </div>
+              <div class="grid grid-cols-4 gap-2 text-center">
+                <div class="p-2 rounded-2xl bg-purple-50/70 dark:bg-purple-900/15 border border-purple-100 dark:border-purple-800/30">
+                  <div class="text-[10px] font-bold text-purple-700 dark:text-purple-300">Calorii</div>
+                  <div class="text-sm font-extrabold text-purple-900 dark:text-purple-100 mt-0.5">${Math.round(p.calories)}</div>
+                  <div class="text-[9px] text-purple-400">kcal</div>
+                </div>
+                <div class="p-2 rounded-2xl bg-rose-50/70 dark:bg-rose-900/15 border border-rose-100 dark:border-rose-800/30">
+                  <div class="text-[10px] font-bold text-rose-700 dark:text-rose-300">Proteine</div>
+                  <div class="text-sm font-extrabold text-rose-900 dark:text-rose-100 mt-0.5">${Math.round(p.protein)}g</div>
+                  <div class="text-[9px] text-rose-400">${protPct}%</div>
+                </div>
+                <div class="p-2 rounded-2xl bg-amber-50/70 dark:bg-amber-900/15 border border-amber-100 dark:border-amber-800/30">
+                  <div class="text-[10px] font-bold text-amber-700 dark:text-amber-300">Carbi</div>
+                  <div class="text-sm font-extrabold text-amber-900 dark:text-amber-100 mt-0.5">${Math.round(p.carbs)}g</div>
+                  <div class="text-[9px] text-amber-400">${carbsPct}%</div>
+                </div>
+                <div class="p-2 rounded-2xl bg-sky-50/70 dark:bg-sky-900/15 border border-sky-100 dark:border-sky-800/30">
+                  <div class="text-[10px] font-bold text-sky-700 dark:text-sky-300">Grăsimi</div>
+                  <div class="text-sm font-extrabold text-sky-900 dark:text-sky-100 mt-0.5">${Math.round(p.fat)}g</div>
+                  <div class="text-[9px] text-sky-400">${fatPct}%</div>
+                </div>
+              </div>
+
+              <!-- Macro Share Bar -->
+              <div class="w-full h-2 rounded-full overflow-hidden flex bg-slate-200 dark:bg-white/10 mt-1">
+                <div class="bg-[#FF6FA4]" style="width: ${protPct}%" title="Proteine: ${protPct}%"></div>
+                <div class="bg-[#FFB259]" style="width: ${carbsPct}%" title="Carbi: ${carbsPct}%"></div>
+                <div class="bg-[#82CBEF]" style="width: ${fatPct}%" title="Grăsimi: ${fatPct}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- All Profiles Switcher List -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Toate Profilurile Tale (${profiles.length})
+              </h4>
+              <button id="btn-create-new-profile" class="btn-pill btn-pill-primary text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold shadow-xs">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                <span>+ Creează Profil Nou</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${profiles.map(item => {
+                const isActive = item.id === activeProfile.id;
+                return `
+                  <div class="p-3.5 rounded-2xl border ${
+                    isActive 
+                      ? 'border-[#6D4AE8] bg-[#6D4AE8]/5 dark:bg-[#6D4AE8]/10' 
+                      : 'border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-[#181924]'
+                  } flex items-center justify-between gap-3 shadow-2xs transition">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
+                        ${item.photo ? `
+                          <img src="${item.photo}" alt="${item.name}" class="w-full h-full object-cover">
+                        ` : `
+                          <span class="text-xs font-black text-slate-700 dark:text-white">${item.name ? item.name.slice(0, 2).toUpperCase() : 'NP'}</span>
+                        `}
+                      </div>
+                      <div class="min-w-0">
+                        <div class="text-xs font-extrabold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                          <span>${item.name}</span>
+                          ${isActive ? '<span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Activ</span>' : ''}
+                        </div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          ${item.weight ? item.weight + ' kg • ' : ''}${Math.round(item.calories)} kcal
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                      ${!isActive ? `
+                        <button data-switch-profile="${item.id}" class="btn-pill btn-pill-outline text-[11px] py-1 px-2.5 font-bold hover:bg-slate-100 dark:hover:bg-white/10">
+                          Comută
+                        </button>
+                      ` : ''}
+                      <button data-edit-profile="${item.id}" class="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Editează">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Fixed Footer -->
+        <div class="flex-shrink-0 p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-end bg-white dark:bg-[#181924]">
+          <button data-modal-close="true" class="btn-pill btn-pill-dark text-xs px-5">Închide</button>
+        </div>
+      `;
+
+      this.openModal(html, { position: 'center', maxWidth: 'max-w-xl' });
+
+      // Event handlers for view mode
+      document.getElementById('btn-edit-active-profile')?.addEventListener('click', () => {
+        this.openProfileModal('edit', activeProfile.id);
+      });
+
+      document.getElementById('btn-create-new-profile')?.addEventListener('click', () => {
+        this.openProfileModal('create');
+      });
+
+      document.querySelectorAll('[data-switch-profile]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-switch-profile');
+          const switched = window.store.setActiveProfile(id);
+          if (switched) {
+            this.dailyCalorieTarget = switched.calories;
+            this.updateHeaderProfile();
+            this.showToast(`Profil activ schimbat pe "${switched.name}"!`, 'success');
+            this.renderCurrentView();
+            this.openProfileModal('view');
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-edit-profile]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-edit-profile');
+          this.openProfileModal('edit', id);
+        });
+      });
+
+      return;
+    }
+
+    // CREATE or EDIT mode
+    const targetProfile = isEdit ? (profiles.find(p => p.id === profileId) || activeProfile) : null;
+    let tempPhoto = targetProfile ? (targetProfile.photo || '') : '';
+    let tempGender = targetProfile ? (targetProfile.gender || 'masculin') : 'masculin';
+
+    const defaultCals = targetProfile ? targetProfile.calories : 2000;
+    const defaultProt = targetProfile ? targetProfile.protein : 140;
+    const defaultCarbs = targetProfile ? targetProfile.carbs : 220;
+    const defaultFat = targetProfile ? targetProfile.fat : 65;
+
+    const html = `
+      <!-- Fixed Header -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+        <div class="flex items-center gap-2.5">
+          <button id="btn-prof-back-to-view" class="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Înapoi">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white leading-snug">
+              ${isEdit ? `Editează Profil: ${targetProfile.name}` : 'Creează Profil Nou'}
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Configurează datele biometrice și necesarul de macronutrienți</p>
+          </div>
+        </div>
+        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Form Body -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5">
+        <!-- 1. Profile Avatar & Photo Selector -->
+        <div class="bg-[#FAF9FD] dark:bg-white/5 p-4 rounded-3xl border border-[#E5E0F5] dark:border-white/10 space-y-3">
+          <label class="block text-xs font-extrabold text-slate-800 dark:text-white">Poză de Profil (opțional)</label>
+          <div class="flex items-center gap-4">
+            <div id="prof-avatar-preview" class="w-16 h-16 rounded-full overflow-hidden bg-slate-200 dark:bg-white/10 flex items-center justify-center flex-shrink-0 border-2 border-brand-lilac/40 shadow-sm">
+              ${tempPhoto ? `
+                <img src="${tempPhoto}" alt="Avatar" class="w-full h-full object-cover">
+              ` : `
+                <span id="prof-avatar-fallback-text" class="text-xl font-black text-slate-700 dark:text-white">
+                  ${targetProfile?.name ? targetProfile.name.slice(0, 2).toUpperCase() : '👤'}
+                </span>
+              `}
+            </div>
+            <div class="space-y-1.5 flex-1 min-w-0">
+              <input type="file" id="prof-file-input" accept="image/*" class="hidden">
+              <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" id="btn-prof-upload-photo" class="btn-pill btn-pill-outline text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Încarcă Poză</span>
+                </button>
+                <button type="button" id="btn-prof-clear-photo" class="text-xs text-rose-500 hover:text-rose-600 font-bold px-2 py-1">
+                  Șterge poza
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400">Dimensiune recomandată pătrată. Poza este redimensionată automat.</p>
+            </div>
+          </div>
+
+          <!-- Quick Emoji Presets -->
+          <div class="pt-2 border-t border-slate-200/60 dark:border-white/5">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">Sau alege un avatar rapid:</div>
+            <div class="flex items-center gap-2 flex-wrap">
+              ${['👨', '👩', '🏋️', '🥗', '🥑', '⚡', '🏃‍♂️', '🎯'].map(emoji => `
+                <button type="button" data-prof-emoji="${emoji}" class="w-9 h-9 rounded-xl bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 hover:border-brand-lilac hover:scale-105 active:scale-95 text-lg flex items-center justify-center transition shadow-2xs">
+                  ${emoji}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Nume Profil -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-extrabold text-slate-800 dark:text-white">Nume Profil <span class="text-rose-500">*</span></label>
+          <input type="text" id="prof-input-name" value="${targetProfile?.name || ''}" placeholder="Ex: Cătălin, Elena, Alex..." class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+        </div>
+
+        <!-- 3. Sex Toggle -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-extrabold text-slate-800 dark:text-white">Sex Biologic</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" id="btn-gender-male" class="p-2.5 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2 transition ${
+              tempGender === 'masculin'
+                ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] border-transparent shadow-sm'
+                : 'bg-white dark:bg-[#181924] border-[#E5E0F5] dark:border-white/10 text-slate-700 dark:text-slate-300'
+            }">
+              <span>♂ Masculin</span>
+            </button>
+            <button type="button" id="btn-gender-female" class="p-2.5 rounded-2xl border font-extrabold text-xs flex items-center justify-center gap-2 transition ${
+              tempGender === 'feminin'
+                ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] border-transparent shadow-sm'
+                : 'bg-white dark:bg-[#181924] border-[#E5E0F5] dark:border-white/10 text-slate-700 dark:text-slate-300'
+            }">
+              <span>♀ Feminin</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Biometrie (Greutate & Înălțime) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-extrabold text-slate-800 dark:text-white">Greutate (kg)</label>
+            <div class="relative">
+              <input type="number" step="0.5" min="30" max="300" id="prof-input-weight" value="${targetProfile?.weight || 75}" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl pl-4 pr-10 py-2.5 text-sm font-extrabold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+              <span class="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400 pointer-events-none">kg</span>
+            </div>
+          </div>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-extrabold text-slate-800 dark:text-white">Înălțime (cm)</label>
+            <div class="relative">
+              <input type="number" step="1" min="100" max="250" id="prof-input-height" value="${targetProfile?.height || 178}" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl pl-4 pr-10 py-2.5 text-sm font-extrabold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+              <span class="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400 pointer-events-none">cm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Smart Calculator Button (Mifflin-St Jeor) -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-brand-lilac/15 to-[#FFB259]/15 border border-brand-lilac/30 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span>⚡ Calculează Automat Recomandarea</span>
+            </div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Mifflin-St Jeor TDEE & macro proporționale pentru greutatea ta</div>
+          </div>
+          <button type="button" id="btn-prof-autocalc" class="btn-pill btn-pill-primary text-xs py-1.5 px-3 font-extrabold shadow-xs flex-shrink-0">
+            Calculează
+          </button>
+        </div>
+
+        <!-- 5. Ținte Calorii & Macronutrienți -->
+        <div class="bg-white dark:bg-[#181924] p-4 rounded-3xl border border-[#E5E0F5] dark:border-white/10 space-y-4 shadow-xs">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-extrabold text-slate-800 dark:text-white">Necesar Caloric Zilnic (kcal)</label>
+              <span id="prof-cals-display" class="text-xs font-extrabold text-[#6D4AE8] dark:text-[#C4B5FD]">${defaultCals} kcal</span>
+            </div>
+            <div class="relative">
+              <input type="number" step="25" min="500" max="6000" id="prof-input-cals" value="${defaultCals}" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl px-4 py-2.5 text-sm font-extrabold text-slate-900 dark:text-white focus:outline-none focus:border-brand-lilac">
+              <span class="absolute right-4 top-2.5 text-xs font-bold text-slate-400 pointer-events-none">kcal / zi</span>
+            </div>
+          </div>
+
+          <!-- 3 Macros Inputs -->
+          <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-white/5">
+            <label class="block text-xs font-extrabold text-slate-700 dark:text-white/80">Macronutrienți Zilnici (g):</label>
+            <div class="grid grid-cols-3 gap-2.5">
+              <!-- Protein -->
+              <div class="space-y-1 bg-rose-50/70 dark:bg-rose-900/15 p-2.5 rounded-2xl border border-rose-200/70 dark:border-rose-500/20">
+                <div class="flex items-center justify-between text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                  <span>Proteine</span>
+                  <span id="prof-prot-pct" class="text-[10px] opacity-80">--%</span>
+                </div>
+                <div class="relative">
+                  <input type="number" step="5" min="10" max="500" id="prof-input-prot" value="${defaultProt}" class="w-full bg-white dark:bg-[#121319] border border-rose-300/70 dark:border-rose-500/30 rounded-xl px-2 py-1.5 text-xs font-extrabold text-slate-900 dark:text-white text-center focus:outline-none">
+                  <span class="absolute right-2 top-1.5 text-[10px] font-bold text-slate-400 pointer-events-none">g</span>
+                </div>
+              </div>
+
+              <!-- Carbs -->
+              <div class="space-y-1 bg-amber-50/70 dark:bg-amber-900/15 p-2.5 rounded-2xl border border-amber-200/70 dark:border-amber-500/20">
+                <div class="flex items-center justify-between text-[11px] font-bold text-amber-800 dark:text-amber-300">
+                  <span>Carbi</span>
+                  <span id="prof-carbs-pct" class="text-[10px] opacity-80">--%</span>
+                </div>
+                <div class="relative">
+                  <input type="number" step="5" min="10" max="800" id="prof-input-carbs" value="${defaultCarbs}" class="w-full bg-white dark:bg-[#121319] border border-amber-300/70 dark:border-amber-500/30 rounded-xl px-2 py-1.5 text-xs font-extrabold text-slate-900 dark:text-white text-center focus:outline-none">
+                  <span class="absolute right-2 top-1.5 text-[10px] font-bold text-slate-400 pointer-events-none">g</span>
+                </div>
+              </div>
+
+              <!-- Fat -->
+              <div class="space-y-1 bg-sky-50/70 dark:bg-sky-900/15 p-2.5 rounded-2xl border border-sky-200/70 dark:border-sky-500/20">
+                <div class="flex items-center justify-between text-[11px] font-bold text-sky-800 dark:text-sky-300">
+                  <span>Grăsimi</span>
+                  <span id="prof-fat-pct" class="text-[10px] opacity-80">--%</span>
+                </div>
+                <div class="relative">
+                  <input type="number" step="2" min="10" max="300" id="prof-input-fat" value="${defaultFat}" class="w-full bg-white dark:bg-[#121319] border border-sky-300/70 dark:border-sky-500/30 rounded-xl px-2 py-1.5 text-xs font-extrabold text-slate-900 dark:text-white text-center focus:outline-none">
+                  <span class="absolute right-2 top-1.5 text-[10px] font-bold text-slate-400 pointer-events-none">g</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Calculation Helper -->
+            <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 font-medium">
+              <span>Total calorii din macro:</span>
+              <span id="prof-macro-sum-cals" class="font-extrabold text-slate-800 dark:text-white">-- kcal</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full overflow-hidden flex bg-slate-200 dark:bg-white/10 mt-1">
+              <div id="prof-bar-prot" class="bg-[#FF6FA4]" style="width: 30%"></div>
+              <div id="prof-bar-carbs" class="bg-[#FFB259]" style="width: 45%"></div>
+              <div id="prof-bar-fat" class="bg-[#82CBEF]" style="width: 25%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Footer -->
+      <div class="flex-shrink-0 p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-3 bg-white dark:bg-[#181924]">
+        <div>
+          ${isEdit && profiles.length > 1 ? `
+            <button type="button" id="btn-prof-delete" class="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline">
+              Șterge Profilul
+            </button>
+          ` : `
+            <button type="button" id="btn-prof-cancel" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+          `}
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-prof-save" class="btn-pill btn-pill-primary text-xs shadow-sm">
+            ${isEdit ? 'Salvează Modificările' : 'Creează & Activează Profilul'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-lg' });
+
+    // Inputs & Elements
+    const nameInput = document.getElementById('prof-input-name');
+    const weightInput = document.getElementById('prof-input-weight');
+    const heightInput = document.getElementById('prof-input-height');
+    const calsInput = document.getElementById('prof-input-cals');
+    const protInput = document.getElementById('prof-input-prot');
+    const carbsInput = document.getElementById('prof-input-carbs');
+    const fatInput = document.getElementById('prof-input-fat');
+
+    const previewContainer = document.getElementById('prof-avatar-preview');
+    const fileInput = document.getElementById('prof-file-input');
+
+    const updatePreviewAvatar = () => {
+      if (!previewContainer) return;
+      if (tempPhoto) {
+        previewContainer.innerHTML = `<img src="${tempPhoto}" alt="Avatar" class="w-full h-full object-cover">`;
+      } else {
+        const initial = nameInput?.value.trim() ? nameInput.value.trim().slice(0, 2).toUpperCase() : '👤';
+        previewContainer.innerHTML = `<span class="text-xl font-black text-slate-700 dark:text-white">${initial}</span>`;
+      }
+    };
+
+    nameInput?.addEventListener('input', () => {
+      if (!tempPhoto) updatePreviewAvatar();
+    });
+
+    // File input handler
+    document.getElementById('btn-prof-upload-photo')?.addEventListener('click', () => {
+      fileInput?.click();
+    });
+
+    fileInput?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        const compressed = await this.compressImageToThumbnail(file, 160);
+        if (compressed) {
+          tempPhoto = compressed;
+          updatePreviewAvatar();
+          this.showToast('Poză de profil încărcată!', 'success');
+        }
+      }
+    });
+
+    document.getElementById('btn-prof-clear-photo')?.addEventListener('click', () => {
+      tempPhoto = '';
+      if (fileInput) fileInput.value = '';
+      updatePreviewAvatar();
+    });
+
+    // Quick emojis
+    document.querySelectorAll('[data-prof-emoji]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const emoji = e.currentTarget.getAttribute('data-prof-emoji');
+        tempPhoto = this.createEmojiAvatar(emoji);
+        updatePreviewAvatar();
+      });
+    });
+
+    // Gender toggles
+    const btnMale = document.getElementById('btn-gender-male');
+    const btnFemale = document.getElementById('btn-gender-female');
+    const setGender = (g) => {
+      tempGender = g;
+      if (g === 'masculin') {
+        btnMale?.classList.add('bg-[#121319]', 'dark:bg-white', 'text-white', 'dark:text-[#121319]', 'border-transparent', 'shadow-sm');
+        btnMale?.classList.remove('bg-white', 'dark:bg-[#181924]', 'border-[#E5E0F5]', 'dark:border-white/10', 'text-slate-700', 'dark:text-slate-300');
+
+        btnFemale?.classList.remove('bg-[#121319]', 'dark:bg-white', 'text-white', 'dark:text-[#121319]', 'border-transparent', 'shadow-sm');
+        btnFemale?.classList.add('bg-white', 'dark:bg-[#181924]', 'border-[#E5E0F5]', 'dark:border-white/10', 'text-slate-700', 'dark:text-slate-300');
+      } else {
+        btnFemale?.classList.add('bg-[#121319]', 'dark:bg-white', 'text-white', 'dark:text-[#121319]', 'border-transparent', 'shadow-sm');
+        btnFemale?.classList.remove('bg-white', 'dark:bg-[#181924]', 'border-[#E5E0F5]', 'dark:border-white/10', 'text-slate-700', 'dark:text-slate-300');
+
+        btnMale?.classList.remove('bg-[#121319]', 'dark:bg-white', 'text-white', 'dark:text-[#121319]', 'border-transparent', 'shadow-sm');
+        btnMale?.classList.add('bg-white', 'dark:bg-[#181924]', 'border-[#E5E0F5]', 'dark:border-white/10', 'text-slate-700', 'dark:text-slate-300');
+      }
+    };
+    btnMale?.addEventListener('click', () => setGender('masculin'));
+    btnFemale?.addEventListener('click', () => setGender('feminin'));
+
+    // Live Macro calculations
+    const updateCalculations = () => {
+      const cals = parseFloat(calsInput?.value) || 0;
+      const prot = parseFloat(protInput?.value) || 0;
+      const carbs = parseFloat(carbsInput?.value) || 0;
+      const fat = parseFloat(fatInput?.value) || 0;
+
+      const macroCals = Math.round(prot * 4 + carbs * 4 + fat * 9);
+      const calsDisplay = document.getElementById('prof-cals-display');
+      const sumCalsEl = document.getElementById('prof-macro-sum-cals');
+      const protPctEl = document.getElementById('prof-prot-pct');
+      const carbsPctEl = document.getElementById('prof-carbs-pct');
+      const fatPctEl = document.getElementById('prof-fat-pct');
+
+      const barProt = document.getElementById('prof-bar-prot');
+      const barCarbs = document.getElementById('prof-bar-carbs');
+      const barFat = document.getElementById('prof-bar-fat');
+
+      if (calsDisplay) calsDisplay.textContent = `${cals} kcal`;
+      if (sumCalsEl) sumCalsEl.textContent = `${macroCals} kcal`;
+
+      const base = macroCals > 0 ? macroCals : (cals || 1);
+      const pPct = Math.round((prot * 4 / base) * 100);
+      const cPct = Math.round((carbs * 4 / base) * 100);
+      const fPct = Math.round((fat * 9 / base) * 100);
+
+      if (protPctEl) protPctEl.textContent = `${pPct}%`;
+      if (carbsPctEl) carbsPctEl.textContent = `${cPct}%`;
+      if (fatPctEl) fatPctEl.textContent = `${fPct}%`;
+
+      if (barProt) barProt.style.width = `${pPct}%`;
+      if (barCarbs) barCarbs.style.width = `${cPct}%`;
+      if (barFat) barFat.style.width = `${fPct}%`;
+    };
+
+    calsInput?.addEventListener('input', updateCalculations);
+    protInput?.addEventListener('input', updateCalculations);
+    carbsInput?.addEventListener('input', updateCalculations);
+    fatInput?.addEventListener('input', updateCalculations);
+
+    // Smart Auto-Calc (Mifflin-St Jeor)
+    document.getElementById('btn-prof-autocalc')?.addEventListener('click', () => {
+      const w = parseFloat(weightInput?.value) || 75;
+      const h = parseFloat(heightInput?.value) || 178;
+      const isMale = tempGender === 'masculin';
+
+      // BMR:
+      const bmr = isMale ? (10 * w + 6.25 * h - 5 * 30 + 5) : (10 * w + 6.25 * h - 5 * 30 - 161);
+      // TDEE:
+      const tdee = Math.round((bmr * 1.35) / 25) * 25;
+      // Protein: ~2.0g/kg
+      const pG = Math.round(w * 2.0);
+      // Fat: ~0.85g/kg
+      const fG = Math.round(w * 0.85);
+      // Carbs: remainder
+      const cG = Math.max(50, Math.round((tdee - (pG * 4 + fG * 9)) / 4));
+
+      if (calsInput) calsInput.value = tdee;
+      if (protInput) protInput.value = pG;
+      if (carbsInput) carbsInput.value = cG;
+      if (fatInput) fatInput.value = fG;
+
+      updateCalculations();
+      this.showToast(`Necesar calculat: ${tdee} kcal (${pG}g P, ${cG}g C, ${fG}g G)`, 'info');
+    });
+
+    // Back to view / Cancel
+    document.getElementById('btn-prof-back-to-view')?.addEventListener('click', () => {
+      this.openProfileModal('view');
+    });
+    document.getElementById('btn-prof-cancel')?.addEventListener('click', () => {
+      this.openProfileModal('view');
+    });
+
+    // Delete profile
+    document.getElementById('btn-prof-delete')?.addEventListener('click', () => {
+      if (!isEdit || !targetProfile) return;
+      this.showConfirmModal({
+        title: 'Șterge Profilul',
+        message: `Ești sigur că vrei să ștergi definitiv profilul "${targetProfile.name}"?`,
+        confirmText: 'Șterge profilul',
+        isDanger: true,
+        onConfirm: () => {
+          window.store.deleteProfile(targetProfile.id);
+          this.updateHeaderProfile();
+          this.showToast(`Profilul "${targetProfile.name}" a fost șters.`, 'info');
+          this.renderCurrentView();
+          this.openProfileModal('view');
+        }
+      });
+    });
+
+    // Save profile
+    document.getElementById('btn-prof-save')?.addEventListener('click', () => {
+      const name = nameInput?.value.trim();
+      if (!name) {
+        this.showToast('Te rugăm să introduci un nume pentru profil.', 'warning');
+        nameInput?.focus();
+        return;
+      }
+
+      const weight = parseFloat(weightInput?.value) || 0;
+      const height = parseFloat(heightInput?.value) || 0;
+      const calories = parseFloat(calsInput?.value) || 2000;
+      const protein = parseFloat(protInput?.value) || 140;
+      const carbs = parseFloat(carbsInput?.value) || 220;
+      const fat = parseFloat(fatInput?.value) || 65;
+
+      const profilePayload = {
+        name,
+        photo: tempPhoto,
+        gender: tempGender,
+        weight,
+        height,
+        calories,
+        protein,
+        carbs,
+        fat
+      };
+
+      if (isEdit && targetProfile) {
+        window.store.updateProfile(targetProfile.id, profilePayload);
+        this.showToast(`Profilul "${name}" a fost actualizat!`, 'success');
+      } else {
+        const created = window.store.addProfile(profilePayload);
+        this.showToast(`Profilul "${name}" a fost creat și setat ca activ!`, 'success');
+      }
+
+      this.dailyCalorieTarget = calories;
+      this.updateHeaderProfile();
+      this.renderCurrentView();
+      this.openProfileModal('view');
+    });
+
+    updateCalculations();
   }
 
   // --- Modal: Settings (Caloric & Macronutrient Targets) ---
