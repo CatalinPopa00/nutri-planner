@@ -12,6 +12,20 @@ class NutriStore {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.ingredients && parsed.recipes && parsed.weeklyPlan) {
+          // Sanitize ingredients: purge any corrupted/garbage names like ", X", "' X", "X"
+          const originalLength = parsed.ingredients.length;
+          parsed.ingredients = parsed.ingredients.filter(ing => {
+            if (!ing || !ing.name) return false;
+            const letters = ing.name.replace(/[^a-zA-ZăâîșțĂÂÎȘȚ]/g, '');
+            if (letters.length < 2) return false;
+            if (/^[,'.~`"_\-^#*]+\s*[xX*]/i.test(ing.name.trim())) return false;
+            if (/^[xX*]$/i.test(ing.name.trim())) return false;
+            return true;
+          });
+          // If corrupted items were purged, save the cleaned state immediately
+          if (parsed.ingredients.length !== originalLength) {
+            try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed)); } catch(e) {}
+          }
           return parsed;
         }
       }
@@ -77,6 +91,14 @@ class NutriStore {
   }
 
   addIngredient(item) {
+    if (!item || !item.name) return null;
+    const cleanName = item.name.trim();
+    const letters = cleanName.replace(/[^a-zA-ZăâîșțĂÂÎȘȚ]/g, '');
+    if (letters.length < 2 || /^[,'.~`"_\-^#*]+\s*[xX*]/i.test(cleanName) || /^[xX*]$/i.test(cleanName)) {
+      console.warn('Rejected adding invalid ingredient name:', cleanName);
+      return null;
+    }
+
     const id = 'ing_' + Date.now();
     const pkgQty = parseFloat(item.packageQuantity) || 100;
     const pkgPrice = parseFloat(item.packagePrice) || 0;
@@ -84,7 +106,7 @@ class NutriStore {
 
     const newIng = {
       id,
-      name: item.name.trim(),
+      name: cleanName,
       category: item.category || 'Altele',
       packageQuantity: pkgQty,
       packagePrice: pkgPrice,

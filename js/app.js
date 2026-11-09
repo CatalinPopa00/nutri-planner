@@ -20,6 +20,23 @@ class NutriApp {
 
   init() {
     window.alert = (msg) => this.showToast(msg, 'info');
+
+    // Purge any corrupted ingredients from prior OCR sessions (e.g. ", X")
+    if (window.store && window.store.data && window.store.data.ingredients) {
+      const origLen = window.store.data.ingredients.length;
+      window.store.data.ingredients = window.store.data.ingredients.filter(ing => {
+        if (!ing || !ing.name) return false;
+        const letters = ing.name.replace(/[^a-zA-ZăâîșțĂÂÎȘȚ]/g, '');
+        if (letters.length < 2) return false;
+        if (/^[,'.~`"_\-^#*]+\s*[xX*]/i.test(ing.name.trim())) return false;
+        if (/^[xX*]$/i.test(ing.name.trim())) return false;
+        return true;
+      });
+      if (window.store.data.ingredients.length !== origLen) {
+        window.store.saveState();
+      }
+    }
+
     this.bindEvents();
     window.store.subscribe(() => {
       this.renderCurrentView();
@@ -879,24 +896,25 @@ class NutriApp {
     return `
       <div class="space-y-6 pb-24">
         <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-4 sm:p-6 shadow-sm">
           <div>
             <div class="flex items-center gap-2">
               <span class="pill-badge pill-badge-translucent">Bază de Date Alimentară</span>
             </div>
-            <h2 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white mt-1">
+            <h2 class="text-xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white mt-1">
               Ingrediente & Prețuri
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${window.store.data.ingredients.length} ingrediente calculate cu referință per 100g</p>
           </div>
-          <div class="flex items-center gap-2.5">
-            <button id="btn-open-scanner-shortcut" class="btn-pill btn-pill-white text-xs sm:text-sm">
-              <svg class="w-4 h-4 text-[#A390F5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-              Scan EAN / Bon
+          <!-- Single row action buttons, never wrapping onto 2 lines -->
+          <div class="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-2.5">
+            <button id="btn-open-scanner-shortcut" class="btn-pill btn-pill-white text-[12px] sm:text-sm py-2 sm:py-2.5 px-2.5 sm:px-4 whitespace-nowrap justify-center w-full sm:w-auto shadow-2xs">
+              <svg class="w-3.5 h-3.5 text-[#A390F5] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+              <span>Scanare EAN/Bon</span>
             </button>
-            <button id="btn-add-ingredient-manual" class="btn-pill btn-pill-dark text-xs sm:text-sm shadow">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
-              Adaugă Manual
+            <button id="btn-add-ingredient-manual" class="btn-pill btn-pill-dark text-[12px] sm:text-sm py-2 sm:py-2.5 px-2.5 sm:px-4 whitespace-nowrap justify-center w-full sm:w-auto shadow">
+              <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+              <span>+ Adaugă Manual</span>
             </button>
           </div>
         </div>
@@ -941,41 +959,43 @@ class NutriApp {
                 Nu a fost găsit niciun ingredient.
               </div>
             ` : ingredients.map(ing => `
-              <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-3.5 shadow-xs space-y-2">
-                <!-- Top Line: Name & Category + Price/100g badge + Actions -->
+              <div class="bento-card bento-white border border-[#ECE7FB] dark:border-white/10 p-3.5 sm:p-4 shadow-2xs hover:shadow-xs transition-all duration-150 space-y-2.5">
+                <!-- Top Line: Name & Category + Price/100g badge + Capsule Action Buttons -->
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0 flex-1">
-                    <div class="font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug">${ing.name}</div>
-                    <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                      <span>${ing.category}</span>
-                      ${ing.ean ? `<span class="opacity-40">•</span> <span class="font-mono text-[10px] text-slate-400">EAN: ${ing.ean}</span>` : ''}
+                    <div class="font-extrabold text-[13.5px] sm:text-sm text-slate-900 dark:text-white truncate leading-snug tracking-tight">${ing.name}</div>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                      <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400">${ing.category}</span>
+                      ${ing.ean ? `<span class="text-[9.5px] text-slate-400 font-mono">#${ing.ean}</span>` : ''}
                     </div>
                   </div>
 
                   <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-black bg-[#70D6A3]/15 text-[#218352] dark:text-[#70D6A3] border border-emerald-500/20 whitespace-nowrap">
-                      ${ing.pricePer100g.toFixed(2)} lei/100g
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap shadow-2xs">
+                      ${ing.pricePer100g.toFixed(2)} lei<span class="text-[9px] font-semibold opacity-75">/100g</span>
                     </span>
-                    <button data-ing-edit="${ing.id}" class="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Editează">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                    <button data-ing-delete="${ing.id}" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                    <div class="flex items-center bg-slate-100/70 dark:bg-white/5 p-0.5 rounded-xl border border-slate-200/60 dark:border-white/5">
+                      <button data-ing-edit="${ing.id}" class="w-6.5 h-6.5 rounded-lg text-slate-400 hover:text-brand-dark dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition flex items-center justify-center" title="Editează">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button data-ing-delete="${ing.id}" class="w-6.5 h-6.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex items-center justify-center" title="Șterge">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Bottom Line: Package Gramaj & Price + Calories, P, C, G on SAME LINE -->
-                <div class="flex items-center gap-1 sm:gap-1.5 text-[10.5px] sm:text-xs text-slate-600 dark:text-slate-300 pt-1.5 border-t border-slate-100 dark:border-white/5 whitespace-nowrap overflow-hidden">
-                  <span class="font-semibold text-slate-800 dark:text-slate-200">${ing.packageQuantity}g (${ing.packagePrice.toFixed(2)} lei)</span>
-                  <span class="text-slate-300 dark:text-slate-600">•</span>
-                  <span class="font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">${Math.round(ing.calories)} kcal</span>
-                  <span class="text-slate-300 dark:text-slate-600">•</span>
-                  <span class="text-[#E02868] dark:text-[#FFA4CD] font-bold">${ing.protein.toFixed(1)}g P</span>
-                  <span class="text-slate-300 dark:text-slate-600">•</span>
-                  <span class="text-[#D97706] dark:text-[#FFC480] font-bold">${ing.carbs.toFixed(1)}g C</span>
-                  <span class="text-slate-300 dark:text-slate-600">•</span>
-                  <span class="text-[#0284C7] dark:text-[#98DDFE] font-bold">${ing.fat.toFixed(1)}g G</span>
+                <div class="flex items-center justify-between gap-1 pt-2 border-t border-slate-100 dark:border-white/5 text-[10.5px] whitespace-nowrap overflow-x-auto no-scrollbar">
+                  <span class="text-slate-500 dark:text-slate-400 font-medium">
+                    ${ing.packageQuantity}g <span class="opacity-50">•</span> <strong class="text-slate-800 dark:text-slate-200 font-bold">${ing.packagePrice.toFixed(2)} lei</strong>
+                  </span>
+                  <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                    <span class="px-1.5 py-0.5 rounded-md bg-[#6D4AE8]/10 text-[#6D4AE8] dark:text-[#C4B5FD] font-bold text-[10px] sm:text-[10.5px]">${Math.round(ing.calories)} kcal</span>
+                    <span class="px-1.5 py-0.5 rounded-md bg-[#E02868]/10 text-[#E02868] dark:text-[#FFA4CD] font-bold text-[10px] sm:text-[10.5px]">${ing.protein.toFixed(1)}g P</span>
+                    <span class="px-1.5 py-0.5 rounded-md bg-[#D97706]/10 text-[#D97706] dark:text-[#FFC480] font-bold text-[10px] sm:text-[10.5px]">${ing.carbs.toFixed(1)}g C</span>
+                    <span class="px-1.5 py-0.5 rounded-md bg-[#0284C7]/10 text-[#0284C7] dark:text-[#98DDFE] font-bold text-[10px] sm:text-[10.5px]">${ing.fat.toFixed(1)}g G</span>
+                  </div>
                 </div>
               </div>
             `).join('')}
@@ -2130,6 +2150,23 @@ class NutriApp {
   openReceiptModal(parsed) {
     const categories = ['Carne & Pește', 'Lactate', 'Cereale & Carbi', 'Legume & Fructe', 'Grăsimi & Uleiuri', 'Condimente & Sosuri', 'Altele'];
 
+    // Sanitize items: purge any OCR noise items like ", X", "' X", or items without letters
+    parsed.items = (parsed.items || []).filter(it => {
+      if (!it || !it.name) return false;
+      const letters = it.name.replace(/[^a-zA-ZăâîșțĂÂÎȘȚ]/g, '');
+      if (letters.length < 2) return false;
+      if (/^[,'.~`"_\-^#*]+\s*[xX*]/i.test(it.name.trim())) return false;
+      if (/^[xX*]$/i.test(it.name.trim())) return false;
+      return true;
+    });
+
+    // Ensure valid positive quantity (never 0g fallback)
+    parsed.items.forEach(it => {
+      if (!it.quantity || it.quantity <= 0) {
+        it.quantity = 100;
+      }
+    });
+
     const html = `
       <!-- Fixed Header -->
       <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
@@ -2169,15 +2206,20 @@ class NutriApp {
               <div class="flex-1 min-w-0 space-y-1.5">
                 <div class="flex items-center justify-between gap-2">
                   <input type="text" data-receipt-name="${idx}" value="${it.name}" class="w-full font-bold text-xs sm:text-sm bg-transparent border-b border-dashed border-slate-300 dark:border-white/20 focus:border-brand-lilac focus:outline-none text-slate-900 dark:text-white pb-0.5">
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${it.isMatched ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'}">
-                    ${it.isMatched ? 'Găsit în DB' : 'Produs Nou'}
-                  </span>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${it.isMatched ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'}">
+                      ${it.isMatched ? 'Găsit în DB' : 'Produs Nou'}
+                    </span>
+                    <button type="button" data-receipt-remove-item="${idx}" class="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-white/10 transition" title="Șterge din listă">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 text-xs">
                   <div class="flex items-center gap-1">
                     <span class="text-slate-400 text-[11px]">Gramaj:</span>
-                    <input type="number" data-receipt-qty="${idx}" value="${it.quantity}" class="w-16 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-2 py-1 text-xs font-bold text-center text-slate-800 dark:text-white">
+                    <input type="number" data-receipt-qty="${idx}" value="${it.quantity || 100}" class="w-16 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-lg px-2 py-1 text-xs font-bold text-center text-slate-800 dark:text-white">
                     <span class="text-slate-400 text-[11px]">g</span>
                   </div>
 
@@ -2213,6 +2255,15 @@ class NutriApp {
 
     this.openModal(html);
 
+    // Delete item row handler
+    document.querySelectorAll('[data-receipt-remove-item]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = e.currentTarget.getAttribute('data-receipt-remove-item');
+        const card = document.querySelector(`[data-receipt-idx="${idx}"]`);
+        if (card) card.remove();
+      });
+    });
+
     // Toggle select all
     const checkAll = document.getElementById('modal-receipt-check-all');
     if (checkAll) {
@@ -2232,6 +2283,9 @@ class NutriApp {
         const cb = document.querySelector(`[data-receipt-item-cb="${idx}"]`);
         if (cb && cb.checked) {
           const name = document.querySelector(`[data-receipt-name="${idx}"]`)?.value.trim() || it.name;
+          const letters = name.replace(/[^a-zA-ZăâîșțĂÂÎȘȚ]/g, '');
+          if (letters.length < 2) return; // Skip invalid noise items
+
           const qty = parseFloat(document.querySelector(`[data-receipt-qty="${idx}"]`)?.value) || it.quantity || 100;
           const price = parseFloat(document.querySelector(`[data-receipt-price="${idx}"]`)?.value) || it.price || 0;
           const category = document.querySelector(`[data-receipt-cat="${idx}"]`)?.value || 'Altele';
