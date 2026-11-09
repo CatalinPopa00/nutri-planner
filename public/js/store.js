@@ -328,7 +328,7 @@ class NutriStore {
     return this.data.weeklyPlan;
   }
 
-  addPlanItem(day, meal, recipeId, servings = 1.0) {
+  addPlanItem(day, meal, recipeId, servings = 1.0, isIngredient = false) {
     if (!this.data.weeklyPlan[day]) {
       this.data.weeklyPlan[day] = [];
     }
@@ -336,11 +336,203 @@ class NutriStore {
       id: 'plan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       meal: meal || 'Prânz',
       recipeId,
-      servings: parseFloat(servings) || 1.0
+      servings: Math.max(0.1, parseFloat(servings) || 1.0),
+      isIngredient: !!isIngredient
     };
     this.data.weeklyPlan[day].push(item);
+
+    // Track in mealHistory for last 14 days statistics
+    if (!this.data.mealHistory) {
+      this.data.mealHistory = [];
+    }
+    this.data.mealHistory.push({
+      meal: item.meal,
+      recipeId: item.recipeId,
+      isIngredient: item.isIngredient,
+      timestamp: Date.now()
+    });
+
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    this.data.mealHistory = this.data.mealHistory.filter(h => h.timestamp > thirtyDaysAgo);
+
     this.saveState();
     return item;
+  }
+
+  addPlanItems(day, meal, itemsList) {
+    if (!this.data.weeklyPlan[day]) {
+      this.data.weeklyPlan[day] = [];
+    }
+    if (!this.data.mealHistory) {
+      this.data.mealHistory = [];
+    }
+
+    const now = Date.now();
+    itemsList.forEach((it, idx) => {
+      const planItem = {
+        id: 'plan_' + (now + idx) + '_' + Math.random().toString(36).substr(2, 4),
+        meal: meal || 'Prânz',
+        recipeId: it.recipeId || it.id,
+        servings: Math.max(0.1, parseFloat(it.servings) || 1.0),
+        isIngredient: !!it.isIngredient
+      };
+      this.data.weeklyPlan[day].push(planItem);
+      this.data.mealHistory.push({
+        meal: planItem.meal,
+        recipeId: planItem.recipeId,
+        isIngredient: planItem.isIngredient,
+        timestamp: now
+      });
+    });
+
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    this.data.mealHistory = this.data.mealHistory.filter(h => h.timestamp > thirtyDaysAgo);
+
+    this.saveState();
+  }
+
+  // Get most used meals/recipes in the last 2 weeks for this meal category
+  getFavoriteMealsForCategory(mealCategory, days = 14) {
+    const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const counts = {}; // id -> { count, isIngredient, isSeed }
+
+    // 1. Scan mealHistory in last 14 days for this specific category
+    const history = this.data.mealHistory || [];
+    history.forEach(h => {
+      if (h.meal === mealCategory && h.timestamp >= cutoff) {
+        if (!counts[h.recipeId]) {
+          counts[h.recipeId] = { count: 0, isIngredient: !!h.isIngredient };
+        }
+        counts[h.recipeId].count += 1;
+      }
+    });
+
+    // 2. Scan weeklyPlan across all 7 days for this mealCategory
+    const weeklyPlan = this.data.weeklyPlan || {};
+    Object.keys(weeklyPlan).forEach(d => {
+      (weeklyPlan[d] || []).forEach(item => {
+        if (item.meal === mealCategory && item.recipeId) {
+          if (!counts[item.recipeId]) {
+            counts[item.recipeId] = { count: 0, isIngredient: !!item.isIngredient };
+          }
+          counts[item.recipeId].count += 2;
+        }
+      });
+    });
+
+    // 3. Seed / fallback relevance based on mealCategory keywords so favorites are populated immediately
+    const lowerCategory = (mealCategory || '').toLowerCase();
+    const allRecipes = this.data.recipes || [];
+
+    allRecipes.forEach(rec => {
+      const recLower = rec.name.toLowerCase();
+      const recCat = (rec.category || '').toLowerCase();
+      let seedScore = 0;
+
+      if (lowerCategory.includes('mic dejun')) {
+        if (recCat.includes('mic dejun') || recCat.includes('snacks') || /omlet|ovaz|iaurt|pancake|toast|ou|pui/i.test(recLower)) {
+          seedScore = 1;
+        }
+      } else if (lowerCategory.includes('prânz') || lowerCategory.includes('pranz')) {
+        if (recCat.includes('mese mari') || /pui|orez|somon|vita|paste|cartofi|ciorba/i.test(recLower)) {
+          seedScore = 1;
+        }
+      } else if (lowerCategory.includes('cină') || lowerCategory.includes('cina')) {
+        if (/salat|pastrav|supa|curry|legume|pui|somon/i.test(recLower)) {
+          seedScore = 1;
+        }
+      } else if (lowerCategory.includes('gustar') || lowerCategory.includes('snack')) {
+        if (recCat.includes('snacks') || /baton|iaurt|fruct|shake|smoothie|migdale/i.test(recLower)) {
+          seedScore = 1;
+        }
+      }
+
+      if (seedScore > 0) {
+        if (!counts[rec.id]) {
+          counts[rec.id] = { count: seedScore, isIngredient: false, isSeed: true };
+        } else {
+          counts[rec.id].count += seedScore;
+        }
+      }
+    });
+
+    // Also seed relevant base ingredients (e.g. Ouă, Banane, Iaurt, etc.)
+    const allIngredients = this.data.ingredients || [];
+    allIngredients.forEach(ing => {
+      const ingLower = (ing.name || '').toLowerCase();
+      let seedScore = 0;
+
+      if (lowerCategory.includes('mic dejun')) {
+        if (/ou|oua|lapte|ovaz|paine|unt|miere|banana/i.test(ingLower)) {
+          seedScore = 1;
+        }
+      } else if (lowerCategory.includes('prânz') || lowerCategory.includes('pranz')) {
+        if (/pui|piept|somon|orez|cartof|vita|paste/i.test(ingLower)) {
+          seedScore = 1;
+        }
+      } else if (lowerCategory.includes('cină') || lowerCategory.includes('cina')) {
+        if (/salat|rosii|castrav|branza|telemea|pastrav|ton/i.test(ingLower)) {
+          seedScore = 1;
+        }
+      } else if (lowerCategory.includes('gustar') || lowerCategory.includes('snack')) {
+        if (/mar|mere|banana|iaurt|migdale|nuci|caju/i.test(ingLower)) {
+          seedScore = 1;
+        }
+      }
+
+      if (seedScore > 0) {
+        if (!counts[ing.id]) {
+          counts[ing.id] = { count: seedScore, isIngredient: true, isSeed: true };
+        }
+      }
+    });
+
+    // 4. Resolve full metadata
+    const favorites = [];
+    Object.keys(counts).forEach(id => {
+      const info = counts[id];
+      if (info.isIngredient) {
+        const ing = this.getIngredientById(id);
+        if (ing) {
+          favorites.push({
+            id: ing.id,
+            name: ing.name,
+            category: ing.category,
+            isIngredient: true,
+            count: info.count,
+            isSeed: !!info.isSeed,
+            calories: ing.calories,
+            protein: ing.protein,
+            carbs: ing.carbs,
+            fat: ing.fat,
+            cost: ing.pricePer100g,
+            unitLabel: '100g'
+          });
+        }
+      } else {
+        const rawRec = this.getRecipeById(id);
+        if (rawRec) {
+          const calc = this.calculateRecipe(rawRec);
+          favorites.push({
+            id: rawRec.id,
+            name: rawRec.name,
+            category: rawRec.category,
+            isIngredient: false,
+            count: info.count,
+            isSeed: !!info.isSeed,
+            calories: calc.perServing.calories,
+            protein: calc.perServing.protein,
+            carbs: calc.perServing.carbs,
+            fat: calc.perServing.fat,
+            cost: calc.perServing.cost,
+            unitLabel: 'porție'
+          });
+        }
+      }
+    });
+
+    favorites.sort((a, b) => b.count - a.count);
+    return favorites.slice(0, 8);
   }
 
   removePlanItem(day, itemId) {
@@ -390,42 +582,73 @@ class NutriStore {
 
     const computedItems = items.map(it => {
       const rawRecipe = this.getRecipeById(it.recipeId);
-      if (!rawRecipe) {
+      if (rawRecipe) {
+        const calc = this.calculateRecipe(rawRecipe);
+        const portions = parseFloat(it.servings) || 1.0;
+        const cost = calc.perServing.cost * portions;
+        const cals = calc.perServing.calories * portions;
+        const prot = calc.perServing.protein * portions;
+        const carbs = calc.perServing.carbs * portions;
+        const fat = calc.perServing.fat * portions;
+
+        dayCost += cost;
+        dayCalories += cals;
+        dayProtein += prot;
+        dayCarbs += carbs;
+        dayFat += fat;
+
         return {
           ...it,
-          recipeName: 'Rețetă ștearsă',
-          cost: 0,
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0
+          recipeName: rawRecipe.name,
+          category: rawRecipe.category,
+          portions,
+          cost,
+          calories: cals,
+          protein: prot,
+          carbs,
+          fat,
+          calc
         };
       }
-      const calc = this.calculateRecipe(rawRecipe);
-      const portions = parseFloat(it.servings) || 1.0;
-      const cost = calc.perServing.cost * portions;
-      const cals = calc.perServing.calories * portions;
-      const prot = calc.perServing.protein * portions;
-      const carbs = calc.perServing.carbs * portions;
-      const fat = calc.perServing.fat * portions;
 
-      dayCost += cost;
-      dayCalories += cals;
-      dayProtein += prot;
-      dayCarbs += carbs;
-      dayFat += fat;
+      // Check if it's an individual food / ingredient (1 portion = 100g)
+      const rawIng = this.getIngredientById(it.recipeId);
+      if (rawIng) {
+        const portions = parseFloat(it.servings) || 1.0;
+        const cost = rawIng.pricePer100g * portions;
+        const cals = rawIng.calories * portions;
+        const prot = rawIng.protein * portions;
+        const carbs = rawIng.carbs * portions;
+        const fat = rawIng.fat * portions;
+
+        dayCost += cost;
+        dayCalories += cals;
+        dayProtein += prot;
+        dayCarbs += carbs;
+        dayFat += fat;
+
+        return {
+          ...it,
+          recipeName: rawIng.name,
+          category: rawIng.category,
+          portions,
+          cost,
+          calories: cals,
+          protein: prot,
+          carbs,
+          fat,
+          isIngredient: true
+        };
+      }
 
       return {
         ...it,
-        recipeName: rawRecipe.name,
-        category: rawRecipe.category,
-        portions,
-        cost,
-        calories: cals,
-        protein: prot,
-        carbs,
-        fat,
-        calc
+        recipeName: 'Articol șters',
+        cost: 0,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0
       };
     });
 
@@ -486,26 +709,45 @@ class NutriStore {
       const items = this.data.weeklyPlan[day] || [];
       items.forEach(it => {
         const recipe = this.getRecipeById(it.recipeId);
-        if (!recipe) return;
-        const portionsMultiplier = (parseFloat(it.servings) || 1.0) / (parseFloat(recipe.servings) || 1.0);
+        if (recipe) {
+          const portionsMultiplier = (parseFloat(it.servings) || 1.0) / (parseFloat(recipe.servings) || 1.0);
 
-        (recipe.ingredients || []).forEach(ri => {
-          const dbIng = this.getIngredientById(ri.ingredientId) || this.findIngredientByName(ri.name);
-          const key = dbIng ? dbIng.id : (ri.name || 'necunoscut');
-          const qty = (parseFloat(ri.quantity) || 0) * portionsMultiplier;
+          (recipe.ingredients || []).forEach(ri => {
+            const dbIng = this.getIngredientById(ri.ingredientId) || this.findIngredientByName(ri.name);
+            const key = dbIng ? dbIng.id : (ri.name || 'necunoscut');
+            const qty = (parseFloat(ri.quantity) || 0) * portionsMultiplier;
 
-          if (!ingredientUsage[key]) {
-            ingredientUsage[key] = {
-              ingredientId: dbIng ? dbIng.id : null,
-              name: dbIng ? dbIng.name : ri.name,
-              category: dbIng ? dbIng.category : 'Altele',
-              totalGrams: 0,
-              packageQuantity: dbIng ? dbIng.packageQuantity : 100,
-              packagePrice: dbIng ? dbIng.packagePrice : 0
-            };
+            if (!ingredientUsage[key]) {
+              ingredientUsage[key] = {
+                ingredientId: dbIng ? dbIng.id : null,
+                name: dbIng ? dbIng.name : ri.name,
+                category: dbIng ? dbIng.category : 'Altele',
+                totalGrams: 0,
+                packageQuantity: dbIng ? dbIng.packageQuantity : 100,
+                packagePrice: dbIng ? dbIng.packagePrice : 0
+              };
+            }
+            ingredientUsage[key].totalGrams += qty;
+          });
+        } else {
+          // Individual food / ingredient added to plan
+          const dbIng = this.getIngredientById(it.recipeId);
+          if (dbIng) {
+            const key = dbIng.id;
+            const qty = (parseFloat(it.servings) || 1.0) * 100;
+            if (!ingredientUsage[key]) {
+              ingredientUsage[key] = {
+                ingredientId: dbIng.id,
+                name: dbIng.name,
+                category: dbIng.category || 'Altele',
+                totalGrams: 0,
+                packageQuantity: dbIng.packageQuantity || 100,
+                packagePrice: dbIng.packagePrice || 0
+              };
+            }
+            ingredientUsage[key].totalGrams += qty;
           }
-          ingredientUsage[key].totalGrams += qty;
-        });
+        }
       });
     });
 

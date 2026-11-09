@@ -430,7 +430,14 @@ class NutriApp {
                       ${mealItems.map(item => `
                         <div class="bg-white/95 dark:bg-[#181924]/95 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 p-2.5 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                           <div class="flex-1 min-w-0">
-                            <div class="font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug">${item.recipeName}</div>
+                            <div class="flex items-center gap-1.5 min-w-0">
+                              <span class="font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug">${item.recipeName}</span>
+                              ${item.isIngredient ? `
+                                <span class="px-1.5 py-0.2 rounded-md text-[9px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex-shrink-0">
+                                  Aliment
+                                </span>
+                              ` : ''}
+                            </div>
                             <!-- Single row: Price, Calories, Protein, Carbs, Fat (sized to fit all screens) -->
                             <div class="flex items-center gap-1 sm:gap-1.5 mt-1 text-[10.5px] sm:text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap overflow-hidden">
                               <span class="font-black text-[#218352] dark:text-[#70D6A3] text-[11px] sm:text-xs">${item.cost.toFixed(2)} lei</span>
@@ -448,11 +455,11 @@ class NutriApp {
                           <!-- Portions control & Delete -->
                           <div class="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-black/5 dark:border-white/10 flex-shrink-0">
                             <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/10 rounded-full p-1">
-                              <button data-portion-minus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="Scade 0.5 porții">
+                              <button data-portion-minus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="${item.isIngredient ? 'Scade 50g' : 'Scade 0.5 porții'}">
                                 −
                               </button>
-                              <span class="text-xs font-extrabold text-slate-800 dark:text-white px-2 min-w-[2.4rem] text-center">${item.portions}</span>
-                              <button data-portion-plus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="Crește 0.5 porții">
+                              <span class="text-xs font-extrabold text-slate-800 dark:text-white px-2 min-w-[2.4rem] text-center">${item.isIngredient ? (item.portions * 100) + 'g' : item.portions}</span>
+                              <button data-portion-plus="${item.id}" class="w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-[#121319] text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold shadow-xs transition" title="${item.isIngredient ? 'Crește 50g' : 'Crește 0.5 porții'}">
                                 +
                               </button>
                             </div>
@@ -2329,96 +2336,421 @@ class NutriApp {
     });
   }
 
-  // --- Modal: Add Recipe to Meal ---
+  // --- Modal: Add Recipe or Foods to Meal (with Multi-Select & 2-Week Favorites) ---
   openAddRecipeToMealModal(day, meal) {
+    const favorites = window.store.getFavoriteMealsForCategory(meal, 14);
     const recipes = window.store.getRecipes();
+    const ingredients = window.store.getIngredients();
+
+    // Map recipes and ingredients into unified item structures
+    const recipesList = recipes.map(raw => {
+      const r = window.store.calculateRecipe(raw);
+      return {
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        isIngredient: false,
+        calories: r.perServing.calories,
+        protein: r.perServing.protein,
+        carbs: r.perServing.carbs,
+        fat: r.perServing.fat,
+        cost: r.perServing.cost,
+        unit: 'porție'
+      };
+    });
+
+    const ingredientsList = ingredients.map(ing => ({
+      id: ing.id,
+      name: ing.name,
+      category: ing.category,
+      isIngredient: true,
+      calories: ing.calories,
+      protein: ing.protein,
+      carbs: ing.carbs,
+      fat: ing.fat,
+      cost: ing.pricePer100g,
+      unit: '100g'
+    }));
+
+    const favoritesList = favorites.map(f => ({
+      ...f,
+      isFavorite: true,
+      unit: f.isIngredient ? '100g' : 'porție'
+    }));
+
+    // Selection state & Servings state
+    const selectedMap = new Map(); // id -> { id, isIngredient, servings, name }
+    const servingsMap = new Map(); // id -> servings number
+
+    let currentFilterTab = favoritesList.length > 0 ? 'favorites' : 'all';
+    let searchQuery = '';
 
     const html = `
-      <!-- Fixed Header + Search Bar (Never hidden by virtual keyboard) -->
-      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-[#181924]">
-        <div class="flex items-center justify-between pb-3">
-          <div>
-            <h3 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white">Adaugă Rețetă la ${meal}</h3>
-            <p class="text-xs text-slate-500 dark:text-white/60">Ziua: <span class="font-bold text-brand-dark dark:text-brand-lilac">${day}</span></p>
+      <!-- Fixed Header + Filter Tabs + Search Bar -->
+      <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-[#181924] space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="min-w-0">
+            <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white truncate">Adaugă la ${meal}</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Ziua: <span class="font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">${day}</span> • Selectează unul sau mai multe preparate</p>
           </div>
-          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition" title="Închide">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
+        <!-- Filter Pill Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="meal-modal-tabs">
+          <button type="button" data-meal-modal-tab="favorites" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'favorites' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
+            ⭐ Favorite (${favoritesList.length})
+          </button>
+          <button type="button" data-meal-modal-tab="recipes" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'recipes' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
+            🍲 Rețete (${recipesList.length})
+          </button>
+          <button type="button" data-meal-modal-tab="ingredients" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'ingredients' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
+            🍎 Alimente (${ingredientsList.length})
+          </button>
+          <button type="button" data-meal-modal-tab="all" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${currentFilterTab === 'all' ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'}">
+            Toate
+          </button>
+        </div>
+
+        <!-- Search Bar -->
         <div class="relative">
-          <input type="text" id="modal-recipe-search" placeholder="Caută o rețetă..." autocomplete="off" class="w-full bg-[#F4F3FA] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 focus:outline-none focus:border-brand-lilac">
+          <input type="text" id="modal-meal-search" placeholder="Caută rețetă sau aliment (ex: omletă, banană, orez)..." autocomplete="off" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#6D4AE8]">
           <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </div>
       </div>
 
-      <!-- Scrollable Recipes List (Occupies visible height right above keyboard) -->
-      <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 space-y-2" id="modal-recipe-list">
-        ${recipes.map(raw => {
-          const r = window.store.calculateRecipe(raw);
-          return `
-            <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 active:scale-[0.99] border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
-              <div class="min-w-0 flex-1">
-                <div class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white truncate">${r.name}</div>
-                <div class="text-[11px] sm:text-xs text-slate-500 dark:text-white/60 truncate">${r.category} • ${Math.round(r.perServing.calories)} kcal • ${r.perServing.protein.toFixed(1)}g P</div>
-              </div>
-              <div class="text-right flex-shrink-0">
-                <div class="font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
-                <div class="text-[10px] text-slate-400 dark:text-white/40">per porție</div>
-              </div>
-            </div>
-          `;
-        }).join('')}
+      <!-- Scrollable List -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 space-y-2.5" id="modal-meal-items-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Fixed Footer with Multi-Select Actions -->
+      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-3 bg-white dark:bg-[#181924]">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="modal-meal-selected-count" class="px-2.5 py-1 rounded-full text-xs font-black bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] whitespace-nowrap">
+            0 selectate
+          </span>
+          <button id="btn-modal-select-all-visible" type="button" class="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white underline whitespace-nowrap">
+            Selectează tot
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs">Anulează</button>
+          <button id="btn-modal-submit-meal-items" class="btn-pill btn-pill-primary text-xs sm:text-sm shadow whitespace-nowrap">
+            Adaugă în Plan (0)
+          </button>
+        </div>
       </div>
     `;
 
     this.openModal(html, { position: 'top' });
 
-    // Filter recipes in modal
-    const searchIn = document.getElementById('modal-recipe-search');
-    const listEl = document.getElementById('modal-recipe-list');
-    if (searchIn && listEl) {
-      searchIn.addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase().trim();
-        const filtered = recipes.filter(r => r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q));
-        if (filtered.length === 0) {
-          listEl.innerHTML = `
-            <div class="text-center py-8 text-slate-400 dark:text-white/40 text-xs">
-              Nicio rețetă găsită pentru "${q}".
+    const container = document.getElementById('modal-meal-items-container');
+    const searchInput = document.getElementById('modal-meal-search');
+    const selectedBadge = document.getElementById('modal-meal-selected-count');
+    const submitBtn = document.getElementById('btn-modal-submit-meal-items');
+    const selectAllBtn = document.getElementById('btn-modal-select-all-visible');
+
+    const updateFooterCounter = () => {
+      const count = selectedMap.size;
+      if (selectedBadge) {
+        selectedBadge.textContent = `${count} ${count === 1 ? 'selectat' : 'selectate'}`;
+      }
+      if (submitBtn) {
+        submitBtn.textContent = `Adaugă în Plan (${count})`;
+      }
+    };
+
+    const getVisibleItems = () => {
+      let baseList = [];
+      if (currentFilterTab === 'favorites') {
+        baseList = favoritesList;
+      } else if (currentFilterTab === 'recipes') {
+        baseList = recipesList;
+      } else if (currentFilterTab === 'ingredients') {
+        baseList = ingredientsList;
+      } else {
+        // 'all': show favorites first, then recipes, then ingredients
+        const seen = new Set();
+        baseList = [];
+        favoritesList.forEach(f => {
+          seen.add(f.id);
+          baseList.push(f);
+        });
+        recipesList.forEach(r => {
+          if (!seen.has(r.id)) {
+            seen.add(r.id);
+            baseList.push(r);
+          }
+        });
+        ingredientsList.forEach(i => {
+          if (!seen.has(i.id)) {
+            seen.add(i.id);
+            baseList.push(i);
+          }
+        });
+      }
+
+      if (searchQuery.trim() !== '') {
+        const q = searchQuery.toLowerCase().trim();
+        return baseList.filter(it => it.name.toLowerCase().includes(q) || it.category.toLowerCase().includes(q));
+      }
+      return baseList;
+    };
+
+    const renderList = () => {
+      if (!container) return;
+      const visible = getVisibleItems();
+
+      if (visible.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10 text-slate-400 dark:text-slate-500 space-y-2">
+            <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mx-auto text-slate-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </div>
-          `;
-          return;
-        }
-        listEl.innerHTML = filtered.map(raw => {
-          const r = window.store.calculateRecipe(raw);
-          return `
-            <div class="p-3 bg-[#FAF9FD] dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 active:scale-[0.99] border border-[#E5E0F5] dark:border-white/10 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition shadow-xs hover:shadow-md" data-select-recipe="${r.id}">
-              <div class="min-w-0 flex-1">
-                <div class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white truncate">${r.name}</div>
-                <div class="text-[11px] sm:text-xs text-slate-500 dark:text-white/60 truncate">${r.category} • ${Math.round(r.perServing.calories)} kcal • ${r.perServing.protein.toFixed(1)}g P</div>
+            <p class="text-xs font-semibold">Niciun aliment sau rețetă găsită pentru acest filtru.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // If favorites tab or empty search on favorites, render section header
+      const isFavTab = currentFilterTab === 'favorites';
+
+      container.innerHTML = `
+        ${isFavTab ? `
+          <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2 mb-1">
+            <span>⭐</span>
+            <span class="font-bold">Mesele cele mai frecvente pentru ${meal} în ultimele 2 săptămâni</span>
+          </div>
+        ` : ''}
+
+        <div class="space-y-2">
+          ${visible.map(it => {
+            const isSelected = selectedMap.has(it.id);
+            const servings = servingsMap.get(it.id) || 1.0;
+
+            return `
+              <div class="p-3 rounded-2xl border transition shadow-2xs cursor-pointer flex items-center justify-between gap-3 ${
+                isSelected
+                  ? 'border-[#6D4AE8] bg-[#6D4AE8]/10 dark:bg-[#6D4AE8]/15 ring-2 ring-[#6D4AE8]/20'
+                  : 'bg-[#FAF9FD] dark:bg-white/5 border-[#E5E0F5] dark:border-white/10 hover:bg-white dark:hover:bg-white/10'
+              }" data-meal-card-id="${it.id}">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <!-- Custom Checkbox -->
+                  <input type="checkbox" data-meal-cb="${it.id}" ${isSelected ? 'checked' : ''} class="w-4.5 h-4.5 rounded-md border-slate-300 text-[#6D4AE8] focus:ring-[#6D4AE8] flex-shrink-0 cursor-pointer">
+                  
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">${it.name}</span>
+                      ${it.isFavorite ? `
+                        <span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 flex-shrink-0">
+                          ⭐ Favorit (${it.count}×)
+                        </span>
+                      ` : ''}
+                      ${it.isIngredient ? `
+                        <span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex-shrink-0">
+                          Aliment
+                        </span>
+                      ` : `
+                        <span class="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] flex-shrink-0">
+                          Rețetă
+                        </span>
+                      `}
+                    </div>
+
+                    <!-- Single line macros -->
+                    <div class="flex items-center gap-1 sm:gap-1.5 mt-1 text-[10px] sm:text-[10.5px] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden">
+                      <span class="font-black text-[#218352] dark:text-[#70D6A3]">${it.cost.toFixed(2)} lei</span>
+                      <span class="text-slate-300 dark:text-slate-600">•</span>
+                      <span class="font-bold text-slate-800 dark:text-slate-200">${Math.round(it.calories)} kcal</span>
+                      <span class="text-slate-300 dark:text-slate-600">•</span>
+                      <span class="text-[#E02868] dark:text-[#FFA4CD] font-bold">${it.protein.toFixed(1)}g P</span>
+                      <span class="text-slate-300 dark:text-slate-600">•</span>
+                      <span class="text-[#D97706] dark:text-[#FFC480] font-bold">${it.carbs.toFixed(1)}g C</span>
+                      <span class="text-slate-300 dark:text-slate-600">•</span>
+                      <span class="text-[#0284C7] dark:text-[#98DDFE] font-bold">${it.fat.toFixed(1)}g G</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Side: Servings Stepper & Quick Add Button -->
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <div class="flex items-center bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-xl p-0.5" onclick="event.stopPropagation()">
+                    <button type="button" data-meal-minus="${it.id}" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 transition">−</button>
+                    <span data-meal-servings-text="${it.id}" class="text-xs font-extrabold min-w-[2rem] text-center text-slate-800 dark:text-white">${servings}</span>
+                    <button type="button" data-meal-plus="${it.id}" class="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 transition">+</button>
+                  </div>
+
+                  <button type="button" data-meal-quick-add="${it.id}" class="p-1.5 rounded-xl text-slate-400 hover:text-[#6D4AE8] hover:bg-brand-lilac/10 transition" title="Adaugă instant">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+                  </button>
+                </div>
               </div>
-              <div class="text-right flex-shrink-0">
-                <div class="font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">${r.perServing.cost.toFixed(2)} RON</div>
-                <div class="text-[10px] text-slate-400 dark:text-white/40">per porție</div>
-              </div>
-            </div>
-          `;
-        }).join('');
-        this.bindModalRecipeSelection(day, meal);
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      bindCardEvents();
+    };
+
+    const toggleItemSelection = (id) => {
+      const allItems = [...favoritesList, ...recipesList, ...ingredientsList];
+      const target = allItems.find(x => x.id === id);
+      if (!target) return;
+
+      if (selectedMap.has(id)) {
+        selectedMap.delete(id);
+      } else {
+        const servings = servingsMap.get(id) || 1.0;
+        selectedMap.set(id, {
+          id: target.id,
+          recipeId: target.id,
+          name: target.name,
+          servings,
+          isIngredient: !!target.isIngredient
+        });
+      }
+
+      updateFooterCounter();
+      renderList();
+    };
+
+    const bindCardEvents = () => {
+      // Card click toggles selection
+      container?.querySelectorAll('[data-meal-card-id]').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('button') || e.target.closest('input[type="checkbox"]')) return;
+          const id = card.getAttribute('data-meal-card-id');
+          toggleItemSelection(id);
+        });
       });
-    }
 
-    this.bindModalRecipeSelection(day, meal);
-  }
+      // Checkbox click
+      container?.querySelectorAll('[data-meal-cb]').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const id = e.target.getAttribute('data-meal-cb');
+          toggleItemSelection(id);
+        });
+      });
 
-  bindModalRecipeSelection(day, meal) {
-    document.querySelectorAll('[data-select-recipe]').forEach(el => {
-      el.addEventListener('click', (e) => {
-        const recId = e.currentTarget.getAttribute('data-select-recipe');
-        window.store.addPlanItem(day, meal, recId, 1.0);
-        this.closeModal();
+      // Portion minus
+      container?.querySelectorAll('[data-meal-minus]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-meal-minus');
+          const cur = servingsMap.get(id) || 1.0;
+          const updated = Math.max(0.5, Math.round((cur - 0.5) * 10) / 10);
+          servingsMap.set(id, updated);
+          if (selectedMap.has(id)) {
+            selectedMap.get(id).servings = updated;
+          }
+          const textEl = container.querySelector(`[data-meal-servings-text="${id}"]`);
+          if (textEl) textEl.textContent = updated;
+        });
+      });
+
+      // Portion plus
+      container?.querySelectorAll('[data-meal-plus]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-meal-plus');
+          const cur = servingsMap.get(id) || 1.0;
+          const updated = Math.round((cur + 0.5) * 10) / 10;
+          servingsMap.set(id, updated);
+          if (selectedMap.has(id)) {
+            selectedMap.get(id).servings = updated;
+          }
+          const textEl = container.querySelector(`[data-meal-servings-text="${id}"]`);
+          if (textEl) textEl.textContent = updated;
+        });
+      });
+
+      // Quick add button: adds single item immediately
+      container?.querySelectorAll('[data-meal-quick-add]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.getAttribute('data-meal-quick-add');
+          const allItems = [...favoritesList, ...recipesList, ...ingredientsList];
+          const target = allItems.find(x => x.id === id);
+          if (!target) return;
+          const s = servingsMap.get(id) || 1.0;
+          window.store.addPlanItem(day, meal, target.id, s, !!target.isIngredient);
+          this.closeModal();
+          this.showToast(`"${target.name}" a fost adăugat la ${meal}!`, 'success');
+        });
+      });
+    };
+
+    // Filter tabs click
+    document.querySelectorAll('[data-meal-modal-tab]').forEach(tabBtn => {
+      tabBtn.addEventListener('click', (e) => {
+        const tab = e.currentTarget.getAttribute('data-meal-modal-tab');
+        currentFilterTab = tab;
+
+        document.querySelectorAll('[data-meal-modal-tab]').forEach(b => {
+          const isAct = b.getAttribute('data-meal-modal-tab') === tab;
+          b.className = `px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${
+            isAct
+              ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-xs'
+              : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-brand-lilac'
+          }`;
+        });
+
+        renderList();
       });
     });
+
+    // Search input
+    searchInput?.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderList();
+    });
+
+    // Select all visible items button
+    selectAllBtn?.addEventListener('click', () => {
+      const visible = getVisibleItems();
+      const allSelected = visible.length > 0 && visible.every(it => selectedMap.has(it.id));
+
+      visible.forEach(it => {
+        if (allSelected) {
+          selectedMap.delete(it.id);
+        } else {
+          const s = servingsMap.get(it.id) || 1.0;
+          selectedMap.set(it.id, {
+            id: it.id,
+            recipeId: it.id,
+            name: it.name,
+            servings: s,
+            isIngredient: !!it.isIngredient
+          });
+        }
+      });
+
+      updateFooterCounter();
+      renderList();
+    });
+
+    // Submit batch add
+    submitBtn?.addEventListener('click', () => {
+      if (selectedMap.size === 0) {
+        this.showToast('Bifează cel puțin un preparat sau aliment pentru a-l adăuga în plan.', 'warning');
+        return;
+      }
+
+      const itemsToAdd = Array.from(selectedMap.values());
+      window.store.addPlanItems(day, meal, itemsToAdd);
+      this.closeModal();
+      this.showToast(`Succes! S-au adăugat ${itemsToAdd.length} preparate la ${meal}.`, 'success');
+    });
+
+    // Initial render
+    renderList();
+    updateFooterCounter();
   }
 
   // --- Modal: Recipe Details & Full Spreadsheet Breakdown ---
