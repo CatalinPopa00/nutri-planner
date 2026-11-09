@@ -1,61 +1,280 @@
 // Asistent Inteligent NutriChef — Creare Rețete & Căutare Valori Online
 class NutriChefAssistant {
   constructor() {
-    this.geminiApiKey = localStorage.getItem('nutri_gemini_key') || '';
-    
-    // Romanian Supermarket Market Price & Macro Benchmark Catalog (Lidl, Kaufland, Carrefour, Mega Image)
+    this.geminiApiKey = (typeof localStorage !== 'undefined') ? (localStorage.getItem('nutri_gemini_key') || '') : '';
+
+    // Normalization helper (diacritic-insensitive, punctuation-free)
+    this.normalizeStr = function(str) {
+      if (!str) return '';
+      return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    // Romanian Supermarket Market Price & Macro Benchmark Catalog (Lidl, Kaufland, Carrefour, Mega Image, Penny)
     this.priceBenchmarks = [
       { keywords: ['piept', 'pui', 'curcan', 'file'], cat: 'Carne & Pește', avgPerKg: 30.0, defaultPackG: 650, kcal: 120, prot: 24.0, carbs: 0, fat: 2.5 },
       { keywords: ['pulp', 'ciocan'], cat: 'Carne & Pește', avgPerKg: 20.0, defaultPackG: 700, kcal: 180, prot: 19.0, carbs: 0, fat: 11.0 },
       { keywords: ['porc', 'cotlet', 'ceafa', 'muschi'], cat: 'Carne & Pește', avgPerKg: 28.0, defaultPackG: 500, kcal: 230, prot: 21.0, carbs: 0, fat: 16.0 },
-      { keywords: ['vita', 'manzat'], cat: 'Carne & Pește', avgPerKg: 55.0, defaultPackG: 500, kcal: 215, prot: 22.0, carbs: 0, fat: 14.0 },
+      { keywords: ['vita', 'manzat', 'angus'], cat: 'Carne & Pește', avgPerKg: 55.0, defaultPackG: 500, kcal: 215, prot: 22.0, carbs: 0, fat: 14.0 },
       { keywords: ['somon'], cat: 'Carne & Pește', avgPerKg: 85.0, defaultPackG: 300, kcal: 208, prot: 20.0, carbs: 0, fat: 13.0 },
       { keywords: ['ton', 'conserva'], cat: 'Carne & Pește', avgPerKg: 60.0, defaultPackG: 160, kcal: 116, prot: 26.0, carbs: 0, fat: 1.0 },
-      { keywords: ['peste', 'cod', 'pastrav', 'dorada'], cat: 'Carne & Pește', avgPerKg: 45.0, defaultPackG: 400, kcal: 110, prot: 20.0, carbs: 0, fat: 3.0 },
+      { keywords: ['peste', 'cod', 'pastrav', 'dorada', 'creveti'], cat: 'Carne & Pește', avgPerKg: 45.0, defaultPackG: 400, kcal: 110, prot: 20.0, carbs: 0, fat: 3.0 },
+      { keywords: ['sunca', 'mezel', 'salam', 'crenvursti'], cat: 'Carne & Pește', avgPerKg: 45.0, defaultPackG: 150, kcal: 160, prot: 18.0, carbs: 1.5, fat: 9.0 },
       { keywords: ['ou', 'oua'], cat: 'Ouă & Lactate', avgPerKg: 26.0, defaultPackG: 500, kcal: 145, prot: 13.0, carbs: 1.0, fat: 10.0 },
       { keywords: ['lapte'], cat: 'Ouă & Lactate', avgPerKg: 7.5, defaultPackG: 1000, kcal: 50, prot: 3.4, carbs: 4.8, fat: 1.5 },
       { keywords: ['iaurt', 'grecesc', 'skyr'], cat: 'Ouă & Lactate', avgPerKg: 18.0, defaultPackG: 400, kcal: 95, prot: 8.5, carbs: 4.0, fat: 5.0 },
       { keywords: ['branza', 'telemea', 'cottage', 'fagaras'], cat: 'Ouă & Lactate', avgPerKg: 35.0, defaultPackG: 300, kcal: 185, prot: 14.0, carbs: 2.5, fat: 13.0 },
-      { keywords: ['mozzarella', 'cascaval'], cat: 'Ouă & Lactate', avgPerKg: 45.0, defaultPackG: 250, kcal: 280, prot: 22.0, carbs: 1.5, fat: 21.0 },
+      { keywords: ['mozzarella', 'cascaval', 'parmezan'], cat: 'Ouă & Lactate', avgPerKg: 45.0, defaultPackG: 250, kcal: 280, prot: 22.0, carbs: 1.5, fat: 21.0 },
       { keywords: ['unt'], cat: 'Grăsimi & Uleiuri', avgPerKg: 50.0, defaultPackG: 200, kcal: 745, prot: 0.8, carbs: 0.7, fat: 82.0 },
       { keywords: ['smantana'], cat: 'Ouă & Lactate', avgPerKg: 22.0, defaultPackG: 300, kcal: 195, prot: 2.8, carbs: 3.5, fat: 20.0 },
       { keywords: ['orez', 'basmati', 'iasomie'], cat: 'Cereale & Paste', avgPerKg: 9.5, defaultPackG: 1000, kcal: 355, prot: 7.5, carbs: 78.0, fat: 1.0 },
-      { keywords: ['paste', 'spaghete', 'penne', 'barilla'], cat: 'Cereale & Paste', avgPerKg: 9.0, defaultPackG: 500, kcal: 350, prot: 12.5, carbs: 72.0, fat: 1.5 },
-      { keywords: ['ovaz', 'fulgi'], cat: 'Cereale & Paste', avgPerKg: 8.0, defaultPackG: 500, kcal: 375, prot: 13.5, carbs: 62.0, fat: 7.0 },
-      { keywords: ['paine', 'toast', 'lipie', 'tortilla'], cat: 'Cereale & Paste', avgPerKg: 10.0, defaultPackG: 500, kcal: 250, prot: 9.0, carbs: 48.0, fat: 2.0 },
+      { keywords: ['paste', 'spaghete', 'penne', 'barilla', 'fidea'], cat: 'Cereale & Paste', avgPerKg: 9.0, defaultPackG: 500, kcal: 350, prot: 12.5, carbs: 72.0, fat: 1.5 },
+      { keywords: ['ovaz', 'fulgi', 'muesli'], cat: 'Cereale & Paste', avgPerKg: 8.0, defaultPackG: 500, kcal: 375, prot: 13.5, carbs: 62.0, fat: 7.0 },
+      { keywords: ['paine', 'toast', 'lipie', 'tortilla', 'faina', 'malai', 'covrig', 'covrigi'], cat: 'Cereale & Paste', avgPerKg: 12.0, defaultPackG: 300, kcal: 280, prot: 9.0, carbs: 54.0, fat: 2.5 },
       { keywords: ['cartof', 'cartofi'], cat: 'Legume & Fructe', avgPerKg: 4.0, defaultPackG: 1000, kcal: 77, prot: 2.0, carbs: 17.5, fat: 0.1 },
       { keywords: ['ciuperci', 'champignon'], cat: 'Legume & Fructe', avgPerKg: 14.0, defaultPackG: 500, kcal: 22, prot: 3.1, carbs: 3.3, fat: 0.3 },
       { keywords: ['rosii', 'rosie'], cat: 'Legume & Fructe', avgPerKg: 8.5, defaultPackG: 500, kcal: 18, prot: 0.9, carbs: 3.9, fat: 0.2 },
       { keywords: ['castraveti', 'castravete'], cat: 'Legume & Fructe', avgPerKg: 7.0, defaultPackG: 500, kcal: 15, prot: 0.7, carbs: 3.6, fat: 0.1 },
       { keywords: ['ardei', 'kapia', 'gogosar'], cat: 'Legume & Fructe', avgPerKg: 12.0, defaultPackG: 500, kcal: 26, prot: 1.0, carbs: 5.3, fat: 0.2 },
       { keywords: ['ceapa', 'usturoi'], cat: 'Legume & Fructe', avgPerKg: 5.0, defaultPackG: 500, kcal: 40, prot: 1.1, carbs: 9.3, fat: 0.1 },
-      { keywords: ['spanac', 'salata', 'baby'], cat: 'Legume & Fructe', avgPerKg: 28.0, defaultPackG: 200, kcal: 23, prot: 2.9, carbs: 3.6, fat: 0.4 },
-      { keywords: ['broccoli'], cat: 'Legume & Fructe', avgPerKg: 12.0, defaultPackG: 500, kcal: 34, prot: 2.8, carbs: 6.6, fat: 0.4 },
+      { keywords: ['spanac', 'salata', 'baby', 'rucola'], cat: 'Legume & Fructe', avgPerKg: 28.0, defaultPackG: 200, kcal: 23, prot: 2.9, carbs: 3.6, fat: 0.4 },
+      { keywords: ['broccoli', 'conopida'], cat: 'Legume & Fructe', avgPerKg: 12.0, defaultPackG: 500, kcal: 34, prot: 2.8, carbs: 6.6, fat: 0.4 },
       { keywords: ['avocado'], cat: 'Legume & Fructe', avgPerKg: 25.0, defaultPackG: 200, kcal: 160, prot: 2.0, carbs: 8.5, fat: 14.7 },
       { keywords: ['banana', 'banane'], cat: 'Legume & Fructe', avgPerKg: 6.5, defaultPackG: 1000, kcal: 89, prot: 1.1, carbs: 22.8, fat: 0.3 },
-      { keywords: ['mar', 'mere'], cat: 'Legume & Fructe', avgPerKg: 5.0, defaultPackG: 1000, kcal: 52, prot: 0.3, carbs: 13.8, fat: 0.2 },
-      { keywords: ['fructe de padure', 'afine', 'capsuni'], cat: 'Legume & Fructe', avgPerKg: 35.0, defaultPackG: 300, kcal: 57, prot: 0.7, carbs: 14.5, fat: 0.3 },
-      { keywords: ['ulei de masline', 'masline'], cat: 'Grăsimi & Uleiuri', avgPerKg: 55.0, defaultPackG: 1000, kcal: 884, prot: 0, carbs: 0, fat: 100.0 },
-      { keywords: ['ulei'], cat: 'Grăsimi & Uleiuri', avgPerKg: 8.5, defaultPackG: 1000, kcal: 884, prot: 0, carbs: 0, fat: 100.0 },
-      { keywords: ['nuci', 'migdale', 'arahide', 'caju'], cat: 'Grăsimi & Uleiuri', avgPerKg: 60.0, defaultPackG: 200, kcal: 620, prot: 18.0, carbs: 16.0, fat: 55.0 },
-      { keywords: ['ciocolata'], cat: 'Dulciuri', avgPerKg: 45.0, defaultPackG: 100, kcal: 540, prot: 6.5, carbs: 54.0, fat: 33.0 },
-      { keywords: ['proteina', 'whey', 'pudra'], cat: 'Ouă & Lactate', avgPerKg: 130.0, defaultPackG: 1000, kcal: 380, prot: 75.0, carbs: 8.0, fat: 5.0 }
+      { keywords: ['mar', 'mere', 'para', 'pere'], cat: 'Legume & Fructe', avgPerKg: 5.0, defaultPackG: 1000, kcal: 52, prot: 0.3, carbs: 13.8, fat: 0.2 },
+      { keywords: ['fructe de padure', 'afine', 'capsuni', 'zmeura'], cat: 'Legume & Fructe', avgPerKg: 35.0, defaultPackG: 300, kcal: 57, prot: 0.7, carbs: 14.5, fat: 0.3 },
+      { keywords: ['ulei de masline', 'masline'], cat: 'Grăsimi & Uleiuri', avgPerKg: 55.0, defaultPackG: 1000, kcal: 824, prot: 0, carbs: 0, fat: 91.6 },
+      { keywords: ['ulei'], cat: 'Grăsimi & Uleiuri', avgPerKg: 8.5, defaultPackG: 1000, kcal: 828, prot: 0, carbs: 0, fat: 92.0 },
+      { keywords: ['nuci', 'migdale', 'arahide', 'caju', 'seminte'], cat: 'Grăsimi & Uleiuri', avgPerKg: 60.0, defaultPackG: 200, kcal: 620, prot: 18.0, carbs: 16.0, fat: 55.0 },
+      { keywords: ['kinder', 'bueno', 'nutella', 'ciocolata', 'milka', 'oreo', 'kitkat', 'snickers', 'twix', 'bounty', 'croissant', 'biscuiti', 'napolitana', 'dulciuri'], cat: 'Dulciuri', avgPerKg: 65.0, defaultPackG: 100, kcal: 520, prot: 7.0, carbs: 55.0, fat: 31.0 },
+      { keywords: ['proteina', 'whey', 'pudra', 'shake', 'barebells', 'grenade'], cat: 'Ouă & Lactate', avgPerKg: 130.0, defaultPackG: 1000, kcal: 380, prot: 75.0, carbs: 8.0, fat: 5.0 }
+    ];
+
+    // Curated Supermarket Database of 160+ Popular Romanian Supermarket Products (Lidl, Kaufland, Carrefour, Mega Image, Penny)
+    this.supermarketCatalog = [
+      // --- DULCIURI & BATOANE & GUSTĂRI ---
+      { id: 'kb_01', name: 'Kinder Bueno', brand: 'Ferrero', ean: '8000500019956', category: 'Dulciuri', packageQuantity: 43, packagePrice: 4.50, calories: 572, protein: 8.6, carbs: 52.8, fat: 37.3, fiber: 1.5, keywords: ['kinder', 'bueno', 'ciocolata', 'napolitana', 'alune'] },
+      { id: 'kb_02', name: 'Kinder Bueno White', brand: 'Ferrero', ean: '8000500129259', category: 'Dulciuri', packageQuantity: 39, packagePrice: 4.50, calories: 571, protein: 8.5, carbs: 53.6, fat: 37.1, fiber: 1.4, keywords: ['kinder', 'bueno', 'white', 'alb', 'ciocolata'] },
+      { id: 'kb_03', name: 'Kinder Country', brand: 'Ferrero', ean: '8000500008431', category: 'Dulciuri', packageQuantity: 23.5, packagePrice: 2.50, calories: 561, protein: 8.6, carbs: 54.9, fat: 33.8, fiber: 1.7, keywords: ['kinder', 'country', 'cereale', 'ciocolata'] },
+      { id: 'kb_04', name: 'Kinder Delice', brand: 'Ferrero', ean: '8000500023977', category: 'Dulciuri', packageQuantity: 39, packagePrice: 3.20, calories: 455, protein: 5.5, carbs: 51.5, fat: 25.5, fiber: 2.0, keywords: ['kinder', 'delice', 'prajitura', 'cacao'] },
+      { id: 'kb_05', name: 'Kinder Cards', brand: 'Ferrero', ean: '8000500284392', category: 'Dulciuri', packageQuantity: 128, packagePrice: 12.50, calories: 510, protein: 7.8, carbs: 58.0, fat: 27.5, fiber: 2.1, keywords: ['kinder', 'cards', 'biscuiti', 'ciocolata'] },
+      { id: 'kb_06', name: 'Kinder Maxi', brand: 'Ferrero', ean: '8000500010991', category: 'Dulciuri', packageQuantity: 21, packagePrice: 2.20, calories: 566, protein: 8.7, carbs: 53.5, fat: 35.0, fiber: 0.9, keywords: ['kinder', 'maxi', 'ciocolata', 'lapte'] },
+      { id: 'kb_07', name: 'Kinder Schoko-Bons', brand: 'Ferrero', ean: '8000500027739', category: 'Dulciuri', packageQuantity: 125, packagePrice: 13.50, calories: 576, protein: 8.3, carbs: 52.5, fat: 36.6, fiber: 1.4, keywords: ['kinder', 'schoko', 'bons', 'bomboane'] },
+      { id: 'kb_08', name: 'Kinder Ciocolată Tablete', brand: 'Ferrero', ean: '8000500003788', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.50, calories: 566, protein: 8.7, carbs: 53.5, fat: 35.0, fiber: 0.9, keywords: ['kinder', 'ciocolata', 'tableta'] },
+      { id: 'kb_09', name: 'Kinder Pingui', brand: 'Ferrero', ean: '8000500010885', category: 'Dulciuri', packageQuantity: 30, packagePrice: 2.80, calories: 450, protein: 7.0, carbs: 42.0, fat: 29.7, fiber: 1.3, keywords: ['kinder', 'pingui', 'prajitura'] },
+      { id: 'kb_10', name: 'Kinder Paradiso', brand: 'Ferrero', ean: '8000500010779', category: 'Dulciuri', packageQuantity: 29, packagePrice: 3.20, calories: 422, protein: 7.3, carbs: 51.5, fat: 27.9, fiber: 1.1, keywords: ['kinder', 'paradiso', 'lamaie'] },
+      { id: 'kb_11', name: 'Kinder Joy', brand: 'Ferrero', ean: '8000500021386', category: 'Dulciuri', packageQuantity: 20, packagePrice: 5.00, calories: 550, protein: 8.2, carbs: 56.5, fat: 32.0, fiber: 1.2, keywords: ['kinder', 'joy', 'ou'] },
+      { id: 'kb_12', name: 'Kinder Surprise Ou', brand: 'Ferrero', ean: '8000500001159', category: 'Dulciuri', packageQuantity: 20, packagePrice: 4.80, calories: 552, protein: 8.1, carbs: 52.3, fat: 34.2, fiber: 0.9, keywords: ['kinder', 'surprise', 'ou', 'ciocolata'] },
+      { id: 'kb_13', name: 'Nutella Cremă Alune cu Cacao', brand: 'Ferrero', ean: '8000500179865', category: 'Dulciuri', packageQuantity: 400, packagePrice: 18.50, calories: 539, protein: 6.3, carbs: 57.5, fat: 30.9, fiber: 3.0, keywords: ['nutella', 'crema', 'alune', 'ciocolata'] },
+      { id: 'kb_14', name: 'Raffaello Praline Cocos', brand: 'Ferrero', ean: '8000500009650', category: 'Dulciuri', packageQuantity: 150, packagePrice: 15.00, calories: 628, protein: 7.2, carbs: 38.3, fat: 48.6, fiber: 4.0, keywords: ['raffaello', 'praline', 'cocos', 'migdale'] },
+      { id: 'kb_15', name: 'Ferrero Rocher Praline', brand: 'Ferrero', ean: '8000500003290', category: 'Dulciuri', packageQuantity: 200, packagePrice: 22.00, calories: 595, protein: 8.2, carbs: 44.4, fat: 42.7, fiber: 3.5, keywords: ['ferrero', 'rocher', 'praline', 'alune'] },
+      { id: 'kb_16', name: 'Milka Ciocolată cu Lapte Alpin', brand: 'Mondelez Milka', ean: '7622210286864', category: 'Dulciuri', packageQuantity: 100, packagePrice: 5.50, calories: 530, protein: 6.3, carbs: 58.5, fat: 29.5, fiber: 1.8, keywords: ['milka', 'ciocolata', 'lapte'] },
+      { id: 'kb_17', name: 'Milka Oreo Ciocolată', brand: 'Mondelez Milka', ean: '7622210286987', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.00, calories: 555, protein: 5.4, carbs: 56.0, fat: 34.0, fiber: 1.4, keywords: ['milka', 'oreo', 'ciocolata'] },
+      { id: 'kb_18', name: 'Milka Noisette Cremă Alune', brand: 'Mondelez Milka', ean: '7622210287113', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.00, calories: 545, protein: 7.4, carbs: 54.0, fat: 32.5, fiber: 2.5, keywords: ['milka', 'noisette', 'alune'] },
+      { id: 'kb_19', name: 'Milka Alune de Pădure Întregi', brand: 'Mondelez Milka', ean: '7622210287229', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.20, calories: 555, protein: 8.1, carbs: 50.0, fat: 35.5, fiber: 3.2, keywords: ['milka', 'alune', 'ciocolata'] },
+      { id: 'kb_20', name: 'Oreo Biscuiți Sandwich Original', brand: 'Mondelez Oreo', ean: '7622300315894', category: 'Dulciuri', packageQuantity: 154, packagePrice: 6.50, calories: 474, protein: 5.2, carbs: 68.0, fat: 20.0, fiber: 2.7, keywords: ['oreo', 'biscuiti', 'vanilie', 'cacao'] },
+      { id: 'kb_21', name: 'KitKat 4 Finger Vafe Ciocolată', brand: 'Nestle KitKat', ean: '3800020412354', category: 'Dulciuri', packageQuantity: 41.5, packagePrice: 3.50, calories: 518, protein: 6.9, carbs: 64.5, fat: 26.0, fiber: 2.2, keywords: ['kitkat', 'napolitana', 'ciocolata'] },
+      { id: 'kb_22', name: 'KitKat Chunky Ciocolată Lapte', brand: 'Nestle KitKat', ean: '3800020412460', category: 'Dulciuri', packageQuantity: 40, packagePrice: 3.50, calories: 523, protein: 6.1, carbs: 62.0, fat: 27.5, fiber: 2.0, keywords: ['kitkat', 'chunky'] },
+      { id: 'kb_23', name: 'Snickers Baton Ciocolată & Caramel', brand: 'Mars Snickers', ean: '5000159461122', category: 'Dulciuri', packageQuantity: 50, packagePrice: 3.50, calories: 488, protein: 8.6, carbs: 60.5, fat: 23.0, fiber: 2.3, keywords: ['snickers', 'baton', 'arahide', 'caramel'] },
+      { id: 'kb_24', name: 'Twix Batoane Biscuiți cu Caramel', brand: 'Mars Twix', ean: '5000159459228', category: 'Dulciuri', packageQuantity: 50, packagePrice: 3.50, calories: 495, protein: 4.4, carbs: 64.8, fat: 24.0, fiber: 1.6, keywords: ['twix', 'biscuiti', 'caramel', 'baton'] },
+      { id: 'kb_25', name: 'Bounty Baton Nucă de Cocos', brand: 'Mars Bounty', ean: '5000159459334', category: 'Dulciuri', packageQuantity: 57, packagePrice: 3.50, calories: 487, protein: 3.7, carbs: 58.9, fat: 26.0, fiber: 3.9, keywords: ['bounty', 'cocos', 'ciocolata'] },
+      { id: 'kb_26', name: 'Mars Baton Ciocolată & Caramel', brand: 'Mars', ean: '5000159459112', category: 'Dulciuri', packageQuantity: 51, packagePrice: 3.50, calories: 448, protein: 4.0, carbs: 70.0, fat: 16.7, fiber: 1.1, keywords: ['mars', 'baton', 'caramel'] },
+      { id: 'kb_27', name: 'Lion Baton Caramel & Cereale', brand: 'Nestle Lion', ean: '7613035252873', category: 'Dulciuri', packageQuantity: 42, packagePrice: 3.00, calories: 485, protein: 5.2, carbs: 65.1, fat: 22.3, fiber: 1.8, keywords: ['lion', 'baton', 'cereale', 'caramel'] },
+      { id: 'kb_28', name: '7Days Croissant cu Cremă Cacao', brand: 'Chipita 7Days', ean: '5201360523014', category: 'Dulciuri', packageQuantity: 60, packagePrice: 3.50, calories: 456, protein: 7.0, carbs: 44.0, fat: 28.0, fiber: 2.0, keywords: ['7days', 'croissant', 'cacao', 'corn'] },
+      { id: 'kb_29', name: 'Belvita Start Biscuiți Cereale & Lapte', brand: 'Mondelez Belvita', ean: '7622210212009', category: 'Dulciuri', packageQuantity: 300, packagePrice: 10.50, calories: 450, protein: 7.8, carbs: 68.0, fat: 15.0, fiber: 4.3, keywords: ['belvita', 'biscuiti', 'cereale', 'start'] },
+      { id: 'kb_30', name: 'Biscuiți Digestive Gullon', brand: 'Gullon', ean: '8410376008655', category: 'Dulciuri', packageQuantity: 400, packagePrice: 7.50, calories: 477, protein: 6.8, carbs: 65.0, fat: 21.0, fiber: 4.5, keywords: ['digestive', 'gullon', 'biscuiti'] },
+      { id: 'kb_31', name: 'Biscuiți Petit Beurre RoStar', brand: 'RoStar', ean: '5941198000014', category: 'Dulciuri', packageQuantity: 300, packagePrice: 5.50, calories: 435, protein: 7.5, carbs: 73.0, fat: 12.0, fiber: 2.5, keywords: ['petit', 'beurre', 'rostar', 'biscuiti'] },
+      { id: 'kb_32', name: 'Eugenia Dobrogea Original Cacao', brand: 'Dobrogea', ean: '5941014000105', category: 'Dulciuri', packageQuantity: 36, packagePrice: 1.50, calories: 470, protein: 6.5, carbs: 68.0, fat: 19.0, fiber: 2.4, keywords: ['eugenia', 'dobrogea', 'biscuiti', 'cacao'] },
+      { id: 'kb_33', name: 'M&M\'s Arahide Bomboane', brand: 'Mars M&M', ean: '5000159461153', category: 'Dulciuri', packageQuantity: 90, packagePrice: 6.50, calories: 516, protein: 9.4, carbs: 59.0, fat: 26.0, fiber: 3.1, keywords: ['m&m', 'mms', 'arahide', 'bomboane'] },
+      { id: 'kb_34', name: 'Ciocolată Heidi Dark Extreme 85%', brand: 'Heidi', ean: '5941262002012', category: 'Dulciuri', packageQuantity: 80, packagePrice: 9.50, calories: 620, protein: 8.5, carbs: 19.0, fat: 55.0, fiber: 11.0, keywords: ['heidi', 'ciocolata', 'neagra', 'dark', '85%'] },
+      { id: 'kb_35', name: 'Ciocolată Lindt Excellence 70%', brand: 'Lindt', ean: '3046920028005', category: 'Dulciuri', packageQuantity: 100, packagePrice: 14.50, calories: 566, protein: 9.5, carbs: 34.0, fat: 41.0, fiber: 9.0, keywords: ['lindt', 'ciocolata', 'neagra', '70%'] },
+      { id: 'kb_36', name: 'Baton Proteic Barebells Caramel Cashew', brand: 'Barebells', ean: '7340001800003', category: 'Dulciuri', packageQuantity: 55, packagePrice: 12.50, calories: 362, protein: 36.0, carbs: 27.0, fat: 15.0, fiber: 8.0, keywords: ['barebells', 'baton', 'proteic', 'caramel', 'protein'] },
+      { id: 'kb_37', name: 'Baton Proteic Barebells Cookies & Cream', brand: 'Barebells', ean: '7340001800010', category: 'Dulciuri', packageQuantity: 55, packagePrice: 12.50, calories: 362, protein: 36.0, carbs: 27.0, fat: 15.0, fiber: 7.5, keywords: ['barebells', 'baton', 'proteic', 'cookies'] },
+      { id: 'kb_38', name: 'Baton Proteic Grenade Carb Killa Oreo', brand: 'Grenade', ean: '5060221074452', category: 'Dulciuri', packageQuantity: 60, packagePrice: 13.50, calories: 388, protein: 35.0, carbs: 33.0, fat: 17.0, fiber: 3.5, keywords: ['grenade', 'carb', 'killa', 'oreo', 'protein'] },
+      { id: 'kb_39', name: 'Pufuleți Gusto cu Sare', brand: 'Gusto Phoenix', ean: '5941212000013', category: 'Dulciuri', packageQuantity: 85, packagePrice: 2.50, calories: 435, protein: 7.5, carbs: 75.0, fat: 12.0, fiber: 3.0, keywords: ['pufuleti', 'gusto', 'malai'] },
+      { id: 'kb_40', name: 'Chipsuri Lay\'s Clasic cu Sare', brand: 'Lay\'s', ean: '5941014002017', category: 'Dulciuri', packageQuantity: 140, packagePrice: 7.50, calories: 539, protein: 6.5, carbs: 53.0, fat: 33.0, fiber: 4.4, keywords: ['chipsuri', 'lays', 'cartofi', 'sare'] },
+
+      // --- OUĂ & LACTATE ---
+      { id: 'lac_01', name: 'Iaurt Grecesc Olympus 10%', brand: 'Olympus', ean: '5201101004123', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 8.50, calories: 126, protein: 7.0, carbs: 3.8, fat: 10.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'olympus', '10%'] },
+      { id: 'lac_02', name: 'Iaurt Grecesc Olympus 2%', brand: 'Olympus', ean: '5201101004130', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 8.20, calories: 68, protein: 9.0, carbs: 3.8, fat: 2.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'olympus', '2%'] },
+      { id: 'lac_03', name: 'Iaurt Grecesc Olympus 0%', brand: 'Olympus', ean: '5201101004147', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 8.00, calories: 53, protein: 10.0, carbs: 3.5, fat: 0.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'olympus', '0%'] },
+      { id: 'lac_04', name: 'Iaurt Grecesc Pilos 10% (Lidl)', brand: 'Pilos / Lidl', ean: '20104111', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 6.50, calories: 125, protein: 6.5, carbs: 4.0, fat: 10.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'pilos', 'lidl', '10%'] },
+      { id: 'lac_05', name: 'Pilos Skyr Natur Islandez (Lidl)', brand: 'Pilos / Lidl', ean: '20108822', category: 'Ouă & Lactate', packageQuantity: 350, packagePrice: 6.00, calories: 63, protein: 11.0, carbs: 4.0, fat: 0.2, fiber: 0, keywords: ['skyr', 'pilos', 'lidl', 'islandez', 'iaurt'] },
+      { id: 'lac_06', name: 'Skyr Islandez Milbona Natur (Lidl)', brand: 'Milbona / Lidl', ean: '20205511', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 8.50, calories: 65, protein: 11.5, carbs: 4.0, fat: 0.2, fiber: 0, keywords: ['skyr', 'milbona', 'lidl', 'iaurt'] },
+      { id: 'lac_07', name: 'Iaurt Zuzu Max 10%', brand: 'Zuzu Albalact', ean: '5941112004221', category: 'Ouă & Lactate', packageQuantity: 330, packagePrice: 6.80, calories: 120, protein: 3.5, carbs: 4.2, fat: 10.0, fiber: 0, keywords: ['iaurt', 'zuzu', 'max', 'cremos'] },
+      { id: 'lac_08', name: 'Iaurt Danone Natural 3.5%', brand: 'Danone', ean: '5941012001112', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 5.20, calories: 61, protein: 3.3, carbs: 4.1, fat: 3.5, fiber: 0, keywords: ['iaurt', 'danone', 'natural'] },
+      { id: 'lac_09', name: 'Activia Natur Iaurt Bifidus', brand: 'Danone Activia', ean: '5941012003338', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 9.50, calories: 66, protein: 3.9, carbs: 4.4, fat: 3.5, fiber: 0, keywords: ['activia', 'iaurt', 'danone', 'bifidus'] },
+      { id: 'lac_10', name: 'Kefir Covalact de Țară 3.3%', brand: 'Covalact', ean: '5941178000452', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 6.20, calories: 58, protein: 3.2, carbs: 4.1, fat: 3.3, fiber: 0, keywords: ['kefir', 'covalact', 'tara', 'lapte'] },
+      { id: 'lac_11', name: 'Sana Covalact de Țară 3.6%', brand: 'Covalact', ean: '5941178000469', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 6.20, calories: 60, protein: 3.2, carbs: 4.0, fat: 3.6, fiber: 0, keywords: ['sana', 'covalact', 'lapte'] },
+      { id: 'lac_12', name: 'Lapte Zuzu 1.5% UHT', brand: 'Zuzu Albalact', ean: '5941112001015', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 7.50, calories: 44, protein: 3.2, carbs: 4.5, fat: 1.5, fiber: 0, keywords: ['lapte', 'zuzu', '1.5'] },
+      { id: 'lac_13', name: 'Lapte Zuzu 3.5% UHT', brand: 'Zuzu Albalact', ean: '5941112001022', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 8.50, calories: 62, protein: 3.2, carbs: 4.5, fat: 3.5, fiber: 0, keywords: ['lapte', 'zuzu', '3.5'] },
+      { id: 'lac_14', name: 'Lapte Olympus Proteic 20g Protein', brand: 'Olympus', ean: '5201101007780', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 7.50, calories: 56, protein: 6.7, carbs: 4.8, fat: 1.1, fiber: 0, keywords: ['lapte', 'proteic', 'olympus', 'protein'] },
+      { id: 'lac_15', name: 'Lapte de Migdale Alpro Fără Zahăr', brand: 'Alpro', ean: '5411188110835', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 13.50, calories: 13, protein: 0.4, carbs: 0.0, fat: 1.1, fiber: 0.4, keywords: ['lapte', 'migdale', 'alpro', 'vegan'] },
+      { id: 'lac_16', name: 'Lapte de Ovăz Oatly Barista Edition', brand: 'Oatly', ean: '7394376616037', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 14.50, calories: 59, protein: 1.0, carbs: 6.6, fat: 3.0, fiber: 0.8, keywords: ['lapte', 'ovaz', 'oatly', 'barista'] },
+      { id: 'lac_17', name: 'Budincă Proteică Ehrmann Ciocolată 20g', brand: 'Ehrmann', ean: '4002930026607', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 7.50, calories: 76, protein: 10.0, carbs: 5.5, fat: 1.5, fiber: 0, keywords: ['budinca', 'proteica', 'ehrmann', 'ciocolata'] },
+      { id: 'lac_18', name: 'Budincă Proteică Milbona 20g (Lidl)', brand: 'Milbona / Lidl', ean: '20194422', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 5.50, calories: 78, protein: 10.0, carbs: 6.0, fat: 1.5, fiber: 0, keywords: ['budinca', 'proteica', 'milbona', 'lidl'] },
+      { id: 'lac_19', name: 'Băutură Proteică Ehrmann Ciocolată 330ml', brand: 'Ehrmann', ean: '4002930026713', category: 'Ouă & Lactate', packageQuantity: 330, packagePrice: 9.90, calories: 60, protein: 6.1, carbs: 5.0, fat: 1.5, fiber: 0, keywords: ['bautura', 'proteica', 'ehrmann', 'shake'] },
+      { id: 'lac_20', name: 'Brânză Făgăraș Covalact de Țară', brand: 'Covalact', ean: '5941178000100', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 5.80, calories: 100, protein: 13.0, carbs: 2.5, fat: 4.5, fiber: 0, keywords: ['fagaras', 'branza', 'covalact'] },
+      { id: 'lac_21', name: 'Cottage Cheese Olympus 4%', brand: 'Olympus', ean: '5201101002235', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 5.50, calories: 90, protein: 12.5, carbs: 2.0, fat: 4.0, fiber: 0, keywords: ['cottage', 'cheese', 'olympus', 'perle'] },
+      { id: 'lac_22', name: 'Brânză Proaspătă Vaci Pilos 0.2% (Lidl)', brand: 'Pilos / Lidl', ean: '20103322', category: 'Ouă & Lactate', packageQuantity: 250, packagePrice: 5.20, calories: 68, protein: 12.0, carbs: 4.0, fat: 0.2, fiber: 0, keywords: ['branza', 'vaci', 'slaba', 'pilos', 'lidl'] },
+      { id: 'lac_23', name: 'Brânză Slabă de Vaci Covalact 0.5%', brand: 'Covalact', ean: '5941178000124', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 5.50, calories: 72, protein: 13.5, carbs: 3.5, fat: 0.5, fiber: 0, keywords: ['branza', 'vaci', 'covalact', 'slaba'] },
+      { id: 'lac_24', name: 'Telemea de Vaci Hochland', brand: 'Hochland', ean: '5941108000331', category: 'Ouă & Lactate', packageQuantity: 350, packagePrice: 15.50, calories: 260, protein: 16.0, carbs: 1.0, fat: 21.0, fiber: 0, keywords: ['telemea', 'vaci', 'hochland', 'branza'] },
+      { id: 'lac_25', name: 'Telemea de Oaie și Capră Olympus', brand: 'Olympus', ean: '5201101003447', category: 'Ouă & Lactate', packageQuantity: 350, packagePrice: 19.50, calories: 280, protein: 17.0, carbs: 0.8, fat: 23.5, fiber: 0, keywords: ['telemea', 'oaie', 'capra', 'olympus'] },
+      { id: 'lac_26', name: 'Cașcaval Rucăr Delaco', brand: 'Delaco', ean: '5941233000214', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 18.00, calories: 320, protein: 24.0, carbs: 0.5, fat: 25.0, fiber: 0, keywords: ['cascaval', 'rucar', 'delaco'] },
+      { id: 'lac_27', name: 'Cașcaval Feliat Hochland Clasic', brand: 'Hochland', ean: '5941108000447', category: 'Ouă & Lactate', packageQuantity: 150, packagePrice: 8.50, calories: 325, protein: 24.5, carbs: 0.5, fat: 25.5, fiber: 0, keywords: ['cascaval', 'feliat', 'hochland'] },
+      { id: 'lac_28', name: 'Mozzarella Fresca Galbani', brand: 'Galbani', ean: '8000430000008', category: 'Ouă & Lactate', packageQuantity: 125, packagePrice: 6.50, calories: 238, protein: 17.0, carbs: 1.0, fat: 18.5, fiber: 0, keywords: ['mozzarella', 'fresca', 'galbani'] },
+      { id: 'lac_29', name: 'Mozzarella Rasă Milbona (Lidl)', brand: 'Milbona / Lidl', ean: '20152233', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 9.00, calories: 305, protein: 25.0, carbs: 2.0, fat: 22.0, fiber: 0, keywords: ['mozzarella', 'rasa', 'milbona', 'lidl', 'pizza'] },
+      { id: 'lac_30', name: 'Brânză Halloumi Olympus', brand: 'Olympus', ean: '5201101005526', category: 'Ouă & Lactate', packageQuantity: 225, packagePrice: 16.50, calories: 322, protein: 21.0, carbs: 2.0, fat: 25.5, fiber: 0, keywords: ['halloumi', 'olympus', 'gratar'] },
+      { id: 'lac_31', name: 'Parmezan Parmigiano Reggiano DOP Zanetti', brand: 'Zanetti', ean: '8001035112001', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 21.00, calories: 392, protein: 33.0, carbs: 0.0, fat: 28.5, fiber: 0, keywords: ['parmezan', 'parmigiano', 'reggiano'] },
+      { id: 'lac_32', name: 'Grana Padano DOP Lovilio (Lidl)', brand: 'Lovilio / Lidl', ean: '20163344', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 16.50, calories: 384, protein: 33.0, carbs: 0.0, fat: 28.0, fiber: 0, keywords: ['grana', 'padano', 'lovilio', 'lidl'] },
+      { id: 'lac_33', name: 'Smântână Covalact 20%', brand: 'Covalact', ean: '5941178000308', category: 'Ouă & Lactate', packageQuantity: 375, packagePrice: 8.20, calories: 204, protein: 2.8, carbs: 3.2, fat: 20.0, fiber: 0, keywords: ['smantana', 'covalact', '20%'] },
+      { id: 'lac_34', name: 'Smântână Gospodar Pilos 12% (Lidl)', brand: 'Pilos / Lidl', ean: '20121100', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 5.20, calories: 131, protein: 3.1, carbs: 3.9, fat: 12.0, fiber: 0, keywords: ['smantana', 'pilos', 'lidl', '12%'] },
+      { id: 'lac_35', name: 'Ouă M/L Toneli Bune (10 buc)', brand: 'Toneli', ean: '5941458000102', category: 'Ouă & Lactate', packageQuantity: 550, packagePrice: 13.50, calories: 143, protein: 12.6, carbs: 0.8, fat: 9.9, fiber: 0, keywords: ['oua', 'ou', 'toneli', 'gaini'] },
+
+      // --- CARNE, PASĂRE, MEZELURI & PEȘTE ---
+      { id: 'crn_01', name: 'Piept de Pui Dezosat Fragedo', brand: 'Transavia Fragedo', ean: '5941421000104', category: 'Carne & Pește', packageQuantity: 650, packagePrice: 22.50, calories: 115, protein: 23.5, carbs: 0.0, fat: 2.0, fiber: 0, keywords: ['piept', 'pui', 'fragedo', 'transavia', 'file'] },
+      { id: 'crn_02', name: 'Piept de Pui File CocoRico', brand: 'CocoRico', ean: '5941885000114', category: 'Carne & Pește', packageQuantity: 700, packagePrice: 24.00, calories: 114, protein: 23.8, carbs: 0.0, fat: 1.8, fiber: 0, keywords: ['piept', 'pui', 'cocorico', 'file'] },
+      { id: 'crn_03', name: 'Mușchiuleț din Piept de Pui Fragedo', brand: 'Transavia Fragedo', ean: '5941421000210', category: 'Carne & Pește', packageQuantity: 500, packagePrice: 18.50, calories: 110, protein: 24.0, carbs: 0.0, fat: 1.5, fiber: 0, keywords: ['muschiulet', 'piept', 'pui', 'fragedo'] },
+      { id: 'crn_04', name: 'Pulpe de Pui Dezosate Fără Piele Fragedo', brand: 'Transavia Fragedo', ean: '5941421000319', category: 'Carne & Pește', packageQuantity: 650, packagePrice: 17.50, calories: 155, protein: 20.0, carbs: 0.0, fat: 8.5, fiber: 0, keywords: ['pulpe', 'pui', 'dezosate', 'fragedo'] },
+      { id: 'crn_05', name: 'Ciocănele de Pui CocoRico', brand: 'CocoRico', ean: '5941885000220', category: 'Carne & Pește', packageQuantity: 700, packagePrice: 14.50, calories: 172, protein: 18.5, carbs: 0.0, fat: 11.0, fiber: 0, keywords: ['ciocanele', 'pulpe', 'pui', 'cocorico'] },
+      { id: 'crn_06', name: 'Piept de Curcan File Peneș Curcanul', brand: 'Peneș Curcanul', ean: '5941279000109', category: 'Carne & Pește', packageQuantity: 500, packagePrice: 24.50, calories: 108, protein: 24.5, carbs: 0.0, fat: 1.0, fiber: 0, keywords: ['curcan', 'piept', 'penes', 'file'] },
+      { id: 'crn_07', name: 'Carne Tocată de Pui CocoRico', brand: 'CocoRico', ean: '5941885000336', category: 'Carne & Pește', packageQuantity: 500, packagePrice: 13.50, calories: 145, protein: 19.5, carbs: 0.0, fat: 7.5, fiber: 0, keywords: ['carne', 'tocata', 'pui', 'cocorico'] },
+      { id: 'crn_08', name: 'Carne Tocată Amestec Vită-Porc', brand: 'Carmangerie Supermarket RO', ean: '20231199', category: 'Carne & Pește', packageQuantity: 500, packagePrice: 14.00, calories: 240, protein: 18.0, carbs: 0.0, fat: 19.0, fiber: 0, keywords: ['carne', 'tocata', 'vita', 'porc', 'amestec'] },
+      { id: 'crn_09', name: 'Mușchiuleț de Porc Proaspăt', brand: 'Periș / Comtim', ean: '5941334000118', category: 'Carne & Pește', packageQuantity: 500, packagePrice: 18.50, calories: 143, protein: 22.0, carbs: 0.0, fat: 5.5, fiber: 0, keywords: ['muschiulet', 'porc', 'peris'] },
+      { id: 'crn_10', name: 'Cotlet de Porc Fără Os', brand: 'Periș', ean: '5941334000224', category: 'Carne & Pește', packageQuantity: 650, packagePrice: 19.00, calories: 180, protein: 21.5, carbs: 0.0, fat: 10.5, fiber: 0, keywords: ['cotlet', 'porc', 'peris'] },
+      { id: 'crn_11', name: 'Ceafă de Porc Fără Os', brand: 'Periș', ean: '5941334000330', category: 'Carne & Pește', packageQuantity: 650, packagePrice: 21.00, calories: 250, protein: 18.5, carbs: 0.0, fat: 19.5, fiber: 0, keywords: ['ceafa', 'porc', 'peris'] },
+      { id: 'crn_12', name: 'Pulpă de Mânzat Vită', brand: 'Carmangerie Supermarket RO', ean: '20232288', category: 'Carne & Pește', packageQuantity: 500, packagePrice: 28.00, calories: 195, protein: 22.5, carbs: 0.0, fat: 11.5, fiber: 0, keywords: ['vita', 'manzat', 'pulpa'] },
+      { id: 'crn_13', name: 'Antricot de Vită Black Angus', brand: 'Karpaten Meat', ean: '5941999000101', category: 'Carne & Pește', packageQuantity: 300, packagePrice: 35.00, calories: 245, protein: 21.0, carbs: 0.0, fat: 17.5, fiber: 0, keywords: ['antricot', 'vita', 'steak', 'angus'] },
+      { id: 'crn_14', name: 'File de Somon Proaspăt cu Piele', brand: 'Pescărie Supermarket RO', ean: '20241155', category: 'Carne & Pește', packageQuantity: 300, packagePrice: 26.00, calories: 208, protein: 20.0, carbs: 0.0, fat: 13.5, fiber: 0, keywords: ['somon', 'file', 'peste', 'proaspat'] },
+      { id: 'crn_15', name: 'Somon Afumat Feliat Nautica (Lidl)', brand: 'Nautica / Lidl', ean: '20185522', category: 'Carne & Pește', packageQuantity: 100, packagePrice: 12.50, calories: 185, protein: 21.0, carbs: 0.5, fat: 11.0, fiber: 0, keywords: ['somon', 'afumat', 'nautica', 'lidl'] },
+      { id: 'crn_16', name: 'Ton Bucăți în Suc Propriu Rio Mare', brand: 'Rio Mare', ean: '8004030041019', category: 'Carne & Pește', packageQuantity: 160, packagePrice: 14.50, calories: 101, protein: 24.0, carbs: 0.0, fat: 0.5, fiber: 0, keywords: ['ton', 'rio', 'mare', 'conserva'] },
+      { id: 'crn_17', name: 'Ton Bucăți în Ulei de Măsline Rio Mare', brand: 'Rio Mare', ean: '8004030041026', category: 'Carne & Pește', packageQuantity: 160, packagePrice: 16.50, calories: 190, protein: 21.0, carbs: 0.0, fat: 12.0, fiber: 0, keywords: ['ton', 'rio', 'mare', 'ulei', 'masline'] },
+      { id: 'crn_18', name: 'Ton Bucăți Nixe în Suc Propriu (Lidl)', brand: 'Nixe / Lidl', ean: '20173344', category: 'Carne & Pește', packageQuantity: 185, packagePrice: 7.50, calories: 105, protein: 23.5, carbs: 0.0, fat: 1.0, fiber: 0, keywords: ['ton', 'nixe', 'lidl', 'conserva'] },
+      { id: 'crn_19', name: 'Păstrăv Proaspăt Evoscerat', brand: 'Pescărie Supermarket RO', ean: '20242277', category: 'Carne & Pește', packageQuantity: 400, packagePrice: 15.50, calories: 140, protein: 20.5, carbs: 0.0, fat: 6.0, fiber: 0, keywords: ['pastrav', 'peste', 'proaspat'] },
+      { id: 'crn_20', name: 'Doradă Proaspătă Evoscerată', brand: 'Pescărie Supermarket RO', ean: '20243388', category: 'Carne & Pește', packageQuantity: 400, packagePrice: 18.50, calories: 115, protein: 19.5, carbs: 0.0, fat: 3.5, fiber: 0, keywords: ['dorada', 'peste', 'proaspat'] },
+      { id: 'crn_21', name: 'Creveți Decorticați Fierți Congelați', brand: 'Ocean Fish', ean: '5941655000109', category: 'Carne & Pește', packageQuantity: 300, packagePrice: 24.00, calories: 85, protein: 18.0, carbs: 0.8, fat: 1.0, fiber: 0, keywords: ['creveti', 'fructe', 'mare'] },
+      { id: 'crn_22', name: 'Șuncă de Praga CrisTim', brand: 'CrisTim', ean: '5941199000103', category: 'Carne & Pește', packageQuantity: 150, packagePrice: 7.50, calories: 110, protein: 17.0, carbs: 1.5, fat: 4.0, fiber: 0, keywords: ['sunca', 'praga', 'cristim', 'mezeluri'] },
+      { id: 'crn_23', name: 'Șuncă din Piept de Curcan Meda', brand: 'Meda', ean: '5941288000206', category: 'Carne & Pește', packageQuantity: 150, packagePrice: 8.50, calories: 95, protein: 19.0, carbs: 1.0, fat: 1.5, fiber: 0, keywords: ['sunca', 'curcan', 'meda', 'slaba'] },
+      { id: 'crn_24', name: 'Mușchi File Feliat Matache Măcelaru\'', brand: 'Caroli Matache', ean: '5941122000311', category: 'Carne & Pește', packageQuantity: 120, packagePrice: 8.00, calories: 115, protein: 20.0, carbs: 1.0, fat: 3.5, fiber: 0, keywords: ['muschi', 'file', 'matache', 'caroli'] },
+      { id: 'crn_25', name: 'Salam Săsesc CrisTim', brand: 'CrisTim', ean: '5941199000226', category: 'Carne & Pește', packageQuantity: 350, packagePrice: 15.00, calories: 245, protein: 16.0, carbs: 2.0, fat: 20.0, fiber: 0, keywords: ['salam', 'sasesc', 'cristim'] },
+      { id: 'crn_26', name: 'Salam de Sibiu Agricola', brand: 'Agricola', ean: '5941019000117', category: 'Carne & Pește', packageQuantity: 300, packagePrice: 24.00, calories: 440, protein: 25.0, carbs: 1.0, fat: 38.0, fiber: 0, keywords: ['salam', 'sibiu', 'agricola'] },
+
+      // --- CEREALE, PASTE & PANIFICAȚIE ---
+      { id: 'cer_01', name: 'Paste Barilla Spaghetti n.5', brand: 'Barilla', ean: '8076800195057', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 6.50, calories: 359, protein: 12.5, carbs: 71.2, fat: 2.0, fiber: 3.0, keywords: ['paste', 'barilla', 'spaghetti', 'spaghete'] },
+      { id: 'cer_02', name: 'Paste Barilla Penne Rigate', brand: 'Barilla', ean: '8076809513722', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 6.50, calories: 359, protein: 12.5, carbs: 71.2, fat: 2.0, fiber: 3.0, keywords: ['paste', 'barilla', 'penne'] },
+      { id: 'cer_03', name: 'Paste Barilla Fusilli', brand: 'Barilla', ean: '8076809513753', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 6.50, calories: 359, protein: 12.5, carbs: 71.2, fat: 2.0, fiber: 3.0, keywords: ['paste', 'barilla', 'fusilli'] },
+      { id: 'cer_04', name: 'Paste Barilla Integrale Penne', brand: 'Barilla', ean: '8076809545440', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 7.80, calories: 347, protein: 13.0, carbs: 64.0, fat: 2.5, fiber: 6.5, keywords: ['paste', 'barilla', 'integrale', 'penne'] },
+      { id: 'cer_05', name: 'Paste Combino Penne Rigate (Lidl)', brand: 'Combino / Lidl', ean: '20112233', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 3.80, calories: 355, protein: 12.0, carbs: 72.0, fat: 1.5, fiber: 2.8, keywords: ['paste', 'combino', 'lidl', 'penne'] },
+      { id: 'cer_06', name: 'Orez Basmati Scotti', brand: 'Riso Scotti', ean: '8001860195509', category: 'Cereale & Paste', packageQuantity: 1000, packagePrice: 13.50, calories: 350, protein: 8.5, carbs: 77.0, fat: 0.8, fiber: 1.2, keywords: ['orez', 'basmati', 'scotti'] },
+      { id: 'cer_07', name: 'Orez Bob Rotund Deroni', brand: 'Deroni', ean: '5941215000108', category: 'Cereale & Paste', packageQuantity: 1000, packagePrice: 9.50, calories: 348, protein: 7.0, carbs: 78.5, fat: 0.6, fiber: 1.0, keywords: ['orez', 'deroni', 'rotund'] },
+      { id: 'cer_08', name: 'Orez Iasomie Scotti', brand: 'Riso Scotti', ean: '8001860195608', category: 'Cereale & Paste', packageQuantity: 1000, packagePrice: 12.50, calories: 352, protein: 7.5, carbs: 78.0, fat: 0.7, fiber: 1.1, keywords: ['orez', 'iasomie', 'scotti'] },
+      { id: 'cer_09', name: 'Fulgi de Ovăz Fin SanoVita', brand: 'SanoVita', ean: '5941458000225', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 5.50, calories: 375, protein: 13.5, carbs: 62.0, fat: 7.0, fiber: 10.0, keywords: ['ovaz', 'fulgi', 'sanovita', 'fin'] },
+      { id: 'cer_10', name: 'Fulgi de Ovăz Fine Crownfield (Lidl)', brand: 'Crownfield / Lidl', ean: '20134455', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 3.60, calories: 372, protein: 13.5, carbs: 58.7, fat: 7.0, fiber: 10.0, keywords: ['ovaz', 'fulgi', 'crownfield', 'lidl'] },
+      { id: 'cer_11', name: 'Cereale Nestle Fitness Clasic', brand: 'Nestle Fitness', ean: '7613035251111', category: 'Cereale & Paste', packageQuantity: 375, packagePrice: 13.50, calories: 368, protein: 8.8, carbs: 74.0, fat: 2.0, fiber: 7.8, keywords: ['cereale', 'fitness', 'nestle'] },
+      { id: 'cer_12', name: 'Pâine Toast Titan Integrală', brand: 'GoodMills Titan', ean: '5941198000557', category: 'Cereale & Paste', packageQuantity: 600, packagePrice: 6.50, calories: 235, protein: 9.5, carbs: 42.0, fat: 2.2, fiber: 6.0, keywords: ['paine', 'toast', 'titan', 'integrala'] },
+      { id: 'cer_13', name: 'Pâine Toast Alb Vel Pitar', brand: 'Vel Pitar', ean: '5941123000109', category: 'Cereale & Paste', packageQuantity: 600, packagePrice: 5.80, calories: 255, protein: 8.5, carbs: 49.0, fat: 1.8, fiber: 2.5, keywords: ['paine', 'toast', 'vel', 'pitar', 'alba'] },
+      { id: 'cer_14', name: 'Lipii Libaneze Pita Mare', brand: 'Pita Rom', ean: '5941999000224', category: 'Cereale & Paste', packageQuantity: 300, packagePrice: 4.50, calories: 260, protein: 9.0, carbs: 52.0, fat: 1.5, fiber: 2.8, keywords: ['lipie', 'lipii', 'libaneze', 'pita', 'shaorma'] },
+      { id: 'cer_15', name: 'Tortilla Wraps Poco Loco', brand: 'Poco Loco', ean: '5412514931015', category: 'Cereale & Paste', packageQuantity: 370, packagePrice: 8.00, calories: 305, protein: 8.0, carbs: 53.0, fat: 6.5, fiber: 3.0, keywords: ['tortilla', 'wraps', 'poco', 'loco'] },
+      { id: 'cer_16', name: 'Quinoa Albă SanoVita', brand: 'SanoVita', ean: '5941458000331', category: 'Cereale & Paste', packageQuantity: 300, packagePrice: 11.50, calories: 368, protein: 14.1, carbs: 57.0, fat: 6.0, fiber: 7.0, keywords: ['quinoa', 'sanovita'] },
+      { id: 'cer_17', name: 'Couscous Băneasa', brand: 'Băneasa', ean: '5941198000663', category: 'Cereale & Paste', packageQuantity: 500, packagePrice: 5.50, calories: 356, protein: 12.0, carbs: 73.0, fat: 1.5, fiber: 3.5, keywords: ['couscous', 'cuscus', 'baneasa'] },
+      { id: 'cer_18', name: 'Făină Albă Superioară 000 Băneasa', brand: 'Băneasa', ean: '5941198000779', category: 'Cereale & Paste', packageQuantity: 1000, packagePrice: 4.50, calories: 348, protein: 10.5, carbs: 73.5, fat: 1.0, fiber: 2.5, keywords: ['faina', 'alba', 'baneasa', '000'] },
+      { id: 'cer_19', name: 'Mălai Extra Pambac', brand: 'Pambac', ean: '5941155000106', category: 'Cereale & Paste', packageQuantity: 1000, packagePrice: 4.00, calories: 351, protein: 7.5, carbs: 76.0, fat: 1.2, fiber: 2.2, keywords: ['malai', 'pambac', 'mamaliga'] },
+      { id: 'cer_20', name: 'Covrig Brașovean cu Mac / Susan', brand: 'Simigerie Luca / Petru', ean: '', category: 'Cereale & Paste', packageQuantity: 100, packagePrice: 2.50, calories: 320, protein: 9.5, carbs: 62.0, fat: 3.5, fiber: 2.5, keywords: ['covrig', 'brasovean', 'mac', 'susan', 'simigerie'] },
+      { id: 'cer_21', name: 'Covrigi de Buzău cu Sare / Mac', brand: 'Boromir', ean: '5941198000991', category: 'Cereale & Paste', packageQuantity: 250, packagePrice: 4.50, calories: 385, protein: 11.0, carbs: 75.0, fat: 4.0, fiber: 3.5, keywords: ['covrigi', 'buzau', 'boromir'] },
+
+      // --- LEGUME & FRUCTE ---
+      { id: 'leg_01', name: 'Cartofi Albi / Roșii', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 3.50, calories: 77, protein: 2.0, carbs: 17.5, fat: 0.1, fiber: 2.1, keywords: ['cartofi', 'cartof', 'piata'] },
+      { id: 'leg_02', name: 'Cartofi Dulci (Batate)', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 8.50, calories: 86, protein: 1.6, carbs: 20.1, fat: 0.1, fiber: 3.0, keywords: ['cartofi', 'dulci', 'batate'] },
+      { id: 'leg_03', name: 'Ciuperci Champignon Albe', brand: 'Caserolă RO', ean: '5941010001014', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 7.50, calories: 22, protein: 3.1, carbs: 3.3, fat: 0.3, fiber: 1.0, keywords: ['ciuperci', 'champignon'] },
+      { id: 'leg_04', name: 'Roșii Ciorchine Românești', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 6.50, calories: 18, protein: 0.9, carbs: 3.9, fat: 0.2, fiber: 1.2, keywords: ['rosii', 'rosie', 'ciorchine'] },
+      { id: 'leg_05', name: 'Roșii Cherry Caserolă', brand: 'Caserolă RO', ean: '5941010002028', category: 'Legume & Fructe', packageQuantity: 250, packagePrice: 5.50, calories: 20, protein: 1.0, carbs: 4.2, fat: 0.2, fiber: 1.4, keywords: ['rosii', 'cherry'] },
+      { id: 'leg_06', name: 'Castraveți Cornișon / Fabio', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 4.50, calories: 15, protein: 0.7, carbs: 3.6, fat: 0.1, fiber: 0.5, keywords: ['castraveti', 'castravete', 'fabio'] },
+      { id: 'leg_07', name: 'Ardei Kapia Roșu', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 6.50, calories: 28, protein: 1.1, carbs: 5.8, fat: 0.2, fiber: 1.8, keywords: ['ardei', 'kapia', 'rosu'] },
+      { id: 'leg_08', name: 'Ardei Gras Galben / Verde', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 6.00, calories: 26, protein: 1.0, carbs: 5.3, fat: 0.2, fiber: 1.7, keywords: ['ardei', 'gras', 'galben', 'verde'] },
+      { id: 'leg_09', name: 'Ceapă Galbenă', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 4.00, calories: 40, protein: 1.1, carbs: 9.3, fat: 0.1, fiber: 1.7, keywords: ['ceapa', 'galbena'] },
+      { id: 'leg_10', name: 'Ceapă Roșie', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 3.50, calories: 42, protein: 1.2, carbs: 9.5, fat: 0.1, fiber: 1.8, keywords: ['ceapa', 'rosie'] },
+      { id: 'leg_11', name: 'Usturoi Căpățâni', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 200, packagePrice: 4.00, calories: 149, protein: 6.4, carbs: 33.0, fat: 0.5, fiber: 2.1, keywords: ['usturoi'] },
+      { id: 'leg_12', name: 'Spanac Baby Spălat Pungă', brand: 'Fresh RO', ean: '5941999000330', category: 'Legume & Fructe', packageQuantity: 200, packagePrice: 6.50, calories: 23, protein: 2.9, carbs: 3.6, fat: 0.4, fiber: 2.2, keywords: ['spanac', 'baby', 'salata'] },
+      { id: 'leg_13', name: 'Salată Verde Eisberg Mix', brand: 'Eisberg', ean: '5941445000107', category: 'Legume & Fructe', packageQuantity: 200, packagePrice: 5.50, calories: 16, protein: 1.3, carbs: 2.5, fat: 0.2, fiber: 1.5, keywords: ['salata', 'eisberg', 'mix', 'verde'] },
+      { id: 'leg_14', name: 'Rucola Proaspătă Caserolă', brand: 'Fresh RO', ean: '5941999000446', category: 'Legume & Fructe', packageQuantity: 125, packagePrice: 5.50, calories: 25, protein: 2.6, carbs: 3.7, fat: 0.7, fiber: 1.6, keywords: ['rucola', 'salata'] },
+      { id: 'leg_15', name: 'Broccoli Proaspăt', brand: 'Fresh RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 6.50, calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4, fiber: 2.6, keywords: ['broccoli'] },
+      { id: 'leg_16', name: 'Conopidă Proaspătă', brand: 'Fresh RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 7.50, calories: 25, protein: 1.9, carbs: 5.0, fat: 0.3, fiber: 2.0, keywords: ['conopida'] },
+      { id: 'leg_17', name: 'Morcovi Românești', brand: 'Piață RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 3.80, calories: 41, protein: 0.9, carbs: 9.6, fat: 0.2, fiber: 2.8, keywords: ['morcovi', 'morcov'] },
+      { id: 'leg_18', name: 'Dovlecei Zucchini', brand: 'Fresh RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 4.50, calories: 17, protein: 1.2, carbs: 3.1, fat: 0.3, fiber: 1.0, keywords: ['dovlecei', 'zucchini'] },
+      { id: 'leg_19', name: 'Avocado Ready to Eat', brand: 'Import Supermarket RO', ean: '', category: 'Legume & Fructe', packageQuantity: 180, packagePrice: 6.50, calories: 160, protein: 2.0, carbs: 8.5, fat: 14.7, fiber: 6.7, keywords: ['avocado', 'ready'] },
+      { id: 'leg_20', name: 'Banane Premium', brand: 'Import Supermarket RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 6.50, calories: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.6, keywords: ['banane', 'banana'] },
+      { id: 'leg_21', name: 'Mere Golden Românești', brand: 'Livezi RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 4.50, calories: 52, protein: 0.3, carbs: 13.8, fat: 0.2, fiber: 2.4, keywords: ['mere', 'mar', 'golden'] },
+      { id: 'leg_22', name: 'Afine Proaspete Caserolă', brand: 'Fresh RO', ean: '5941999000552', category: 'Legume & Fructe', packageQuantity: 125, packagePrice: 7.50, calories: 57, protein: 0.7, carbs: 14.5, fat: 0.3, fiber: 2.4, keywords: ['afine', 'fructe', 'padure'] },
+      { id: 'leg_23', name: 'Căpșuni Proaspete Caserolă', brand: 'Fresh RO', ean: '5941999000668', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 12.50, calories: 32, protein: 0.7, carbs: 7.7, fat: 0.3, fiber: 2.0, keywords: ['capsuni', 'capsuna'] },
+      { id: 'leg_24', name: 'Lămâie Proaspătă', brand: 'Import Supermarket RO', ean: '', category: 'Legume & Fructe', packageQuantity: 500, packagePrice: 4.50, calories: 29, protein: 1.1, carbs: 9.3, fat: 0.3, fiber: 2.8, keywords: ['lamaie', 'lamaie'] },
+      { id: 'leg_25', name: 'Portocale Dulci', brand: 'Import Supermarket RO', ean: '', category: 'Legume & Fructe', packageQuantity: 1000, packagePrice: 5.50, calories: 47, protein: 0.9, carbs: 11.8, fat: 0.1, fiber: 2.4, keywords: ['portocale', 'portocala'] },
+
+      // --- GRĂSIMI, ULEIURI, NUCI & SUPLIMENTE ---
+      { id: 'grs_01', name: 'Ulei de Măsline Extra Virgin Monini', brand: 'Monini', ean: '8005510001108', category: 'Grăsimi & Uleiuri', packageQuantity: 1000, packagePrice: 52.00, calories: 824, protein: 0.0, carbs: 0.0, fat: 91.6, fiber: 0, keywords: ['ulei', 'masline', 'extra', 'virgin', 'monini'] },
+      { id: 'grs_02', name: 'Ulei de Măsline Extra Virgin Primadonna (Lidl)', brand: 'Primadonna / Lidl', ean: '20165544', category: 'Grăsimi & Uleiuri', packageQuantity: 690, packagePrice: 32.00, calories: 824, protein: 0.0, carbs: 0.0, fat: 91.6, fiber: 0, keywords: ['ulei', 'masline', 'primadonna', 'lidl'] },
+      { id: 'grs_03', name: 'Ulei de Floarea Soarelui Floriol', brand: 'Floriol', ean: '5941014001010', category: 'Grăsimi & Uleiuri', packageQuantity: 920, packagePrice: 8.50, calories: 828, protein: 0.0, carbs: 0.0, fat: 92.0, fiber: 0, keywords: ['ulei', 'floarea', 'soarelui', 'floriol'] },
+      { id: 'grs_04', name: 'Unt Albalact 65% Grăsime', brand: 'Albalact', ean: '5941112002104', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 9.50, calories: 592, protein: 1.0, carbs: 1.0, fat: 65.0, fiber: 0, keywords: ['unt', 'albalact', '65'] },
+      { id: 'grs_05', name: 'Unt Lurpak Nesărat 82%', brand: 'Lurpak', ean: '5740900400109', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 15.50, calories: 740, protein: 0.7, carbs: 0.7, fat: 82.0, fiber: 0, keywords: ['unt', 'lurpak', '82'] },
+      { id: 'grs_06', name: 'Unt de Arahide Fin SanoVita', brand: 'SanoVita', ean: '5941458000447', category: 'Grăsimi & Uleiuri', packageQuantity: 350, packagePrice: 12.50, calories: 595, protein: 25.0, carbs: 15.0, fat: 48.0, fiber: 6.0, keywords: ['unt', 'arahide', 'peanut', 'butter', 'sanovita'] },
+      { id: 'grs_07', name: 'Miez de Nucă Românească', brand: 'Piață RO', ean: '', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 13.50, calories: 654, protein: 15.2, carbs: 13.7, fat: 65.2, fiber: 6.7, keywords: ['nuci', 'nuca', 'miez'] },
+      { id: 'grs_08', name: 'Migdale Crude Alesto (Lidl)', brand: 'Alesto / Lidl', ean: '20146633', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 12.50, calories: 579, protein: 21.2, carbs: 21.6, fat: 49.9, fiber: 12.5, keywords: ['migdale', 'alesto', 'lidl', 'crude'] },
+      { id: 'grs_09', name: 'Caju Crud Alesto (Lidl)', brand: 'Alesto / Lidl', ean: '20147744', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 14.50, calories: 553, protein: 18.2, carbs: 30.2, fat: 43.8, fiber: 3.3, keywords: ['caju', 'alesto', 'lidl', 'crud'] },
+      { id: 'grs_10', name: 'Semințe de Chia SanoVita', brand: 'SanoVita', ean: '5941458000553', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 7.50, calories: 486, protein: 16.5, carbs: 42.1, fat: 30.7, fiber: 34.4, keywords: ['chia', 'seminte', 'sanovita'] },
+      { id: 'grs_11', name: 'Năut Fiert Conservă Bonduelle', brand: 'Bonduelle', ean: '3083680011029', category: 'Legume & Fructe', packageQuantity: 400, packagePrice: 5.50, calories: 119, protein: 7.0, carbs: 16.5, fat: 2.2, fiber: 5.8, keywords: ['naut', 'bonduelle', 'conserva'] },
+      { id: 'grs_12', name: 'Fasole Roșie Kidney Bonduelle', brand: 'Bonduelle', ean: '3083680011036', category: 'Legume & Fructe', packageQuantity: 400, packagePrice: 5.50, calories: 102, protein: 7.5, carbs: 14.0, fat: 0.6, fiber: 6.4, keywords: ['fasole', 'rosie', 'bonduelle', 'conserva'] },
+      { id: 'grs_13', name: 'Porumb Dulce Boabe Bonduelle', brand: 'Bonduelle', ean: '3083680011043', category: 'Legume & Fructe', packageQuantity: 340, packagePrice: 6.00, calories: 80, protein: 2.9, carbs: 15.5, fat: 1.2, fiber: 2.4, keywords: ['porumb', 'dulce', 'bonduelle'] },
+      { id: 'grs_14', name: 'Sos de Roșii Passata Cirio', brand: 'Cirio / Mutti', ean: '8001440120013', category: 'Legume & Fructe', packageQuantity: 700, packagePrice: 9.50, calories: 24, protein: 1.3, carbs: 4.2, fat: 0.2, fiber: 1.1, keywords: ['passata', 'rosii', 'cirio', 'sos'] },
+      { id: 'grs_15', name: 'Sos Pesto alla Genovese Barilla', brand: 'Barilla', ean: '8076809513333', category: 'Grăsimi & Uleiuri', packageQuantity: 190, packagePrice: 14.50, calories: 482, protein: 4.5, carbs: 5.0, fat: 46.0, fiber: 2.0, keywords: ['pesto', 'barilla', 'genovese', 'sos'] },
+      { id: 'grs_16', name: 'Pudră Proteică Whey Gold Standard ON', brand: 'Optimum Nutrition', ean: '5060469988017', category: 'Ouă & Lactate', packageQuantity: 908, packagePrice: 155.00, calories: 375, protein: 78.0, carbs: 5.5, fat: 4.5, fiber: 1.0, keywords: ['whey', 'proteina', 'pudra', 'gold', 'standard'] },
+      { id: 'grs_17', name: 'Pudră Proteică Impact Whey MyProtein', brand: 'MyProtein', ean: '5055936801018', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 125.00, calories: 390, protein: 80.0, carbs: 6.0, fat: 5.5, fiber: 0, keywords: ['whey', 'myprotein', 'proteina', 'pudra'] },
+      { id: 'grs_18', name: 'Miere Polifloră Românească', brand: 'Stupină RO', ean: '5941458000669', category: 'Dulciuri', packageQuantity: 400, packagePrice: 14.00, calories: 304, protein: 0.3, carbs: 82.4, fat: 0.0, fiber: 0.2, keywords: ['miere', 'albine', 'poliflora'] }
     ];
   }
 
   // Estimate price and category for any ingredient name using Romanian market data
   estimateMarketData(name, quantityGrams = 100) {
-    const clean = name.toLowerCase().trim();
-    let best = this.priceBenchmarks.find(b => b.keywords.some(k => clean.includes(k)));
+    const clean = this.normalizeStr(name);
+    
+    // 1. Check exact or partial match in supermarket catalog first
+    if (this.supermarketCatalog && this.supermarketCatalog.length > 0) {
+      const catMatch = this.supermarketCatalog.find(p => {
+        const pNorm = this.normalizeStr(p.name + ' ' + (p.brand || ''));
+        return pNorm.includes(clean) || clean.includes(pNorm);
+      });
+      if (catMatch) {
+        const packQty = catMatch.packageQuantity || 100;
+        const packPrice = catMatch.packagePrice;
+        const pricePer100g = parseFloat((packPrice / (packQty / 100)).toFixed(2));
+        return {
+          category: catMatch.category,
+          packageQuantity: packQty,
+          packagePrice: packPrice,
+          pricePer100g,
+          calories: catMatch.calories,
+          protein: catMatch.protein,
+          carbs: catMatch.carbs,
+          fat: catMatch.fat
+        };
+      }
+    }
+
+    // 2. Check benchmarks
+    const tokens = clean.split(' ').filter(t => t.length > 1);
+    let best = this.priceBenchmarks.find(b => b.keywords.some(k => clean.includes(k) || tokens.some(t => k.includes(t))));
     if (!best) {
       best = {
         cat: 'Ingrediente',
-        avgPerKg: 20.0,
+        avgPerKg: 22.0,
         defaultPackG: 500,
-        kcal: 150,
-        prot: 5.0,
-        carbs: 20.0,
-        fat: 4.0
+        kcal: 160,
+        prot: 6.0,
+        carbs: 22.0,
+        fat: 5.0
       };
     }
     const packQty = best.defaultPackG;
@@ -74,126 +293,201 @@ class NutriChefAssistant {
     };
   }
 
-  // 1. Search online products (Open Food Facts + Romanian DB)
+  // 1. Search online products (Instant Offline-First Supermarket Catalog + Pantry + Live OFF + Fallback Synthesizer)
   async searchOnlineProducts(query) {
     if (!query || !query.trim()) return [];
-    const q = query.trim();
-
-    const results = [];
-
-    // 1. Live Query Open Food Facts via modern Search-a-licious API
-    try {
-      const resp = await fetch(`https://search.openfoodfacts.org/search?q=${encodeURIComponent(q)}&page_size=8`, {
-        headers: { 'Accept': 'application/json' }
-      });
-      if (resp.ok) {
-        const json = await resp.json();
-        const hits = json.hits || [];
-        hits.forEach(h => {
-          const name = h.product_name || h.product_name_ro || h.product_name_en || '';
-          if (!name) return;
-          const brands = Array.isArray(h.brands) ? h.brands.join(', ') : (h.brands || '');
-          const nut = h.nutriments || {};
-
-          // Extract pack weight
-          let packG = 100;
-          if (h.quantity) {
-            const m = String(h.quantity).match(/([0-9.,]+)\s*(g|gr|gram|ml|l|kg)/i);
-            if (m) {
-              const val = parseFloat(m[1].replace(',', '.'));
-              const unit = m[2].toLowerCase();
-              packG = (unit === 'kg' || unit === 'l') ? val * 1000 : val;
-            }
-          }
-
-          // Estimate price in RON
-          const market = this.estimateMarketData(name + ' ' + brands, packG);
-          const packPrice = parseFloat(((market.pricePer100g * packG) / 100).toFixed(2));
-
-          const calories = Math.round(nut['energy-kcal_100g'] || (nut.energy_100g ? nut.energy_100g / 4.184 : market.calories));
-          const protein = parseFloat(Number(nut.proteins_100g ?? market.protein).toFixed(1));
-          const carbs = parseFloat(Number(nut.carbohydrates_100g ?? market.carbs).toFixed(1));
-          const fat = parseFloat(Number(nut.fat_100g ?? market.fat).toFixed(1));
-          const fiber = parseFloat(Number(nut.fiber_100g ?? 0).toFixed(1));
-
-          results.push({
-            id: 'off_' + (h.code || Math.random().toString(36).substr(2, 6)),
-            name: brands ? `${name} (${brands})` : name,
-            rawName: name,
-            brand: brands,
-            ean: h.code || '',
-            category: market.category,
-            packageQuantity: packG,
-            packagePrice: packPrice > 0 ? packPrice : market.packagePrice,
-            pricePer100g: parseFloat(((packPrice > 0 ? packPrice : market.packagePrice) / (packG / 100)).toFixed(2)),
-            calories,
-            protein,
-            carbs,
-            fat,
-            fiber,
-            imageUrl: h.image_url || h.image_front_small_url || '',
-            source: 'Open Food Facts Online'
-          });
-        });
-      }
-    } catch (e) {
-      console.warn('Open Food Facts online search error:', e);
+    const rawQ = query.trim();
+    const qNorm = this.normalizeStr(rawQ);
+    if (!qNorm) return [];
+    const STOPWORDS = new Set(['de', 'cu', 'la', 'si', 'in', 'din', 'pe', 'fara', 'sub', 'un', 'o', 'al', 'ai', 'ale', 'pt', 'pentru']);
+    let qTokens = qNorm.split(' ').filter(t => t.length > 1 && !STOPWORDS.has(t));
+    if (qTokens.length === 0) {
+      qTokens = qNorm.split(' ').filter(t => t.length > 0);
     }
 
-    // 2. Also match from Local Pantry & Benchmarks if results are few
-    if (results.length < 3) {
-      const localMatches = (window.store ? window.store.data.ingredients : [])
-        .filter(i => i.name.toLowerCase().includes(q.toLowerCase()))
-        .slice(0, 3);
+    const results = [];
+    const seenNames = new Set();
 
-      localMatches.forEach(i => {
-        if (!results.some(r => r.name.toLowerCase() === i.name.toLowerCase())) {
-          results.push({
-            id: i.id,
-            name: i.name,
-            rawName: i.name,
-            brand: 'Local Pantry',
-            ean: i.ean || '',
-            category: i.category,
-            packageQuantity: i.packageQuantity,
-            packagePrice: i.packagePrice,
-            pricePer100g: i.pricePer100g,
-            calories: i.calories,
-            protein: i.protein,
-            carbs: i.carbs,
-            fat: i.fat,
-            fiber: 0,
-            imageUrl: '',
-            source: 'Baza Locală'
-          });
-        }
+    const addResult = (item) => {
+      const key = (item.rawName || item.name).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!seenNames.has(key)) {
+        seenNames.add(key);
+        results.push(item);
+      }
+    };
+
+    // 1. Search in Curated Romanian Supermarket Catalog with Multi-Token Scoring
+    const catalogScored = [];
+    this.supermarketCatalog.forEach(prod => {
+      const pNameNorm = this.normalizeStr(prod.name);
+      const pBrandNorm = this.normalizeStr(prod.brand || '');
+      const pKeywordsNorm = prod.keywords ? prod.keywords.map(k => this.normalizeStr(k)).join(' ') : '';
+      const fullText = `${pNameNorm} ${pBrandNorm} ${pKeywordsNorm}`;
+
+      let score = 0;
+      if (pNameNorm === qNorm) {
+        score += 600;
+      } else if (pNameNorm.startsWith(qNorm)) {
+        score += 350;
+      } else if (fullText.includes(qNorm)) {
+        score += 250;
+      }
+
+      if (qTokens.length > 0) {
+        const matchAll = qTokens.every(t => fullText.includes(t));
+        if (matchAll) score += 200;
+
+        const matchedCount = qTokens.filter(t => fullText.includes(t)).length;
+        score += matchedCount * 40;
+      }
+
+      if (score > 0) {
+        catalogScored.push({ prod, score });
+      }
+    });
+
+    catalogScored.sort((a, b) => b.score - a.score);
+    catalogScored.slice(0, 8).forEach(item => {
+      const p = item.prod;
+      const packPrice = p.packagePrice;
+      const packQty = p.packageQuantity;
+      addResult({
+        id: 'cat_' + p.id,
+        name: p.brand ? `${p.name} (${p.brand})` : p.name,
+        rawName: p.name,
+        brand: p.brand || 'Supermarket RO',
+        ean: p.ean || '',
+        category: p.category,
+        packageQuantity: packQty,
+        packagePrice: packPrice,
+        pricePer100g: parseFloat((packPrice / (packQty / 100)).toFixed(2)),
+        calories: p.calories,
+        protein: p.protein,
+        carbs: p.carbs,
+        fat: p.fat,
+        fiber: p.fiber || 0,
+        imageUrl: p.imageUrl || '',
+        source: 'Catalog Supermarket RO'
+      });
+    });
+
+    // 2. Search in user pantry / local store
+    if (typeof window !== 'undefined' && window.store && window.store.data && Array.isArray(window.store.data.ingredients)) {
+      const localMatches = window.store.data.ingredients.filter(i => {
+        const iNorm = this.normalizeStr(i.name + ' ' + (i.category || ''));
+        return iNorm.includes(qNorm) || (qTokens.length > 0 && qTokens.some(t => iNorm.includes(t)));
       });
 
-      // Match from benchmarks
-      const bMatches = this.priceBenchmarks.filter(b => b.keywords.some(k => q.toLowerCase().includes(k) || k.includes(q.toLowerCase()))).slice(0, 2);
-      bMatches.forEach((b, idx) => {
-        const title = q.charAt(0).toUpperCase() + q.slice(1);
-        if (!results.some(r => r.name.toLowerCase().includes(q.toLowerCase()))) {
-          const packPrice = parseFloat(((b.avgPerKg * b.defaultPackG) / 1000).toFixed(2));
-          results.push({
-            id: 'bm_' + idx,
-            name: title,
-            rawName: title,
-            brand: 'Piața RO (Lidl/Kaufland)',
-            ean: '',
-            category: b.cat,
-            packageQuantity: b.defaultPackG,
-            packagePrice: packPrice,
-            pricePer100g: parseFloat((packPrice / (b.defaultPackG / 100)).toFixed(2)),
-            calories: b.kcal,
-            protein: b.prot,
-            carbs: b.carbs,
-            fat: b.fat,
-            fiber: 1.0,
-            imageUrl: '',
-            source: 'Estimare Piață România'
+      localMatches.slice(0, 4).forEach(i => {
+        addResult({
+          id: i.id,
+          name: i.name,
+          rawName: i.name,
+          brand: 'Cămară Locală',
+          ean: i.ean || '',
+          category: i.category,
+          packageQuantity: i.packageQuantity,
+          packagePrice: i.packagePrice,
+          pricePer100g: i.pricePer100g,
+          calories: i.calories,
+          protein: i.protein,
+          carbs: i.carbs,
+          fat: i.fat,
+          fiber: 0,
+          imageUrl: '',
+          source: 'Baza Locală'
+        });
+      });
+    }
+
+    // 3. Fast Online Search Open Food Facts (with 1.2s timeout, safe silent catch for CORS)
+    try {
+      if (typeof AbortController !== 'undefined') {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const resp = await fetch(`https://search.openfoodfacts.org/search?q=${encodeURIComponent(rawQ)}&page_size=6`, {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(timeoutId);
+
+        if (resp.ok) {
+          const json = await resp.json();
+          const hits = json.hits || [];
+          hits.forEach(h => {
+            const name = h.product_name || h.product_name_ro || h.product_name_en || '';
+            if (!name) return;
+            const brands = Array.isArray(h.brands) ? h.brands.join(', ') : (h.brands || '');
+            const nut = h.nutriments || {};
+
+            let packG = 100;
+            if (h.quantity) {
+              const m = String(h.quantity).match(/([0-9.,]+)\s*(g|gr|gram|ml|l|kg)/i);
+              if (m) {
+                const val = parseFloat(m[1].replace(',', '.'));
+                const unit = m[2].toLowerCase();
+                packG = (unit === 'kg' || unit === 'l') ? val * 1000 : val;
+              }
+            }
+
+            const market = this.estimateMarketData(name + ' ' + brands, packG);
+            const packPrice = parseFloat(((market.pricePer100g * packG) / 100).toFixed(2));
+
+            const calories = Math.round(nut['energy-kcal_100g'] || (nut.energy_100g ? nut.energy_100g / 4.184 : market.calories));
+            const protein = parseFloat(Number(nut.proteins_100g ?? market.protein).toFixed(1));
+            const carbs = parseFloat(Number(nut.carbohydrates_100g ?? market.carbs).toFixed(1));
+            const fat = parseFloat(Number(nut.fat_100g ?? market.fat).toFixed(1));
+            const fiber = parseFloat(Number(nut.fiber_100g ?? 0).toFixed(1));
+
+            addResult({
+              id: 'off_' + (h.code || Math.random().toString(36).substr(2, 6)),
+              name: brands ? `${name} (${brands})` : name,
+              rawName: name,
+              brand: brands || 'Open Food Facts',
+              ean: h.code || '',
+              category: market.category,
+              packageQuantity: packG,
+              packagePrice: packPrice > 0 ? packPrice : market.packagePrice,
+              pricePer100g: parseFloat(((packPrice > 0 ? packPrice : market.packagePrice) / (packG / 100)).toFixed(2)),
+              calories,
+              protein,
+              carbs,
+              fat,
+              fiber,
+              imageUrl: h.image_url || h.image_front_small_url || '',
+              source: 'Open Food Facts Online'
+            });
           });
         }
+      }
+    } catch (e) {
+      // Silent fallback when offline or CORS-blocked
+    }
+
+    // 4. Universal Market Synthesizer Fallback: NEVER return empty!
+    if (results.length === 0) {
+      const formattedTitle = rawQ.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      const market = this.estimateMarketData(rawQ, 500);
+      const packG = market.packageQuantity || 500;
+      const packPrice = market.packagePrice;
+
+      addResult({
+        id: 'synth_' + Date.now(),
+        name: formattedTitle,
+        rawName: formattedTitle,
+        brand: 'Piața RO (Supermarket)',
+        ean: '',
+        category: market.category,
+        packageQuantity: packG,
+        packagePrice: packPrice,
+        pricePer100g: parseFloat((packPrice / (packG / 100)).toFixed(2)),
+        calories: market.calories,
+        protein: market.protein,
+        carbs: market.carbs,
+        fat: market.fat,
+        fiber: 1.0,
+        imageUrl: '',
+        source: '✨ Estimare Nutrițională Piață (RO)'
       });
     }
 
@@ -279,7 +573,7 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
 
     ingTokens.forEach((token, idx) => {
       // 1. Look in store ingredients
-      let matched = window.store ? window.store.findIngredientByName(token) : null;
+      let matched = (typeof window !== 'undefined' && window.store) ? window.store.findIngredientByName(token) : null;
       let est = this.estimateMarketData(token);
 
       const ingName = matched ? matched.name : (token.charAt(0).toUpperCase() + token.slice(1));
@@ -440,7 +734,7 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
 
   // 3. Save generated recipe into store database
   saveRecipeToStore(recipeObj) {
-    if (!window.store) return null;
+    if (typeof window === 'undefined' || !window.store) return null;
 
     // Ensure all ingredients exist in store.ingredients
     const storeIngredients = [];
@@ -491,4 +785,8 @@ Răspunde STRICT în format JSON valid fără markdown, cu următoarea structur�
 }
 
 // Global singleton instance
-window.nutriAssistant = new NutriChefAssistant();
+if (typeof window !== 'undefined') {
+  window.nutriAssistant = new NutriChefAssistant();
+} else if (typeof module !== 'undefined') {
+  module.exports = { NutriChefAssistant };
+}
