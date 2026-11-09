@@ -1251,11 +1251,9 @@ class NutriApp {
                     <button data-recipe-edit="${r.id}" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează rețeta">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     </button>
-                    ${isOwnedByActive ? `
-                      <button data-recipe-delete="${r.id}" class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Șterge rețeta">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                      </button>
-                    ` : ''}
+                    <button data-recipe-delete="${r.id}" class="w-7 h-7 flex items-center justify-center text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition" title="Șterge definitiv rețeta">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -3464,9 +3462,14 @@ class NutriApp {
           <h2 class="text-lg sm:text-xl font-extrabold text-slate-800 dark:text-white mt-1.5">${r.name}</h2>
           <div class="text-xs text-slate-500 dark:text-white/60">${r.servings} porții • Greutate totală: ${Math.round(r.totals.weight)}g</div>
         </div>
-        <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button data-recipe-delete-from-modal="${r.id}" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-full transition" title="Șterge rețeta">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
       </div>
 
       <!-- Scrollable Content -->
@@ -3626,6 +3629,23 @@ class NutriApp {
       if (rec) {
         this.openRecipeBuilderModal(rec);
       }
+    });
+
+    document.querySelector('[data-recipe-delete-from-modal]')?.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-recipe-delete-from-modal');
+      const raw = window.store.getRecipeById(id);
+      this.showConfirmModal({
+        title: 'Șterge Rețeta',
+        message: `Ești sigur că vrei să ștergi definitiv rețeta "${raw?.name}"? Această acțiune nu poate fi anulată.`,
+        confirmText: 'Șterge rețeta',
+        isDanger: true,
+        onConfirm: () => {
+          window.store.deleteRecipe(id);
+          this.closeModal();
+          this.renderCurrentView();
+          this.showToast(`Rețeta "${raw?.name}" a fost ștearsă.`, 'info');
+        }
+      });
     });
   }
 
@@ -3942,29 +3962,35 @@ class NutriApp {
       </div>
 
       <!-- Fixed Footer with Cost Summary & Actions -->
-      <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
-        <div class="min-w-0 pr-2">
-          <div class="text-[10px] text-slate-400 dark:text-white/40 uppercase font-bold">Total estimat</div>
-          <div id="builder-total-cost" class="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 truncate">
+      <div class="flex-shrink-0 p-3.5 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-[#181924] space-y-2.5">
+        <!-- Row 1: Full-Width Clean Cost & Calorie Summary (Zero horizontal squeezing or text wrapping) -->
+        <div class="flex items-center justify-between px-1 text-xs">
+          <span class="text-xs font-bold text-slate-500 dark:text-white/60">Total estimat:</span>
+          <div id="builder-total-cost" class="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400">
             0.00 RON
           </div>
         </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <button data-modal-close="true" class="px-3 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition">
-            Anulează
-          </button>
+
+        <!-- Row 2: Action Buttons in a Single Symmetrical, Balanced Row -->
+        <div class="flex items-center gap-2 w-full">
           ${isEdit ? `
-            <button type="button" id="btn-builder-delete" class="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition" title="Șterge definitiv rețeta">
+            <button type="button" id="btn-builder-delete" class="w-10 h-10 flex-shrink-0 flex items-center justify-center text-rose-500 hover:text-white hover:bg-rose-500 border border-rose-200 dark:border-rose-500/30 rounded-2xl transition shadow-2xs" title="Șterge definitiv rețeta">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           ` : ''}
+
+          <button data-modal-close="true" class="flex-1 py-2.5 px-2 text-center rounded-2xl border border-[#E5E0F5] dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition truncate">
+            Anulează
+          </button>
+
           ${(isEdit && isExistingGeneral) ? `
-            <button type="button" id="btn-builder-save-as-custom" class="btn-pill btn-pill-outline text-xs py-2 px-3 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold" title="Salvează ca o copie proprie fără a modifica rețeta generală">
-              Salvează ca Rețetă Proprie
+            <button type="button" id="btn-builder-save-as-custom" class="flex-1 py-2.5 px-2 text-center rounded-2xl border border-brand-lilac/40 text-xs font-bold text-[#6D4AE8] dark:text-[#C4B5FD] hover:bg-brand-lilac/10 transition truncate" title="Salvează ca o copie proprie pe profil">
+              Copiază
             </button>
           ` : ''}
-          <button id="btn-builder-save" class="btn-pill btn-pill-primary text-xs py-2 px-3.5 sm:px-4 shadow-sm">
-            ${isEdit ? 'Salvează Modificările' : 'Creează Rețeta'}
+
+          <button id="btn-builder-save" class="flex-1 py-2.5 px-2 text-center rounded-2xl bg-[#121319] dark:bg-white text-white dark:text-[#121319] text-xs font-black shadow-sm hover:opacity-95 transition truncate">
+            ${isEdit ? 'Salvează' : 'Creează Rețeta'}
           </button>
         </div>
       </div>
