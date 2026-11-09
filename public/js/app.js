@@ -282,6 +282,7 @@ class NutriApp {
   }
 
   renderSingleDayView(day, dayData, calPercent) {
+    const targets = window.store.getTargets();
     const mealThemes = [
       {
         id: 'Mic Dejun',
@@ -1268,23 +1269,33 @@ class NutriApp {
   renderScanView() {
     return `
       <div class="space-y-6 pb-24">
+        <!-- Header -->
+        <div class="flex items-center justify-between gap-3 pt-1">
+          <div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-slate-900 dark:text-white">
+              Scanare & Import
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Recunoaștere coduri de bare EAN și scanare bonuri fiscale cu OCR</p>
+          </div>
+        </div>
+
         <!-- Sub-Tabs Selector Capsule -->
-        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-1.5 flex items-center gap-2 max-w-md mx-auto shadow-sm">
-          <button id="subtab-ean" class="flex-1 py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-1.5 flex items-center gap-1.5 max-w-md mx-auto shadow-sm">
+          <button id="subtab-ean" class="flex-1 py-2.5 px-3 rounded-full text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition ${
             this.scanSubTab === 'ean'
               ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
               : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
           }">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-            Scanare Cod EAN
+            <span>Scanare Cod EAN</span>
           </button>
-          <button id="subtab-receipt" class="flex-1 py-2.5 px-4 rounded-full text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition ${
+          <button id="subtab-receipt" class="flex-1 py-2.5 px-3 rounded-full text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition ${
             this.scanSubTab === 'receipt'
               ? 'bg-[#121319] dark:bg-white text-white dark:text-[#121319] shadow-sm'
               : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
           }">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Bon Fiscal (OCR)
+            <span>Bon Fiscal (OCR)</span>
           </button>
         </div>
 
@@ -1297,27 +1308,29 @@ class NutriApp {
     const samples = window.INITIAL_DATA.sampleBarcodes || [];
 
     return `
-      <div class="space-y-5">
-        <!-- Live Camera Viewfinder Box -->
-        <div class="bg-[#121319] rounded-3xl p-5 text-white shadow-xl overflow-hidden relative border border-white/10">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-bold text-[#70D6A3] flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-[#70D6A3] animate-ping"></span>
-              Cameră Scanare Barcode
-            </span>
-            <button id="btn-toggle-camera" class="btn-pill btn-pill-lilac text-xs py-1.5 px-3.5">
+      <div class="space-y-4">
+        <!-- Live Camera Viewfinder Card -->
+        <div class="bento-card bg-[#121319] rounded-3xl p-4 sm:p-5 text-white shadow-xl overflow-hidden relative border border-white/10">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#70D6A3] animate-ping flex-shrink-0"></span>
+              <h3 class="text-xs sm:text-sm font-extrabold text-[#70D6A3] truncate">Cameră Scanare Barcode</h3>
+            </div>
+            <button id="btn-toggle-camera" class="btn-pill btn-pill-lilac text-xs py-1.5 px-3.5 shadow-sm flex-shrink-0">
               Pornește Camera
             </button>
           </div>
 
-          <!-- Video viewport -->
-          <div id="camera-container" class="relative w-full h-52 sm:h-64 bg-black rounded-2xl overflow-hidden flex items-center justify-center border border-white/10">
-            <video id="barcode-video" class="w-full h-full object-cover hidden" playsinline></video>
+          <!-- Video viewport / Camera placeholder -->
+          <div id="camera-container" class="relative w-full rounded-2xl overflow-hidden flex items-center justify-center bg-black/70 border border-white/10 min-h-[130px] sm:min-h-[160px]">
+            <video id="barcode-video" class="w-full h-52 sm:h-64 object-cover hidden" playsinline></video>
             
             <!-- Default camera placeholder -->
-            <div id="camera-placeholder" class="text-center p-4">
-              <svg class="w-12 h-12 text-slate-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <p class="text-xs text-slate-400">Apasă pe "Pornește Camera" sau introdu manual codul EAN mai jos.</p>
+            <div id="camera-placeholder" class="text-center p-4 space-y-1.5">
+              <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mx-auto text-brand-lilac">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <p class="text-xs text-slate-300 font-medium">Apasă pe <strong class="text-white">„Pornește Camera”</strong> sau introdu manual codul EAN mai jos.</p>
             </div>
 
             <!-- Animated Reticle when active -->
@@ -1329,24 +1342,32 @@ class NutriApp {
           </div>
         </div>
 
-        <!-- Manual EAN Input Form -->
-        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm space-y-4">
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">Introducere Manuală Cod EAN (13 sau 8 cifre)</label>
-          <div class="flex gap-2.5">
-            <input type="text" id="manual-ean-input" placeholder="ex: 5941014001234" class="flex-1 bg-white dark:bg-[#181924] border border-[#E5E0F5] dark:border-white/10 rounded-full px-5 py-3 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#A390F5] focus:ring-2 focus:ring-[#A390F5]/20">
-            <button id="btn-search-ean" class="btn-pill btn-pill-dark text-xs sm:text-sm px-5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              Caută
+        <!-- Manual EAN Input Form with Embedded Button (Zero Overflow) -->
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-4 sm:p-5 shadow-sm space-y-3">
+          <div>
+            <label class="block text-xs font-extrabold text-slate-800 dark:text-slate-100">Introducere Manuală Cod EAN</label>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Scrie codul de 8 sau 13 cifre de pe ambalaj</p>
+          </div>
+
+          <div class="relative flex items-center w-full">
+            <input type="text" id="manual-ean-input" placeholder="ex: 5941014001234" autocomplete="off" class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-full pl-4 sm:pl-5 pr-28 py-3 text-xs sm:text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#6D4AE8] transition">
+            <button id="btn-search-ean" class="absolute right-1.5 top-1.5 bottom-1.5 px-4 rounded-full bg-[#121319] hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-[#121319] text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <span>Caută</span>
             </button>
           </div>
 
-          <!-- Quick Test Barcode Buttons -->
-          <div class="pt-2 border-t border-slate-100 dark:border-white/5">
-            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2">Sau testează instant cu produse românești uzuale (Click pentru scan rapid):</div>
-            <div class="flex flex-wrap gap-2">
+          <!-- Quick Test Barcode Buttons in 2-column grid -->
+          <div class="pt-3 border-t border-slate-100 dark:border-white/5">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2">Sau testează instant cu produse românești uzuale:</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               ${samples.map(s => `
-                <button data-quick-ean="${s.ean}" class="text-xs bg-slate-100 hover:bg-[#B8A9FD]/20 dark:bg-white/10 dark:hover:bg-white/15 border border-[#E5E0F5] dark:border-white/10 px-3.5 py-1.5 rounded-full transition text-slate-800 dark:text-slate-200 font-bold">
-                  ${s.name}
+                <button data-quick-ean="${s.ean}" class="p-2.5 rounded-2xl bg-slate-50 hover:bg-brand-lilac/10 dark:bg-white/5 dark:hover:bg-white/10 border border-[#E5E0F5] dark:border-white/10 text-left transition flex items-center justify-between gap-2 group">
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-[#6D4AE8] dark:group-hover:text-[#C4B5FD]">${s.name}</div>
+                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">${s.ean}</div>
+                  </div>
+                  <span class="text-[10px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] px-2 py-0.5 rounded-full bg-brand-lilac/10 flex-shrink-0">Scan →</span>
                 </button>
               `).join('')}
             </div>
@@ -1365,80 +1386,80 @@ class NutriApp {
     return `
       <div class="space-y-4">
         <!-- Receipt Upload / Scan Box -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between">
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-4 sm:p-5 shadow-sm space-y-4">
+          <div class="flex items-center justify-between gap-2">
             <div>
-              <h2 class="font-bold text-slate-800 text-base">Încărcare Bon Fiscal</h2>
-              <p class="text-xs text-slate-500 mt-0.5">Platforma extrage automat produsele, gramajul și prețurile plătite</p>
+              <h2 class="font-extrabold text-slate-900 dark:text-white text-base">Încărcare Bon Fiscal</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Platforma extrage automat produsele, gramajul și prețurile plătite</p>
             </div>
-            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">OCR Automat</span>
+            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex-shrink-0">OCR Automat</span>
           </div>
 
           <!-- Dual upload buttons for 100% reliable mobile & desktop file picking -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label for="receipt-camera-input" class="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition text-xs sm:text-sm active:scale-98">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <span>Fotografiază Bonul (Cameră)</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <label for="receipt-camera-input" class="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-3 rounded-2xl flex items-center justify-center gap-2 shadow-xs transition text-xs sm:text-sm active:scale-98">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span>Fotografiază Bonul</span>
               <input type="file" id="receipt-camera-input" accept="image/*" capture="environment" class="hidden">
             </label>
 
-            <label for="receipt-gallery-input" class="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-bold p-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition text-xs sm:text-sm active:scale-98">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span>Alege Poză din Galerie / PC</span>
+            <label for="receipt-gallery-input" class="cursor-pointer bg-slate-900 hover:bg-black dark:bg-white/10 dark:hover:bg-white/15 text-white font-bold p-3 rounded-2xl flex items-center justify-center gap-2 shadow-xs transition text-xs sm:text-sm active:scale-98 border border-white/10">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Alege din Galerie</span>
               <input type="file" id="receipt-gallery-input" accept="image/*" class="hidden">
             </label>
           </div>
 
           <!-- Drag and drop zone -->
-          <div id="receipt-dropzone" class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 rounded-xl p-4 text-center cursor-pointer transition">
-            <svg class="w-7 h-7 text-slate-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            <div class="text-xs font-semibold text-slate-700">Sau trage fișierul aici (Drag & Drop)</div>
+          <div id="receipt-dropzone" class="border-2 border-dashed border-[#E5E0F5] hover:border-emerald-500 dark:border-white/15 bg-slate-50/70 hover:bg-emerald-50/30 dark:bg-white/5 rounded-2xl p-4 text-center cursor-pointer transition">
+            <svg class="w-6 h-6 text-slate-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <div class="text-xs font-bold text-slate-700 dark:text-slate-200">Sau trage fișierul aici (Drag & Drop)</div>
             <div class="text-[10px] text-slate-400 mt-0.5">Acceptă JPG, PNG, WEBP</div>
           </div>
 
           <!-- Uploaded image preview card -->
-          <div id="receipt-image-preview-card" class="hidden bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
-            <img id="receipt-preview-img" src="" class="w-16 h-20 object-cover rounded-lg border border-emerald-200 shadow-xs bg-white">
+          <div id="receipt-image-preview-card" class="hidden bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-3 flex items-center gap-3">
+            <img id="receipt-preview-img" src="" class="w-16 h-20 object-cover rounded-xl border border-emerald-200 dark:border-emerald-500/30 shadow-2xs bg-white">
             <div class="flex-1 min-w-0">
-              <div class="text-xs font-bold text-emerald-950 truncate" id="receipt-preview-name">bon_fiscal.jpg</div>
-              <div class="text-[11px] text-emerald-700" id="receipt-preview-size">-- KB</div>
-              <div class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+              <div class="text-xs font-bold text-emerald-950 dark:text-emerald-200 truncate" id="receipt-preview-name">bon_fiscal.jpg</div>
+              <div class="text-[11px] text-emerald-700 dark:text-emerald-300" id="receipt-preview-size">-- KB</div>
+              <div class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 flex items-center gap-1">
                 <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 Poză încărcată!
               </div>
             </div>
-            <button id="btn-remove-preview" class="p-1 text-slate-400 hover:text-rose-600 rounded">
+            <button id="btn-remove-preview" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/30 transition">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
 
           <!-- Demo Receipts Quick Test Buttons -->
           <div>
-            <div class="text-xs font-bold text-slate-700 mb-2">Sau testează instant cu un bon românesc demo:</div>
+            <div class="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">Sau testează instant cu un bon românesc demo:</div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button data-load-receipt="receipt_lidl" class="p-3 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-400 rounded-xl text-left transition group">
+              <button data-load-receipt="receipt_lidl" class="p-3 bg-slate-50 hover:bg-emerald-50/50 dark:bg-white/5 dark:hover:bg-white/10 border border-[#E5E0F5] dark:border-white/10 rounded-2xl text-left transition group">
                 <div class="flex items-center justify-between">
-                  <span class="font-bold text-sm text-slate-800 group-hover:text-emerald-700">Bon Lidl România (74.46 LEI)</span>
-                  <span class="text-xs text-emerald-600 font-semibold">Test</span>
+                  <span class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Bon Lidl România (74.46 LEI)</span>
+                  <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10">Test</span>
                 </div>
-                <div class="text-xs text-slate-500 mt-0.5">Piept pui 1kg, Iaurt grecesc 1kg, Mix mexican, Ouă, Banane...</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">Piept pui 1kg, Iaurt grecesc 1kg, Mix mexican, Ouă, Banane...</div>
               </button>
-              <button data-load-receipt="receipt_kaufland" class="p-3 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-400 rounded-xl text-left transition group">
+              <button data-load-receipt="receipt_kaufland" class="p-3 bg-slate-50 hover:bg-emerald-50/50 dark:bg-white/5 dark:hover:bg-white/10 border border-[#E5E0F5] dark:border-white/10 rounded-2xl text-left transition group">
                 <div class="flex items-center justify-between">
-                  <span class="font-bold text-sm text-slate-800 group-hover:text-emerald-700">Bon Kaufland România (79.19 LEI)</span>
-                  <span class="text-xs text-emerald-600 font-semibold">Test</span>
+                  <span class="font-bold text-xs sm:text-sm text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Bon Kaufland (79.19 LEI)</span>
+                  <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10">Test</span>
                 </div>
-                <div class="text-xs text-slate-500 mt-0.5">Carne tocată 500g, Telemea Delaco 400g, Orez basmati 1kg...</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">Carne tocată 500g, Telemea Delaco 400g, Orez basmati 1kg...</div>
               </button>
             </div>
           </div>
 
           <!-- Raw text paste toggle -->
-          <details class="text-xs text-slate-600">
-            <summary class="cursor-pointer font-semibold text-emerald-700 hover:underline">Sau lipește textul bonului fiscal manual</summary>
-            <div class="mt-2 space-y-2">
-              <textarea id="raw-receipt-textarea" rows="4" placeholder="LIDL DISCOUNT SRL&#10;PIEPT DE PUI 1KG 28.50 A&#10;..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono"></textarea>
-              <button id="btn-parse-raw-text" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg text-xs">
+          <details class="text-xs text-slate-600 dark:text-slate-400 pt-1">
+            <summary class="cursor-pointer font-bold text-emerald-700 dark:text-emerald-400 hover:underline">Sau lipește textul bonului fiscal manual</summary>
+            <div class="mt-2.5 space-y-2">
+              <textarea id="raw-receipt-textarea" rows="4" placeholder="LIDL DISCOUNT SRL&#10;PIEPT DE PUI 1KG 28.50 A&#10;..." class="w-full bg-[#FAF9FD] dark:bg-white/5 border border-[#E5E0F5] dark:border-white/10 rounded-2xl p-3 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"></textarea>
+              <button id="btn-parse-raw-text" class="btn-pill btn-pill-dark text-xs py-2 px-4 shadow-sm">
                 Procesează Textul
               </button>
             </div>
@@ -1446,12 +1467,12 @@ class NutriApp {
         </div>
 
         <!-- OCR Processing State Indicator -->
-        <div id="ocr-progress-container" class="hidden bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-          <div class="flex justify-between text-xs font-semibold text-slate-700">
+        <div id="ocr-progress-container" class="hidden bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-4 rounded-2xl shadow-sm space-y-2">
+          <div class="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
             <span id="ocr-progress-label">Procesare OCR în curs...</span>
-            <span id="ocr-progress-percent">0%</span>
+            <span id="ocr-progress-percent" class="text-emerald-600 dark:text-emerald-400 font-extrabold">0%</span>
           </div>
-          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+          <div class="w-full bg-slate-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
             <div id="ocr-progress-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-200" style="width: 0%"></div>
           </div>
         </div>
