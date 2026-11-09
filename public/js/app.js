@@ -1829,13 +1829,22 @@ class NutriApp {
   // ==========================================
   // MODALS & DIALOGS
   // ==========================================
-  openModal(html) {
+  openModal(html, options = {}) {
     this.closeModal();
     const modalWrapper = document.createElement('div');
     modalWrapper.id = 'active-modal-root';
+
+    // Position: 'center' (default: center middle vertically & horizontally) vs 'top' (for virtual keyboard search forms)
+    const isTop = options.position === 'top';
+    const positionClass = isTop
+      ? 'items-start pt-3 sm:pt-4 sm:items-center'
+      : 'items-center';
+
+    const maxWidthClass = options.maxWidth || 'max-w-2xl';
+
     modalWrapper.innerHTML = `
-      <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 pt-3 sm:pt-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
-        <div class="bg-white dark:bg-[#181924] rounded-3xl max-w-2xl w-full max-h-[88dvh] max-h-[88vh] flex flex-col shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white relative overflow-hidden">
+      <div class="fixed inset-0 z-50 flex ${positionClass} justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md modal-enter" data-modal-backdrop="true">
+        <div class="bg-white dark:bg-[#181924] rounded-3xl ${maxWidthClass} w-full max-h-[88dvh] max-h-[88vh] flex flex-col shadow-2xl border border-[#E5E0F5] dark:border-white/10 text-slate-800 dark:text-white relative overflow-hidden my-auto">
           ${html}
         </div>
       </div>
@@ -1931,18 +1940,18 @@ class NutriApp {
           <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">${message}</p>
         </div>
 
-        <div class="flex items-center justify-center gap-3 pt-2">
-          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs sm:text-sm px-5 py-2.5">
+        <div class="grid grid-cols-2 gap-2.5 pt-2 max-w-xs mx-auto">
+          <button data-modal-close="true" class="btn-pill btn-pill-outline text-xs sm:text-sm py-2.5 px-3 whitespace-nowrap justify-center w-full">
             ${cancelText}
           </button>
-          <button id="modal-confirm-action-btn" class="btn-pill ${isDanger ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'btn-pill-primary'} text-xs sm:text-sm px-5 py-2.5 shadow">
+          <button id="modal-confirm-action-btn" class="btn-pill ${isDanger ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'btn-pill-primary'} text-xs sm:text-sm py-2.5 px-3 whitespace-nowrap justify-center w-full shadow">
             ${confirmText}
           </button>
         </div>
       </div>
     `;
 
-    this.openModal(html);
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-sm' });
     document.getElementById('modal-confirm-action-btn')?.addEventListener('click', () => {
       this.closeModal();
       if (typeof onConfirm === 'function') onConfirm();
@@ -2363,7 +2372,7 @@ class NutriApp {
       </div>
     `;
 
-    this.openModal(html);
+    this.openModal(html, { position: 'top' });
 
     // Filter recipes in modal
     const searchIn = document.getElementById('modal-recipe-search');
@@ -3053,7 +3062,7 @@ class NutriApp {
       </div>
     `;
 
-    this.openModal(html);
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-md' });
 
     document.getElementById('btn-save-quick-plan')?.addEventListener('click', () => {
       const day = document.getElementById('quick-plan-day')?.value;
@@ -3096,7 +3105,7 @@ class NutriApp {
       </div>
     `;
 
-    this.openModal(html);
+    this.openModal(html, { position: 'center', maxWidth: 'max-w-md' });
 
     document.getElementById('btn-execute-copy-day')?.addEventListener('click', () => {
       const target = document.getElementById('copy-target-day')?.value;
