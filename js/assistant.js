@@ -96,7 +96,7 @@ class NutriChefAssistant {
       { id: 'kb_03', name: 'Kinder Country', brand: 'Ferrero', ean: '8000500008431', category: 'Dulciuri', packageQuantity: 23.5, packagePrice: 2.50, calories: 561, protein: 8.6, carbs: 54.9, fat: 33.8, fiber: 1.7, keywords: ['kinder', 'country', 'cereale', 'ciocolata'] },
       { id: 'kb_04', name: 'Kinder Delice', brand: 'Ferrero', ean: '8000500023977', category: 'Dulciuri', packageQuantity: 39, packagePrice: 3.20, calories: 455, protein: 5.5, carbs: 51.5, fat: 25.5, fiber: 2.0, keywords: ['kinder', 'delice', 'prajitura', 'cacao'] },
       { id: 'kb_05', name: 'Kinder Cards', brand: 'Ferrero', ean: '8000500284392', category: 'Dulciuri', packageQuantity: 128, packagePrice: 12.50, calories: 510, protein: 7.8, carbs: 58.0, fat: 27.5, fiber: 2.1, keywords: ['kinder', 'cards', 'biscuiti', 'ciocolata'] },
-      { id: 'kb_06', name: 'Kinder Maxi', brand: 'Ferrero', ean: '8000500010991', category: 'Dulciuri', packageQuantity: 21, packagePrice: 2.20, calories: 566, protein: 8.7, carbs: 53.5, fat: 35.0, fiber: 0.9, keywords: ['kinder', 'maxi', 'ciocolata', 'lapte'] },
+      { id: 'kb_06', name: 'Kinder Maxi', brand: 'Ferrero', ean: '8000500010991', category: 'Dulciuri', packageQuantity: 21, packagePrice: 2.20, calories: 566, protein: 8.7, carbs: 53.5, fat: 35.0, fiber: 0.9, keywords: ['kinder', 'maxi', 'ciocolata', 'bomboane'] },
       { id: 'kb_07', name: 'Kinder Schoko-Bons', brand: 'Ferrero', ean: '8000500027739', category: 'Dulciuri', packageQuantity: 125, packagePrice: 13.50, calories: 576, protein: 8.3, carbs: 52.5, fat: 36.6, fiber: 1.4, keywords: ['kinder', 'schoko', 'bons', 'bomboane'] },
       { id: 'kb_08', name: 'Kinder Ciocolată Tablete', brand: 'Ferrero', ean: '8000500003788', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.50, calories: 566, protein: 8.7, carbs: 53.5, fat: 35.0, fiber: 0.9, keywords: ['kinder', 'ciocolata', 'tableta'] },
       { id: 'kb_09', name: 'Kinder Pingui', brand: 'Ferrero', ean: '8000500010885', category: 'Dulciuri', packageQuantity: 30, packagePrice: 2.80, calories: 450, protein: 7.0, carbs: 42.0, fat: 29.7, fiber: 1.3, keywords: ['kinder', 'pingui', 'prajitura'] },
@@ -106,7 +106,7 @@ class NutriChefAssistant {
       { id: 'kb_13', name: 'Nutella Cremă Alune cu Cacao', brand: 'Ferrero', ean: '8000500179865', category: 'Dulciuri', packageQuantity: 400, packagePrice: 18.50, calories: 539, protein: 6.3, carbs: 57.5, fat: 30.9, fiber: 3.0, keywords: ['nutella', 'crema', 'alune', 'ciocolata'] },
       { id: 'kb_14', name: 'Raffaello Praline Cocos', brand: 'Ferrero', ean: '8000500009650', category: 'Dulciuri', packageQuantity: 150, packagePrice: 15.00, calories: 628, protein: 7.2, carbs: 38.3, fat: 48.6, fiber: 4.0, keywords: ['raffaello', 'praline', 'cocos', 'migdale'] },
       { id: 'kb_15', name: 'Ferrero Rocher Praline', brand: 'Ferrero', ean: '8000500003290', category: 'Dulciuri', packageQuantity: 200, packagePrice: 22.00, calories: 595, protein: 8.2, carbs: 44.4, fat: 42.7, fiber: 3.5, keywords: ['ferrero', 'rocher', 'praline', 'alune'] },
-      { id: 'kb_16', name: 'Milka Ciocolată cu Lapte Alpin', brand: 'Mondelez Milka', ean: '7622210286864', category: 'Dulciuri', packageQuantity: 100, packagePrice: 5.50, calories: 530, protein: 6.3, carbs: 58.5, fat: 29.5, fiber: 1.8, keywords: ['milka', 'ciocolata', 'lapte'] },
+      { id: 'kb_16', name: 'Milka Ciocolată cu Lapte Alpin', brand: 'Mondelez Milka', ean: '7622210286864', category: 'Dulciuri', packageQuantity: 100, packagePrice: 5.50, calories: 530, protein: 6.3, carbs: 58.5, fat: 29.5, fiber: 1.8, keywords: ['milka', 'ciocolata', 'alpin'] },
       { id: 'kb_17', name: 'Milka Oreo Ciocolată', brand: 'Mondelez Milka', ean: '7622210286987', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.00, calories: 555, protein: 5.4, carbs: 56.0, fat: 34.0, fiber: 1.4, keywords: ['milka', 'oreo', 'ciocolata'] },
       { id: 'kb_18', name: 'Milka Noisette Cremă Alune', brand: 'Mondelez Milka', ean: '7622210287113', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.00, calories: 545, protein: 7.4, carbs: 54.0, fat: 32.5, fiber: 2.5, keywords: ['milka', 'noisette', 'alune'] },
       { id: 'kb_19', name: 'Milka Alune de Pădure Întregi', brand: 'Mondelez Milka', ean: '7622210287229', category: 'Dulciuri', packageQuantity: 100, packagePrice: 6.20, calories: 555, protein: 8.1, carbs: 50.0, fat: 35.5, fiber: 3.2, keywords: ['milka', 'alune', 'ciocolata'] },
@@ -133,6 +133,31 @@ class NutriChefAssistant {
       { id: 'kb_40', name: 'Chipsuri Lay\'s Clasic cu Sare', brand: 'Lay\'s', ean: '5941014002017', category: 'Dulciuri', packageQuantity: 140, packagePrice: 7.50, calories: 539, protein: 6.5, carbs: 53.0, fat: 33.0, fiber: 4.4, keywords: ['chipsuri', 'lays', 'cartofi', 'sare'] },
 
       // --- OUĂ & LACTATE ---
+      // Pilos (Lidl România) & Lapte Supermarket RO
+      { id: 'lac_pilos_01', name: 'Lapte Pilos 1.5% UHT (Lidl)', brand: 'Pilos / Lidl', ean: '20042890', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 4.99, calories: 44, protein: 3.2, carbs: 4.7, fat: 1.5, fiber: 0, keywords: ['lapte', 'pilos', 'lidl', 'uht', '1.5%'] },
+      { id: 'lac_pilos_02', name: 'Lapte Pilos 3.5% UHT (Lidl)', brand: 'Pilos / Lidl', ean: '20042906', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 5.89, calories: 62, protein: 3.2, carbs: 4.7, fat: 3.5, fiber: 0, keywords: ['lapte', 'pilos', 'lidl', 'uht', '3.5%'] },
+      { id: 'lac_pilos_03', name: 'Lapte Proaspăt Pilos 1.5% (Lidl)', brand: 'Pilos / Lidl', ean: '20114455', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 5.29, calories: 44, protein: 3.2, carbs: 4.7, fat: 1.5, fiber: 0, keywords: ['lapte', 'proaspat', 'pilos', 'lidl', '1.5%'] },
+      { id: 'lac_pilos_04', name: 'Lapte Proaspăt Pilos 3.5% (Lidl)', brand: 'Pilos / Lidl', ean: '20114462', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 6.19, calories: 62, protein: 3.2, carbs: 4.7, fat: 3.5, fiber: 0, keywords: ['lapte', 'proaspat', 'pilos', 'lidl', '3.5%'] },
+      { id: 'lac_pilos_05', name: 'Lapte Bătut Pilos 2% (Lidl)', brand: 'Pilos / Lidl', ean: '20115577', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 5.49, calories: 48, protein: 3.2, carbs: 4.2, fat: 2.0, fiber: 0, keywords: ['lapte', 'batut', 'pilos', 'lidl', '2%'] },
+      { id: 'lac_pilos_06', name: 'Lapte cu Ciocolată Pilos (Lidl)', brand: 'Pilos / Lidl', ean: '20116688', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 4.49, calories: 68, protein: 3.3, carbs: 9.8, fat: 1.7, fiber: 0, keywords: ['lapte', 'ciocolata', 'pilos', 'lidl', 'cacao'] },
+      { id: 'lac_pilos_07', name: 'Lapte Bio Pilos 3.8% (Lidl)', brand: 'Pilos / Lidl', ean: '20117799', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 6.99, calories: 65, protein: 3.3, carbs: 4.8, fat: 3.8, fiber: 0, keywords: ['lapte', 'bio', 'pilos', 'lidl', '3.8%'] },
+      { id: 'lac_pilos_08', name: 'Iaurt Pilos Natur 1.5% (Lidl)', brand: 'Pilos / Lidl', ean: '20118811', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 3.20, calories: 44, protein: 3.6, carbs: 4.2, fat: 1.5, fiber: 0, keywords: ['iaurt', 'pilos', 'lidl', 'natur', '1.5%'] },
+      { id: 'lac_pilos_09', name: 'Iaurt Pilos Natur 3.5% (Lidl)', brand: 'Pilos / Lidl', ean: '20118828', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 3.70, calories: 61, protein: 3.3, carbs: 4.1, fat: 3.5, fiber: 0, keywords: ['iaurt', 'pilos', 'lidl', 'natur', '3.5%'] },
+      { id: 'lac_pilos_10', name: 'Iaurt Grecesc Pilos 2% (Lidl)', brand: 'Pilos / Lidl', ean: '20104128', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 5.99, calories: 68, protein: 8.5, carbs: 3.8, fat: 2.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'pilos', 'lidl', '2%'] },
+      { id: 'lac_pilos_11', name: 'Chefir Pilos 1.5% (Lidl)', brand: 'Pilos / Lidl', ean: '20119933', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 3.99, calories: 45, protein: 3.2, carbs: 4.0, fat: 1.5, fiber: 0, keywords: ['chefir', 'kefir', 'pilos', 'lidl'] },
+      { id: 'lac_pilos_12', name: 'Sana Pilos 3.5% (Lidl)', brand: 'Pilos / Lidl', ean: '20119940', category: 'Ouă & Lactate', packageQuantity: 500, packagePrice: 3.99, calories: 60, protein: 3.2, carbs: 4.0, fat: 3.5, fiber: 0, keywords: ['sana', 'pilos', 'lidl'] },
+      { id: 'lac_pilos_13', name: 'Brânză Făgăraș Pilos 5% (Lidl)', brand: 'Pilos / Lidl', ean: '20120011', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 4.49, calories: 95, protein: 12.0, carbs: 2.8, fat: 5.0, fiber: 0, keywords: ['fagaras', 'branza', 'pilos', 'lidl'] },
+      { id: 'lac_pilos_14', name: 'Brânză Cottage Pilos Light (Lidl)', brand: 'Pilos / Lidl', ean: '20120028', category: 'Ouă & Lactate', packageQuantity: 200, packagePrice: 4.29, calories: 76, protein: 12.5, carbs: 2.0, fat: 2.0, fiber: 0, keywords: ['cottage', 'branza', 'perle', 'pilos', 'lidl'] },
+      { id: 'lac_pilos_15', name: 'Cașcaval Rucăr Pilos (Lidl)', brand: 'Pilos / Lidl', ean: '20122233', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 15.50, calories: 310, protein: 24.0, carbs: 1.0, fat: 24.0, fiber: 0, keywords: ['cascaval', 'rucar', 'pilos', 'lidl'] },
+      { id: 'lac_pilos_16', name: 'Telemea de Vacă Pilos (Lidl)', brand: 'Pilos / Lidl', ean: '20123344', category: 'Ouă & Lactate', packageQuantity: 300, packagePrice: 11.50, calories: 245, protein: 16.0, carbs: 1.0, fat: 20.0, fiber: 0, keywords: ['telemea', 'vaca', 'branza', 'pilos', 'lidl'] },
+      { id: 'lac_pilos_17', name: 'Unt Pilos 65% (Lidl)', brand: 'Pilos / Lidl', ean: '20121117', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 7.99, calories: 595, protein: 1.0, carbs: 1.0, fat: 65.0, fiber: 0, keywords: ['unt', 'pilos', 'lidl', '65%'] },
+      { id: 'lac_pilos_18', name: 'Unt Pilos 82% (Lidl)', brand: 'Pilos / Lidl', ean: '20121124', category: 'Grăsimi & Uleiuri', packageQuantity: 200, packagePrice: 9.99, calories: 743, protein: 0.7, carbs: 0.7, fat: 82.0, fiber: 0, keywords: ['unt', 'pilos', 'lidl', '82%'] },
+      { id: 'lac_nap_01', name: 'Lapte Napolact 1.5% UHT', brand: 'Napolact', ean: '5941165000101', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 7.80, calories: 44, protein: 3.2, carbs: 4.7, fat: 1.5, fiber: 0, keywords: ['lapte', 'napolact', 'uht', '1.5%'] },
+      { id: 'lac_nap_02', name: 'Lapte Napolact 3.5% UHT', brand: 'Napolact', ean: '5941165000217', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 8.80, calories: 62, protein: 3.2, carbs: 4.7, fat: 3.5, fiber: 0, keywords: ['lapte', 'napolact', 'uht', '3.5%'] },
+      { id: 'lac_oly_01', name: 'Lapte Olympus 1.5%', brand: 'Olympus', ean: '5201101006615', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 7.90, calories: 45, protein: 3.3, carbs: 4.7, fat: 1.5, fiber: 0, keywords: ['lapte', 'olympus', '1.5%'] },
+      { id: 'lac_oly_02', name: 'Lapte Olympus 3.7%', brand: 'Olympus', ean: '5201101006622', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 8.90, calories: 64, protein: 3.3, carbs: 4.7, fat: 3.7, fiber: 0, keywords: ['lapte', 'olympus', '3.7%'] },
+      { id: 'lac_kcl_01', name: 'Lapte K-Classic 1.5% (Kaufland)', brand: 'K-Classic / Kaufland', ean: '4337185001112', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 4.89, calories: 44, protein: 3.2, carbs: 4.7, fat: 1.5, fiber: 0, keywords: ['lapte', 'kclassic', 'kaufland', '1.5%'] },
+      { id: 'lac_kcl_02', name: 'Lapte K-Classic 3.5% (Kaufland)', brand: 'K-Classic / Kaufland', ean: '4337185001129', category: 'Ouă & Lactate', packageQuantity: 1000, packagePrice: 5.79, calories: 62, protein: 3.2, carbs: 4.7, fat: 3.5, fiber: 0, keywords: ['lapte', 'kclassic', 'kaufland', '3.5%'] },
       { id: 'lac_01', name: 'Iaurt Grecesc Olympus 10%', brand: 'Olympus', ean: '5201101004123', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 8.50, calories: 126, protein: 7.0, carbs: 3.8, fat: 10.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'olympus', '10%'] },
       { id: 'lac_02', name: 'Iaurt Grecesc Olympus 2%', brand: 'Olympus', ean: '5201101004130', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 8.20, calories: 68, protein: 9.0, carbs: 3.8, fat: 2.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'olympus', '2%'] },
       { id: 'lac_03', name: 'Iaurt Grecesc Olympus 0%', brand: 'Olympus', ean: '5201101004147', category: 'Ouă & Lactate', packageQuantity: 400, packagePrice: 8.00, calories: 53, protein: 10.0, carbs: 3.5, fat: 0.0, fiber: 0, keywords: ['iaurt', 'grecesc', 'olympus', '0%'] },
@@ -349,7 +374,16 @@ class NutriChefAssistant {
       }
     };
 
-    // 1. Search in Curated Romanian Supermarket Catalog with Multi-Token Scoring
+    // Detect category intent from query
+    const dairyKeywords = ['lapte', 'iaurt', 'branza', 'smantana', 'kefir', 'sana', 'unt', 'cascaval', 'mozzarella', 'telemea', 'urda', 'cottage', 'skyr', 'fagaras', 'pilos', 'zuzu', 'olympus', 'danone', 'albalact', 'covalact', 'hochland', 'delaco', 'napolact', 'ladorna'];
+    const meatKeywords = ['pui', 'porc', 'vita', 'curcan', 'somon', 'ton', 'peste', 'carne', 'piept', 'pulpe', 'muschi', 'sunca', 'salam', 'creveti', 'pastrav', 'dorada', 'mici', 'carnati', 'cotlet', 'ceafa', 'muschiulet', 'ciocanele'];
+    const sweetKeywords = ['ciocolata', 'kinder', 'milka', 'nutella', 'oreo', 'kitkat', 'snickers', 'twix', 'bounty', 'croissant', 'biscuiti', 'eugenia', 'dulciuri', 'bomboane', 'praline', 'napolitana', 'tort', 'prajitura', 'heidi', 'lindt', 'raffaello', 'ferrero'];
+
+    const hasDairyIntent = qTokens.some(t => dairyKeywords.includes(t));
+    const hasMeatIntent = qTokens.some(t => meatKeywords.includes(t));
+    const hasSweetIntent = qTokens.some(t => sweetKeywords.includes(t));
+
+    // 1. Search in Curated Romanian Supermarket Catalog with Multi-Token Scoring & Category Protection
     const catalogScored = [];
     this.supermarketCatalog.forEach(prod => {
       const pNameNorm = this.normalizeStr(prod.name);
@@ -357,30 +391,59 @@ class NutriChefAssistant {
       const pKeywordsNorm = prod.keywords ? prod.keywords.map(k => this.normalizeStr(k)).join(' ') : '';
       const fullText = `${pNameNorm} ${pBrandNorm} ${pKeywordsNorm}`;
 
+      // Strict category protection: Never return sweets when user searches for dairy (milk, cheese, yogurt) or meat/fish
+      if (hasDairyIntent && !hasSweetIntent && prod.category === 'Dulciuri') {
+        return;
+      }
+      if (hasMeatIntent && !hasSweetIntent && prod.category === 'Dulciuri') {
+        return;
+      }
+
       let score = 0;
-      if (pNameNorm === qNorm) {
-        score += 600;
-      } else if (pNameNorm.startsWith(qNorm)) {
-        score += 350;
-      } else if (fullText.includes(qNorm)) {
-        score += 250;
+      const isExact = pNameNorm === qNorm;
+      const isPrefix = pNameNorm.startsWith(qNorm);
+      const hasFullQuery = fullText.includes(qNorm);
+
+      if (isExact) score += 2000;
+      else if (isPrefix) score += 1200;
+      else if (hasFullQuery) score += 800;
+
+      const matchedTokens = qTokens.filter(t => fullText.includes(t));
+      const matchAll = qTokens.length > 0 && matchedTokens.length === qTokens.length;
+
+      if (matchAll) {
+        score += 1000;
+        // Even higher if all tokens are in the product name itself
+        if (qTokens.every(t => pNameNorm.includes(t))) score += 500;
+      } else if (qTokens.length > 1) {
+        // If query has 2+ words (e.g. "lapte pilos"), penalize partial single-token matches
+        score -= 300;
       }
 
-      if (qTokens.length > 0) {
-        const matchAll = qTokens.every(t => fullText.includes(t));
-        if (matchAll) score += 200;
-
-        const matchedCount = qTokens.filter(t => fullText.includes(t)).length;
-        score += matchedCount * 40;
+      // Check if product name starts with the main token (e.g. "Lapte ...")
+      if (qTokens.length > 0 && pNameNorm.startsWith(qTokens[0])) {
+        score += 400;
       }
+
+      // Category match bonuses
+      if (hasDairyIntent && prod.category === 'Ouă & Lactate') score += 300;
+      if (hasMeatIntent && prod.category === 'Carne & Pește') score += 300;
+      if (hasSweetIntent && prod.category === 'Dulciuri') score += 300;
+
+      score += matchedTokens.length * 60;
 
       if (score > 0) {
-        catalogScored.push({ prod, score });
+        catalogScored.push({ prod, score, matchAll });
       }
     });
 
     catalogScored.sort((a, b) => b.score - a.score);
-    catalogScored.slice(0, 8).forEach(item => {
+
+    // If we have items matching all tokens, prioritize only those!
+    const allMatches = catalogScored.filter(item => item.matchAll);
+    const topCatalog = (allMatches.length >= 2) ? allMatches : catalogScored;
+
+    topCatalog.slice(0, 10).forEach(item => {
       const p = item.prod;
       const packPrice = p.packagePrice;
       const packQty = p.packageQuantity;
@@ -406,12 +469,26 @@ class NutriChefAssistant {
 
     // 2. Search in user pantry / local store
     if (typeof window !== 'undefined' && window.store && window.store.data && Array.isArray(window.store.data.ingredients)) {
-      const localMatches = window.store.data.ingredients.filter(i => {
+      const localMatches = [];
+      window.store.data.ingredients.forEach(i => {
         const iNorm = this.normalizeStr(i.name + ' ' + (i.category || ''));
-        return iNorm.includes(qNorm) || (qTokens.length > 0 && qTokens.some(t => iNorm.includes(t)));
+        if (hasDairyIntent && !hasSweetIntent && i.category === 'Dulciuri') return;
+        if (hasMeatIntent && !hasSweetIntent && i.category === 'Dulciuri') return;
+
+        const hasFull = iNorm.includes(qNorm);
+        const matchAll = qTokens.length > 0 && qTokens.every(t => iNorm.includes(t));
+        const matchSome = qTokens.length > 0 && qTokens.some(t => iNorm.includes(t));
+
+        if (hasFull || matchAll || (matchSome && qTokens.length === 1)) {
+          let score = hasFull ? 500 : (matchAll ? 350 : 100);
+          if (hasDairyIntent && i.category === 'Ouă & Lactate') score += 150;
+          if (hasMeatIntent && i.category === 'Carne & Pește') score += 150;
+          localMatches.push({ item: i, score });
+        }
       });
 
-      localMatches.slice(0, 4).forEach(i => {
+      localMatches.sort((a, b) => b.score - a.score);
+      localMatches.slice(0, 4).forEach(({ item: i }) => {
         addResult({
           id: i.id,
           name: i.name,
@@ -451,6 +528,19 @@ class NutriChefAssistant {
             const name = h.product_name || h.product_name_ro || h.product_name_en || '';
             if (!name) return;
             const brands = Array.isArray(h.brands) ? h.brands.join(', ') : (h.brands || '');
+            const combinedNameNorm = this.normalizeStr(name + ' ' + brands);
+            if (hasDairyIntent && !hasSweetIntent && (
+              combinedNameNorm.includes('ciocolat') ||
+              combinedNameNorm.includes('bomboan') ||
+              combinedNameNorm.includes('biscuit') ||
+              combinedNameNorm.includes('napolitan') ||
+              combinedNameNorm.includes('pralin') ||
+              combinedNameNorm.includes('kinder') ||
+              combinedNameNorm.includes('desert') ||
+              combinedNameNorm.includes('tort')
+            )) {
+              return;
+            }
             const nut = h.nutriments || {};
 
             let packG = 100;
@@ -464,6 +554,8 @@ class NutriChefAssistant {
             }
 
             const market = this.estimateMarketData(name + ' ' + brands, packG);
+            if (hasDairyIntent && !hasSweetIntent && market.category === 'Dulciuri') return;
+            if (hasMeatIntent && !hasSweetIntent && market.category === 'Dulciuri') return;
             const packPrice = parseFloat(((market.pricePer100g * packG) / 100).toFixed(2));
 
             const calories = Math.round(nut['energy-kcal_100g'] || (nut.energy_100g ? nut.energy_100g / 4.184 : market.calories));
