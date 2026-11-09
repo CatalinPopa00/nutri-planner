@@ -376,7 +376,7 @@ class NutriApp {
             const mealCals = mealItems.reduce((acc, it) => acc + it.calories, 0);
 
             return `
-              <div class="bento-card ${meal.colorClass} p-5 sm:p-6 flex flex-col justify-between">
+              <div class="bento-card ${meal.colorClass} p-3.5 sm:p-6 flex flex-col justify-between">
                 <div>
                   <!-- Meal Card Header -->
                   <div class="flex items-center justify-between gap-3 mb-3">
@@ -410,12 +410,12 @@ class NutriApp {
                   ` : `
                     <div class="space-y-2.5">
                       ${mealItems.map(item => `
-                        <div class="bg-white/95 dark:bg-[#181924]/95 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 p-3 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+                        <div class="bg-white/95 dark:bg-[#181924]/95 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 p-2.5 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                           <div class="flex-1 min-w-0">
                             <div class="font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug">${item.recipeName}</div>
-                            <!-- Single row: Price, Calories, Protein, Carbs, Fat -->
-                            <div class="flex items-center gap-1.5 mt-1 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap overflow-x-auto no-scrollbar">
-                              <span class="font-black text-[#218352] dark:text-[#70D6A3] text-sm">${item.cost.toFixed(2)} lei</span>
+                            <!-- Single row: Price, Calories, Protein, Carbs, Fat (sized to fit all screens) -->
+                            <div class="flex items-center gap-1 sm:gap-1.5 mt-1 text-[10.5px] sm:text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap overflow-hidden">
+                              <span class="font-black text-[#218352] dark:text-[#70D6A3] text-[11px] sm:text-xs">${item.cost.toFixed(2)} lei</span>
                               <span class="text-slate-300 dark:text-slate-600">•</span>
                               <span class="font-bold text-slate-800 dark:text-slate-200">${Math.round(item.calories)} kcal</span>
                               <span class="text-slate-300 dark:text-slate-600">•</span>
@@ -951,7 +951,7 @@ class NutriApp {
                 </div>
 
                 <!-- Bottom Line: Package Gramaj & Price + Calories, P, C, G on SAME LINE -->
-                <div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 pt-1.5 border-t border-slate-100 dark:border-white/5 whitespace-nowrap overflow-x-auto no-scrollbar">
+                <div class="flex items-center gap-1 sm:gap-1.5 text-[10.5px] sm:text-xs text-slate-600 dark:text-slate-300 pt-1.5 border-t border-slate-100 dark:border-white/5 whitespace-nowrap overflow-hidden">
                   <span class="font-semibold text-slate-800 dark:text-slate-200">${ing.packageQuantity}g (${ing.packagePrice.toFixed(2)} lei)</span>
                   <span class="text-slate-300 dark:text-slate-600">•</span>
                   <span class="font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">${Math.round(ing.calories)} kcal</span>
@@ -2175,9 +2175,9 @@ class NutriApp {
                   <span class="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">${ing.name}</span>
                   <span class="font-black text-xs text-[#218352] dark:text-[#70D6A3] whitespace-nowrap">${ing.cost.toFixed(2)} RON</span>
                 </div>
-                <div class="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-white/70 whitespace-nowrap overflow-x-auto no-scrollbar">
+                <div class="flex items-center gap-1 sm:gap-1.5 text-[10.5px] sm:text-xs text-slate-600 dark:text-white/70 whitespace-nowrap overflow-hidden">
                   <span class="font-bold text-slate-800 dark:text-white">${ing.quantity}g</span>
-                  <span class="text-slate-400">(${ing.pricePer100g.toFixed(2)} lei/100g)</span>
+                  <span class="text-slate-400">(${ing.pricePer100g.toFixed(2)} lei)</span>
                   <span class="opacity-40">•</span>
                   <span class="font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">${Math.round(ing.calories)} kcal</span>
                   <span class="opacity-40">•</span>
@@ -2186,8 +2186,6 @@ class NutriApp {
                   <span class="text-amber-500 font-bold">${ing.carbs.toFixed(1)}g C</span>
                   <span class="opacity-40">•</span>
                   <span class="text-sky-500 font-bold">${ing.fat.toFixed(1)}g G</span>
-                  <span class="opacity-40">•</span>
-                  <span class="text-slate-400 font-semibold">${ing.costShare.toFixed(1)}%</span>
                 </div>
               </div>
             `).join('')}
