@@ -1210,7 +1210,7 @@ class NutriApp {
 
                     <!-- Row 2: Recipe Title - Full Width on a Single Row -->
                     <div>
-                      <h4 class="font-extrabold font-display text-base sm:text-lg text-slate-900 dark:text-white leading-snug truncate" title="${r.name}">
+                      <h4 class="font-extrabold font-display text-base sm:text-lg text-slate-900 dark:text-white leading-snug truncate cursor-pointer hover:text-[#6D4AE8] dark:hover:text-[#C4B5FD] transition" data-recipe-details="${r.id}" title="Vezi detalii complete: ${r.name}">
                         ${r.name}
                       </h4>
                       <!-- Row 3: Servings & Grams on a Single Row -->
@@ -1270,28 +1270,30 @@ class NutriApp {
                   </div>
                 </div>
 
-                <!-- Card Footer Actions: Single Row Symmetrical Layout, "Cost" only -->
-                <div class="p-3 bg-slate-50/80 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-1.5">
-                  <div class="grid grid-cols-3 gap-1.5 flex-1 min-w-0">
-                    <button data-recipe-details="${r.id}" class="btn-pill btn-pill-white text-xs py-1.5 px-2 flex items-center justify-center gap-1 font-bold truncate" title="Vezi Cost & Tabel Nutrițional">
-                      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                      <span class="truncate">Cost</span>
+                <!-- Card Footer Actions: Balanced Layout without Truncated Text -->
+                <div class="p-3 bg-slate-50/80 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                    <button data-recipe-details="${r.id}" class="btn-pill btn-pill-white text-xs py-1.5 px-3 flex-1 flex items-center justify-center gap-1.5 font-bold shadow-2xs whitespace-nowrap" title="Vezi Cost & Tabel Nutrițional complet">
+                      <svg class="w-3.5 h-3.5 flex-shrink-0 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                      <span>Detalii</span>
                     </button>
-                    <button data-recipe-copy-custom="${r.id}" class="btn-pill btn-pill-outline text-xs py-1.5 px-2 text-[#6D4AE8] dark:text-[#C4B5FD] border-brand-lilac/40 hover:bg-brand-lilac/10 font-bold flex items-center justify-center gap-1 truncate" title="Copiază pe un profil și editează">
-                      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                      <span class="truncate">Copiază</span>
-                    </button>
-                    <button data-recipe-plan="${r.id}" class="btn-pill btn-pill-dark text-xs py-1.5 px-2 flex items-center justify-center gap-1 font-bold truncate" title="Adaugă în planificator">
-                      <span class="truncate">+ Plan</span>
+                    <button data-recipe-plan="${r.id}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3 flex-1 flex items-center justify-center gap-1.5 font-bold shadow-2xs whitespace-nowrap" title="Adaugă în planificator">
+                      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+                      <span>+ Plan</span>
                     </button>
                   </div>
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    <button data-recipe-edit="${r.id}" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition" title="Editează rețeta">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <button data-recipe-copy-custom="${r.id}" class="w-8 h-8 flex items-center justify-center text-[#6D4AE8] dark:text-[#C4B5FD] bg-brand-lilac/10 hover:bg-brand-lilac/20 dark:bg-brand-lilac/15 dark:hover:bg-brand-lilac/25 rounded-xl border border-brand-lilac/30 transition shadow-2xs" title="Copiază pe un profil și editează">
+                      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                     </button>
-                    <button data-recipe-delete="${r.id}" class="w-7 h-7 flex items-center justify-center text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition" title="Șterge definitiv rețeta">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <button data-recipe-edit="${r.id}" class="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition shadow-2xs" title="Editează rețeta">
+                      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                     </button>
+                    ${isOwnedByActive ? `
+                      <button data-recipe-delete="${r.id}" class="w-8 h-8 flex items-center justify-center text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition shadow-2xs" title="Șterge definitiv rețeta">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    ` : ''}
                   </div>
                 </div>
               </div>
@@ -3769,8 +3771,8 @@ class NutriApp {
           <button id="btn-copy-just-save" class="w-full py-2.5 px-1 text-center rounded-2xl border border-brand-lilac/40 text-xs font-bold text-[#6D4AE8] dark:text-[#C4B5FD] hover:bg-brand-lilac/10 transition truncate">
             Doar Copiază
           </button>
-          <button id="btn-copy-and-edit" class="w-full py-2.5 px-1 text-center rounded-2xl bg-[#121319] dark:bg-white text-white dark:text-[#121319] text-xs font-black shadow-sm hover:opacity-95 transition truncate">
-            Copiază & Edit
+          <button id="btn-copy-and-edit" class="w-full py-2.5 px-1.5 text-center rounded-2xl bg-[#121319] dark:bg-white text-white dark:text-[#121319] text-xs font-black shadow-sm hover:opacity-95 transition whitespace-nowrap">
+            Copiază & Editează
           </button>
         </div>
       </div>
