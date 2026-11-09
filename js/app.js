@@ -4289,12 +4289,12 @@ class NutriApp {
       const p = activeProfile;
       const hM = p.height ? (p.height / 100) : null;
       const bmi = (p.weight && hM) ? (p.weight / (hM * hM)).toFixed(1) : null;
-      let bmiCategory = 'Greutate optimă';
+      let bmiCategory = 'Optim';
       let bmiColor = 'text-emerald-600 dark:text-emerald-400';
       if (bmi) {
         const b = parseFloat(bmi);
         if (b < 18.5) { bmiCategory = 'Subponderal'; bmiColor = 'text-amber-500'; }
-        else if (b < 25) { bmiCategory = 'Normal (optim)'; bmiColor = 'text-emerald-500'; }
+        else if (b < 25) { bmiCategory = 'Normal'; bmiColor = 'text-emerald-500'; }
         else if (b < 30) { bmiCategory = 'Supraponderal'; bmiColor = 'text-amber-500'; }
         else { bmiCategory = 'Obezitate'; bmiColor = 'text-rose-500'; }
       }
@@ -4307,101 +4307,100 @@ class NutriApp {
 
       const html = `
         <!-- Fixed Header -->
-        <div class="flex-shrink-0 p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
-          <div class="flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-2xl bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center font-bold flex-shrink-0">
+        <div class="flex-shrink-0 p-3.5 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between bg-white dark:bg-[#181924]">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center font-bold flex-shrink-0">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             </div>
-            <div>
-              <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white leading-snug">Profiluri & Obiective</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Comută profilul activ sau configurează datele biometrice</p>
+            <div class="min-w-0">
+              <h3 class="font-extrabold text-sm sm:text-lg text-slate-900 dark:text-white leading-snug truncate">Profiluri & Obiective</h3>
+              <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">Comută profilul activ sau configurează datele biometrice</p>
             </div>
           </div>
-          <button data-modal-close="true" class="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          <button data-modal-close="true" class="p-1.5 sm:p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full bg-slate-100 dark:bg-white/10 transition flex-shrink-0 ml-2" title="Închide">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
 
         <!-- Scrollable Body -->
-        <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5 space-y-3.5">
           <!-- Active Profile Hero Card -->
-          <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 rounded-3xl shadow-sm space-y-4">
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex items-center gap-3.5">
-                <div class="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-tr from-[#B8A9FD] to-[#FF6FA4] p-0.5 shadow-md flex-shrink-0">
+          <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-3.5 sm:p-4 rounded-3xl shadow-sm space-y-3">
+            <div class="flex items-center justify-between gap-2.5">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden bg-gradient-to-tr from-[#B8A9FD] via-[#FFB259] to-[#FF6FA4] p-0.5 shadow-md flex-shrink-0">
                   <div class="w-full h-full rounded-full bg-[#121319] dark:bg-white flex items-center justify-center overflow-hidden">
                     ${p.photo ? `
                       <img src="${p.photo}" alt="${p.name}" class="w-full h-full object-cover">
                     ` : `
-                      <span class="text-lg font-black text-white dark:text-[#121319]">${p.name ? p.name.slice(0, 2).toUpperCase() : 'NP'}</span>
+                      <span class="text-base sm:text-lg font-black text-white dark:text-[#121319]">${p.name ? p.name.slice(0, 2).toUpperCase() : 'NP'}</span>
                     `}
                   </div>
                 </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-lg sm:text-xl font-extrabold font-display text-slate-900 dark:text-white">${p.name}</h4>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Activ ✓</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <h4 class="text-base sm:text-lg font-extrabold font-display text-slate-900 dark:text-white truncate">${p.name}</h4>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex-shrink-0">Activ ✓</span>
                   </div>
-                  <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
+                  <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 truncate">
                     <span>${p.gender === 'feminin' ? '♀ Feminin' : '♂ Masculin'}</span>
                     <span>•</span>
-                    <span>${p.weight ? p.weight + ' kg' : 'Greutate nesetată'}</span>
-                    ${p.height ? `<span>•</span><span>${p.height} cm</span>` : ''}
+                    <span class="font-extrabold text-[#6D4AE8] dark:text-[#C4B5FD]">${Math.round(p.calories)} kcal/zi</span>
                   </div>
                 </div>
               </div>
 
-              <button id="btn-edit-active-profile" class="btn-pill btn-pill-outline text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold">
+              <button id="btn-edit-active-profile" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 flex items-center gap-1.5 font-bold flex-shrink-0 whitespace-nowrap shadow-2xs" title="Editează profilul activ">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 <span>Editează</span>
               </button>
             </div>
 
             <!-- Biometrics & BMI -->
-            <div class="grid grid-cols-3 gap-2.5 pt-2 border-t border-slate-100 dark:border-white/5 text-center">
-              <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Greutate</div>
-                <div class="text-sm sm:text-base font-extrabold text-slate-800 dark:text-white mt-0.5">${p.weight || '--'} <span class="text-[10px] font-bold text-slate-400">kg</span></div>
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-white/5 text-center">
+              <div class="p-2 sm:p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Greutate</div>
+                <div class="text-xs sm:text-base font-extrabold text-slate-800 dark:text-white mt-0.5">${p.weight || '--'} <span class="text-[10px] font-bold text-slate-400">kg</span></div>
               </div>
-              <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Înălțime</div>
-                <div class="text-sm sm:text-base font-extrabold text-slate-800 dark:text-white mt-0.5">${p.height || '--'} <span class="text-[10px] font-bold text-slate-400">cm</span></div>
+              <div class="p-2 sm:p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Înălțime</div>
+                <div class="text-xs sm:text-base font-extrabold text-slate-800 dark:text-white mt-0.5">${p.height || '--'} <span class="text-[10px] font-bold text-slate-400">cm</span></div>
               </div>
-              <div class="p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Indice BMI</div>
-                <div class="text-sm sm:text-base font-extrabold ${bmi ? bmiColor : 'text-slate-800 dark:text-white'} mt-0.5">
+              <div class="p-2 sm:p-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider">Indice BMI</div>
+                <div class="text-xs sm:text-base font-extrabold ${bmi ? bmiColor : 'text-slate-800 dark:text-white'} mt-0.5">
                   ${bmi || '--'}
                 </div>
-                ${bmi ? `<div class="text-[9px] font-bold ${bmiColor} truncate">${bmiCategory}</div>` : ''}
+                ${bmi ? `<div class="text-[9px] font-bold ${bmiColor}">${bmiCategory}</div>` : ''}
               </div>
             </div>
 
             <!-- Macro Targets -->
-            <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-white/5">
-              <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-white/80">
-                <span>Ținte Zilnice Active</span>
+            <div class="space-y-1.5 pt-2 border-t border-slate-100 dark:border-white/5">
+              <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-white/80">
+                <span class="uppercase tracking-wider">Ținte Zilnice Active</span>
                 <span class="text-[#6D4AE8] dark:text-[#C4B5FD] font-extrabold">${p.calories} kcal / zi</span>
               </div>
-              <div class="grid grid-cols-4 gap-2 text-center">
-                <div class="p-2 rounded-2xl bg-purple-50/70 dark:bg-purple-900/15 border border-purple-100 dark:border-purple-800/30">
-                  <div class="text-[10px] font-bold text-purple-700 dark:text-purple-300">Calorii</div>
-                  <div class="text-sm font-extrabold text-purple-900 dark:text-purple-100 mt-0.5">${Math.round(p.calories)}</div>
-                  <div class="text-[9px] text-purple-400">kcal</div>
+              <div class="grid grid-cols-4 gap-1.5 sm:gap-2 text-center">
+                <div class="p-1.5 sm:p-2 rounded-2xl bg-purple-50/70 dark:bg-purple-900/15 border border-purple-100 dark:border-purple-800/30">
+                  <div class="text-[9px] sm:text-[10px] font-bold text-purple-700 dark:text-purple-300">Calorii</div>
+                  <div class="text-xs sm:text-sm font-extrabold text-purple-900 dark:text-purple-100 mt-0.5">${Math.round(p.calories)}</div>
+                  <div class="text-[8px] sm:text-[9px] text-purple-400">kcal</div>
                 </div>
-                <div class="p-2 rounded-2xl bg-rose-50/70 dark:bg-rose-900/15 border border-rose-100 dark:border-rose-800/30">
-                  <div class="text-[10px] font-bold text-rose-700 dark:text-rose-300">Proteine</div>
-                  <div class="text-sm font-extrabold text-rose-900 dark:text-rose-100 mt-0.5">${Math.round(p.protein)}g</div>
-                  <div class="text-[9px] text-rose-400">${protPct}%</div>
+                <div class="p-1.5 sm:p-2 rounded-2xl bg-rose-50/70 dark:bg-rose-900/15 border border-rose-100 dark:border-rose-800/30">
+                  <div class="text-[9px] sm:text-[10px] font-bold text-rose-700 dark:text-rose-300">Proteine</div>
+                  <div class="text-xs sm:text-sm font-extrabold text-rose-900 dark:text-rose-100 mt-0.5">${Math.round(p.protein)}g</div>
+                  <div class="text-[8px] sm:text-[9px] text-rose-400 font-bold">${protPct}%</div>
                 </div>
-                <div class="p-2 rounded-2xl bg-amber-50/70 dark:bg-amber-900/15 border border-amber-100 dark:border-amber-800/30">
-                  <div class="text-[10px] font-bold text-amber-700 dark:text-amber-300">Carbi</div>
-                  <div class="text-sm font-extrabold text-amber-900 dark:text-amber-100 mt-0.5">${Math.round(p.carbs)}g</div>
-                  <div class="text-[9px] text-amber-400">${carbsPct}%</div>
+                <div class="p-1.5 sm:p-2 rounded-2xl bg-amber-50/70 dark:bg-amber-900/15 border border-amber-100 dark:border-amber-800/30">
+                  <div class="text-[9px] sm:text-[10px] font-bold text-amber-700 dark:text-amber-300">Carbi</div>
+                  <div class="text-xs sm:text-sm font-extrabold text-amber-900 dark:text-amber-100 mt-0.5">${Math.round(p.carbs)}g</div>
+                  <div class="text-[8px] sm:text-[9px] text-amber-400 font-bold">${carbsPct}%</div>
                 </div>
-                <div class="p-2 rounded-2xl bg-sky-50/70 dark:bg-sky-900/15 border border-sky-100 dark:border-sky-800/30">
-                  <div class="text-[10px] font-bold text-sky-700 dark:text-sky-300">Grăsimi</div>
-                  <div class="text-sm font-extrabold text-sky-900 dark:text-sky-100 mt-0.5">${Math.round(p.fat)}g</div>
-                  <div class="text-[9px] text-sky-400">${fatPct}%</div>
+                <div class="p-1.5 sm:p-2 rounded-2xl bg-sky-50/70 dark:bg-sky-900/15 border border-sky-100 dark:border-sky-800/30">
+                  <div class="text-[9px] sm:text-[10px] font-bold text-sky-700 dark:text-sky-300">Grăsimi</div>
+                  <div class="text-xs sm:text-sm font-extrabold text-sky-900 dark:text-sky-100 mt-0.5">${Math.round(p.fat)}g</div>
+                  <div class="text-[8px] sm:text-[9px] text-sky-400 font-bold">${fatPct}%</div>
                 </div>
               </div>
 
@@ -4415,27 +4414,27 @@ class NutriApp {
           </div>
 
           <!-- All Profiles Switcher List -->
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
               <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Toate Profilurile Tale (${profiles.length})
               </h4>
-              <button id="btn-create-new-profile" class="btn-pill btn-pill-primary text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold shadow-xs">
+              <button id="btn-create-new-profile" class="btn-pill btn-pill-primary text-xs !py-1.5 !px-3 flex items-center gap-1.5 font-bold shadow-xs whitespace-nowrap flex-shrink-0">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                <span>+ Creează Profil Nou</span>
+                <span>Profil Nou</span>
               </button>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pb-2">
               ${profiles.map(item => {
                 const isActive = item.id === activeProfile.id;
                 return `
-                  <div class="p-3.5 rounded-2xl border ${
+                  <div class="p-3 rounded-2xl border ${
                     isActive 
-                      ? 'border-[#6D4AE8] bg-[#6D4AE8]/5 dark:bg-[#6D4AE8]/10' 
-                      : 'border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-[#181924]'
-                  } flex items-center justify-between gap-3 shadow-2xs transition">
-                    <div class="flex items-center gap-3 min-w-0">
+                      ? 'border-[#6D4AE8] bg-[#6D4AE8]/5 dark:bg-[#6D4AE8]/10 ring-1 ring-[#6D4AE8]/30' 
+                      : 'border-[#E5E0F5] dark:border-white/10 bg-white dark:bg-[#181924] hover:border-slate-300 dark:hover:border-white/20'
+                  } flex items-center justify-between gap-2.5 shadow-2xs transition">
+                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
                       <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
                         ${item.photo ? `
                           <img src="${item.photo}" alt="${item.name}" class="w-full h-full object-cover">
@@ -4443,10 +4442,10 @@ class NutriApp {
                           <span class="text-xs font-black text-slate-700 dark:text-white">${item.name ? item.name.slice(0, 2).toUpperCase() : 'NP'}</span>
                         `}
                       </div>
-                      <div class="min-w-0">
+                      <div class="min-w-0 flex-1">
                         <div class="text-xs font-extrabold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
-                          <span>${item.name}</span>
-                          ${isActive ? '<span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Activ</span>' : ''}
+                          <span class="truncate">${item.name}</span>
+                          ${isActive ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black flex-shrink-0">Activ</span>' : ''}
                         </div>
                         <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                           ${item.weight ? item.weight + ' kg • ' : ''}${Math.round(item.calories)} kcal
@@ -4472,8 +4471,13 @@ class NutriApp {
         </div>
 
         <!-- Fixed Footer -->
-        <div class="flex-shrink-0 p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-end bg-white dark:bg-[#181924]">
-          <button data-modal-close="true" class="btn-pill btn-pill-dark text-xs px-5">Închide</button>
+        <div class="flex-shrink-0 p-3 sm:p-4 border-t border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-3 bg-white dark:bg-[#181924]">
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">
+            Rețetele proprii se asociază profilului activ
+          </div>
+          <button data-modal-close="true" class="btn-pill btn-pill-dark text-xs !py-1.5 !px-4 font-bold flex-shrink-0">
+            Închide
+          </button>
         </div>
       `;
 
