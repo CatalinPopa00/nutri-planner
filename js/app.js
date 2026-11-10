@@ -216,6 +216,7 @@ class NutriApp {
       window.barcodeScanner.stopCamera();
     }
 
+    this.updateHeaderProfile();
     this.renderCurrentView();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -2507,6 +2508,7 @@ class NutriApp {
   renderTotalView() {
     const data = window.store.calculateAllProfilesTotal();
     const activeSubTab = this.totalSubTab || 'recipes';
+    const activeProfile = window.store.getActiveProfile() || { name: 'Profil' };
 
     return `
       <div class="space-y-6 pb-24">
@@ -2547,6 +2549,18 @@ class NutriApp {
             <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 mt-1.5 leading-relaxed font-medium">
               Vizualizează toate rețetele introduse pe fiecare profil de membru, costurile totale per profil și costul consolidat al planificării săptămânale.
             </p>
+
+            <!-- Quick Exit Buttons back to Individual Views -->
+            <div class="flex items-center gap-2.5 mt-3.5 flex-wrap">
+              <button id="btn-exit-total-to-planner" class="btn-pill btn-pill-dark text-xs !py-2 !px-4 font-bold flex items-center gap-2 shadow-md hover:scale-[1.02] transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                <span>← Înapoi la Planificator (${activeProfile.name})</span>
+              </button>
+              <button id="btn-exit-total-to-recipes" class="btn-pill btn-pill-outline text-xs !py-2 !px-3.5 font-bold bg-white/80 dark:bg-black/30 flex items-center gap-1.5 shadow-2xs hover:scale-[1.02] transition cursor-pointer">
+                <span>Rețetar Individual (${activeProfile.name})</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </div>
           </div>
 
           <!-- Top Bento KPI Metrics -->
@@ -2665,8 +2679,8 @@ class NutriApp {
                   </div>
                 </div>
 
-                <!-- Subtotal Cost Pill & Add Recipe Action -->
-                <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                <!-- Subtotal Cost Pill & Actions -->
+                <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   <div class="px-3.5 py-1.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 flex items-center gap-2">
                     <span class="text-xs text-emerald-800 dark:text-emerald-300 font-bold">Subtotal Profil:</span>
                     <span class="text-sm sm:text-base font-black text-[#218352] dark:text-[#70D6A3] font-display">
@@ -2674,7 +2688,12 @@ class NutriApp {
                     </span>
                   </div>
 
-                  <button data-create-recipe-for-profile="${p.id}" class="btn-pill btn-pill-primary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                  <button data-switch-to-profile="${p.id}" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 whitespace-nowrap bg-white/80 dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 cursor-pointer shadow-2xs" title="Comută pe acest profil și deschide planificatorul">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span>Comută Profil 👤</span>
+                  </button>
+
+                  <button data-create-recipe-for-profile="${p.id}" class="btn-pill btn-pill-primary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     <span>+ Rețetă Proprie</span>
                   </button>
@@ -2970,6 +2989,14 @@ class NutriApp {
           this.showToast(`Comutat pe profilul "${switched.name}".`, 'success');
         }
       });
+    });
+
+    // Exit buttons back to individual planner or recipes
+    document.getElementById('btn-exit-total-to-planner')?.addEventListener('click', () => {
+      this.switchTab('planner');
+    });
+    document.getElementById('btn-exit-total-to-recipes')?.addEventListener('click', () => {
+      this.switchTab('recipes');
     });
 
     // Export data JSON button
@@ -5262,19 +5289,6 @@ class NutriApp {
     const nameEl = document.getElementById('header-user-name');
     const subEl = document.getElementById('header-user-sub');
 
-    if (this.currentTab === 'total') {
-      if (avatarCircle) {
-        avatarCircle.innerHTML = '<span class="text-xs sm:text-sm font-black tracking-tight text-white dark:text-[#121319]">Σ</span>';
-      }
-      if (nameEl) {
-        nameEl.textContent = 'Profil Total 📊';
-      }
-      if (subEl) {
-        subEl.textContent = 'Consolidat • Toate Profilurile';
-      }
-      return;
-    }
-
     if (avatarCircle) {
       if (profile.photo && profile.photo.trim() !== '') {
         avatarCircle.innerHTML = `<img src="${profile.photo}" alt="${profile.name}" class="w-full h-full object-cover">`;
@@ -5289,10 +5303,14 @@ class NutriApp {
     }
 
     if (subEl) {
-      const parts = [];
-      if (profile.weight) parts.push(`${profile.weight} kg`);
-      if (profile.calories) parts.push(`${Math.round(profile.calories)} kcal`);
-      subEl.textContent = parts.length > 0 ? parts.join(' • ') : 'NutriPlanner';
+      if (this.currentTab === 'total') {
+        subEl.textContent = 'Vizualizare: Profil Total 📊';
+      } else {
+        const parts = [];
+        if (profile.weight) parts.push(`${profile.weight} kg`);
+        if (profile.calories) parts.push(`${Math.round(profile.calories)} kcal`);
+        subEl.textContent = parts.length > 0 ? parts.join(' • ') : 'NutriPlanner';
+      }
     }
   }
 
@@ -5386,6 +5404,22 @@ class NutriApp {
 
         <!-- Scrollable Body -->
         <div class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5 space-y-3.5">
+          ${this.currentTab === 'total' ? `
+            <div class="p-3.5 rounded-2xl bg-gradient-to-r from-brand-lilac/25 via-[#6D4AE8]/15 to-brand-pink/20 border-2 border-[#6D4AE8]/40 flex items-center justify-between gap-3 shadow-xs">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-[#6D4AE8] text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-2xs">📊</div>
+                <div class="min-w-0">
+                  <div class="text-xs font-black text-slate-900 dark:text-white truncate">Ești în vizualizarea „Profil Total”</div>
+                  <div class="text-[11px] text-slate-600 dark:text-slate-300 truncate">Alege un profil pentru a reveni la planificatorul individual</div>
+                </div>
+              </div>
+              <button id="btn-modal-exit-total" type="button" class="btn-pill btn-pill-dark text-xs !py-1.5 !px-3 font-extrabold flex items-center gap-1.5 whitespace-nowrap shadow-xs cursor-pointer hover:scale-[1.02] transition">
+                <span>Planificator</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </div>
+          ` : ''}
+
           <!-- Active Profile Hero Card -->
           <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-3.5 sm:p-4 rounded-3xl shadow-sm space-y-3">
             <div class="flex items-center justify-between gap-2.5">
@@ -5412,10 +5446,16 @@ class NutriApp {
                 </div>
               </div>
 
-              <button id="btn-edit-active-profile" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 flex items-center gap-1.5 font-bold flex-shrink-0 whitespace-nowrap shadow-2xs" title="Editează profilul activ">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                <span>Editează</span>
-              </button>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <button data-open-profile-plan="${p.id}" class="btn-pill btn-pill-primary text-xs !py-1.5 !px-3 flex items-center gap-1.5 font-bold whitespace-nowrap shadow-xs cursor-pointer hover:scale-[1.02] transition" title="Deschide planificatorul pentru acest profil">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Deschide Plan</span>
+                </button>
+                <button id="btn-edit-active-profile" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-2.5 flex items-center gap-1 font-bold flex-shrink-0 whitespace-nowrap shadow-2xs cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10" title="Editează profilul activ">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  <span class="hidden sm:inline">Editează</span>
+                </button>
+              </div>
             </div>
 
             <!-- Biometrics & BMI -->
@@ -5516,12 +5556,16 @@ class NutriApp {
                     </div>
 
                     <div class="flex items-center gap-1 flex-shrink-0">
-                      ${!isActive ? `
-                        <button data-switch-profile="${item.id}" class="btn-pill btn-pill-outline text-[11px] py-1 px-2.5 font-bold hover:bg-slate-100 dark:hover:bg-white/10">
+                      ${isActive ? `
+                        <button data-open-profile-plan="${item.id}" class="btn-pill btn-pill-primary text-[11px] py-1 px-2.5 font-bold shadow-xs cursor-pointer hover:scale-[1.02] transition">
+                          Deschide Plan
+                        </button>
+                      ` : `
+                        <button data-switch-profile="${item.id}" class="btn-pill btn-pill-outline text-[11px] py-1 px-2.5 font-bold hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer shadow-2xs">
                           Comută
                         </button>
-                      ` : ''}
-                      <button data-edit-profile="${item.id}" class="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Editează">
+                      `}
+                      <button data-edit-profile="${item.id}" class="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition cursor-pointer" title="Editează">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
                     </div>
@@ -5604,6 +5648,26 @@ class NutriApp {
         this.openCloudSyncModal();
       });
 
+      // Exit total view banner button
+      document.getElementById('btn-modal-exit-total')?.addEventListener('click', () => {
+        this.closeModal();
+        this.switchTab('planner');
+      });
+
+      // Open profile plan directly and return to planner
+      document.querySelectorAll('[data-open-profile-plan]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-open-profile-plan');
+          const switched = window.store.setActiveProfile(id);
+          if (switched) {
+            this.dailyCalorieTarget = switched.calories;
+            this.updateHeaderProfile();
+          }
+          this.closeModal();
+          this.switchTab('planner');
+        });
+      });
+
       document.querySelectorAll('[data-switch-profile]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const id = e.currentTarget.getAttribute('data-switch-profile');
@@ -5612,8 +5676,14 @@ class NutriApp {
             this.dailyCalorieTarget = switched.calories;
             this.updateHeaderProfile();
             this.showToast(`Profil activ schimbat pe "${switched.name}"!`, 'success');
-            this.renderCurrentView();
-            this.openProfileModal('view');
+            // If currently on the consolidated Profil Total view, switch back to planner view!
+            if (this.currentTab === 'total') {
+              this.closeModal();
+              this.switchTab('planner');
+            } else {
+              this.renderCurrentView();
+              this.openProfileModal('view');
+            }
           }
         });
       });
