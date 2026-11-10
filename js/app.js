@@ -227,9 +227,9 @@ class NutriApp {
       });
     }
 
-    // Close modal on click outside or close buttons
+    // Close modal on close buttons ('X', 'Anulează', etc.)
     document.addEventListener('click', (e) => {
-      if (e.target.hasAttribute('data-modal-backdrop') || e.target.closest('[data-modal-close]')) {
+      if (e.target.closest('[data-modal-close]')) {
         this.closeModal();
       }
     });
@@ -1053,6 +1053,7 @@ class NutriApp {
     let touchStartTime = 0;
 
     const onTouchStart = (e) => {
+      if (this.activeModal) return;
       if (e.touches && e.touches.length === 1) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
@@ -1061,7 +1062,12 @@ class NutriApp {
     };
 
     const onTouchEnd = (e) => {
+      if (this.activeModal) return;
       if (!e.changedTouches || e.changedTouches.length !== 1) return;
+
+      const hasSelection = window.getSelection ? window.getSelection().toString().trim().length > 0 : false;
+      if (hasSelection) return;
+
       const touchEndX = e.changedTouches[0].clientX;
       const touchEndY = e.changedTouches[0].clientY;
       const deltaX = touchEndX - touchStartX;
@@ -3266,13 +3272,51 @@ class NutriApp {
     this.activeModal = modalWrapper;
     document.body.style.overflow = 'hidden';
 
-    // Direct listener on backdrop (click outside card)
+    // Backdrop click-outside detection:
+    // Only close if BOTH mousedown AND mouseup occurred directly on the backdrop (not inside modal content),
+    // and no text was selected (prevents closing when selecting/dragging text with the mouse).
     const backdrop = modalWrapper.querySelector('[data-modal-backdrop="true"]');
     if (backdrop) {
-      backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) {
+      let isMouseDownOnBackdrop = false;
+
+      backdrop.addEventListener('mousedown', (e) => {
+        // True ONLY if the mouse was pressed directly on the dark overlay backdrop
+        isMouseDownOnBackdrop = (e.target === backdrop);
+      });
+
+      backdrop.addEventListener('mouseup', (e) => {
+        const isMouseUpOnBackdrop = (e.target === backdrop);
+        const hasSelection = window.getSelection ? window.getSelection().toString().trim().length > 0 : false;
+
+        // If the user started mousedown inside the modal card (e.g. text selection or drag),
+        // or currently has highlighted text, DO NOT close the modal!
+        if (isMouseDownOnBackdrop && isMouseUpOnBackdrop && !hasSelection) {
           this.closeModal();
         }
+        isMouseDownOnBackdrop = false;
+      });
+
+      // Touch tap outside support
+      let isTouchStartOnBackdrop = false;
+      backdrop.addEventListener('touchstart', (e) => {
+        isTouchStartOnBackdrop = (e.target === backdrop);
+      }, { passive: true });
+
+      backdrop.addEventListener('touchend', (e) => {
+        const isTouchEndOnBackdrop = (e.target === backdrop);
+        const hasSelection = window.getSelection ? window.getSelection().toString().trim().length > 0 : false;
+        if (isTouchStartOnBackdrop && isTouchEndOnBackdrop && !hasSelection) {
+          this.closeModal();
+        }
+        isTouchStartOnBackdrop = false;
+      }, { passive: true });
+    }
+
+    // Stop propagation on dialog card clicks so mouse dragging inside never triggers parent backdrop
+    const dialogCard = modalWrapper.querySelector('[data-modal-backdrop="true"] > div');
+    if (dialogCard) {
+      dialogCard.addEventListener('click', (e) => {
+        e.stopPropagation();
       });
     }
 
