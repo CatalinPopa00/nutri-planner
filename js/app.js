@@ -1263,35 +1263,35 @@ class NutriApp {
                 <div>
                   <!-- Card Header: Symmetrical, Single-Row Elements -->
                   <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-white/5 space-y-2">
-                    <!-- Row 1: Category + Badges on Left, Cost on Right -->
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-                        <span class="pill-badge pill-badge-translucent text-[10px] flex-shrink-0">
+                    <!-- Row 1: Category + Badges on Left, Cost on Right (No clipping, flex-wrap responsive) -->
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-slate-200/80 dark:border-white/10 bg-slate-100/80 dark:bg-white/10 text-slate-800 dark:text-slate-200 whitespace-nowrap shadow-2xs">
                           ${r.category}
                         </span>
                         ${isOwnedByActive ? `
-                          <span class="pill-badge bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD] text-[10px] font-bold flex-shrink-0">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#6D4AE8]/15 text-[#6D4AE8] dark:text-[#C4B5FD] border border-[#6D4AE8]/25 whitespace-nowrap shadow-2xs">
                             Proprie
                           </span>
                         ` : isFromOtherProfile ? `
-                          <span class="pill-badge bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex-shrink-0">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 whitespace-nowrap shadow-2xs">
                             Comună
                           </span>
-                          <span class="pill-badge bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] text-[10px] font-extrabold flex items-center gap-1 truncate max-w-[130px]" title="Creată pe profilul ${creatorName}">
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#6D4AE8]/15 text-[#6D4AE8] dark:text-[#C4B5FD] border border-[#6D4AE8]/25 whitespace-nowrap shadow-2xs" title="Creată pe profilul ${creatorName}">
                             <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                            <span class="truncate">${creatorName}</span>
+                            <span class="truncate max-w-[90px]">${creatorName}</span>
                           </span>
                         ` : `
-                          <span class="pill-badge bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex-shrink-0">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 whitespace-nowrap shadow-2xs">
                             Catalog
                           </span>
                         `}
                       </div>
-                      <div class="flex items-center gap-1 flex-shrink-0">
-                        <span class="pill-badge bg-[#70D6A3]/20 text-[#218352] dark:text-[#70D6A3] font-black text-xs sm:text-sm px-2.5 py-1">
+                      <div class="flex items-center gap-1 flex-shrink-0 self-start">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#70D6A3]/20 text-[#218352] dark:text-[#70D6A3] font-black text-xs sm:text-sm font-display whitespace-nowrap">
                           ${r.perServing.cost.toFixed(2)} RON
                         </span>
-                        <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium">/ p</span>
+                        <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">/ p</span>
                       </div>
                     </div>
 
