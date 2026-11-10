@@ -69,12 +69,23 @@ class NutriApp {
 
     const mYear = monday.getFullYear();
     const sYear = sunday.getFullYear();
-    const yearStr = mYear === sYear ? `${mYear}` : `${mYear} / ${sYear}`;
-    const rangeStr = `${monday.getDate()} ${monthsShort[monday.getMonth()]} - ${sunday.getDate()} ${monthsShort[sunday.getMonth()]} ${yearStr}`;
+    const mMonth = monday.getMonth();
+    const sMonth = sunday.getMonth();
 
-    const mMonth = String(monday.getMonth() + 1).padStart(2, '0');
-    const mDay = String(monday.getDate()).padStart(2, '0');
-    const weekKey = `${monday.getFullYear()}-${mMonth}-${mDay}`;
+    let rangeStr = '';
+    if (mYear === sYear) {
+      if (mMonth === sMonth) {
+        rangeStr = `${monday.getDate()} – ${sunday.getDate()} ${monthsShort[mMonth]} ${mYear}`;
+      } else {
+        rangeStr = `${monday.getDate()} ${monthsShort[mMonth]} – ${sunday.getDate()} ${monthsShort[sMonth]} ${mYear}`;
+      }
+    } else {
+      rangeStr = `${monday.getDate()} ${monthsShort[mMonth]} ${mYear} – ${sunday.getDate()} ${monthsShort[sMonth]} ${sYear}`;
+    }
+
+    const mMonthStr = String(mMonth + 1).padStart(2, '0');
+    const mDayStr = String(monday.getDate()).padStart(2, '0');
+    const weekKey = `${monday.getFullYear()}-${mMonthStr}-${mDayStr}`;
 
     return {
       mondayDate: monday,
@@ -375,7 +386,7 @@ class NutriApp {
               Cost & Macronutrienți Săptămână
             </h2>
             <p class="text-xs sm:text-sm mt-1 opacity-85 text-[#121319] dark:text-white font-medium max-w-md">
-              Atinge targetul tău de proteine și calorii menținând bugetul optimizat per porție • <span class="font-bold underline">${weekInfo.rangeStr}</span>
+              Atinge targetul tău de proteine și calorii menținând bugetul optimizat per porție.
             </p>
 
             <!-- 4 Bento Metric Pills inside Hero Card -->
@@ -413,35 +424,26 @@ class NutriApp {
         </div>
 
         <!-- Week Switcher Bar (Past / Current / Future Week Navigation) -->
-        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-2.5 sm:p-3 rounded-2xl flex items-center justify-between gap-2 shadow-2xs">
-          <button id="btn-week-prev" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer shadow-2xs" title="Săptămâna anterioară (sau apasă săgeata stânga a zilelor)">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-2 sm:p-2.5 rounded-2xl flex items-center justify-between shadow-2xs">
+          <button id="btn-week-prev" class="w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer transition flex-shrink-0 active:scale-95" title="Săptămâna anterioară">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
             <span class="hidden sm:inline">Săpt. Anterioară</span>
-            <span class="sm:hidden">← Săpt</span>
           </button>
 
-          <div class="flex items-center gap-2 min-w-0">
-            <div class="text-center">
-              <div class="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white flex items-center justify-center gap-1.5 flex-wrap">
-                <span>📅 Săptămâna: ${weekInfo.rangeStr}</span>
-                ${weekInfo.isCurrentWeek ? `
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">În Curs</span>
-                ` : `
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#6D4AE8]/15 text-[#6D4AE8] dark:text-[#C4B5FD] border border-[#6D4AE8]/25">${this.weekOffset > 0 ? `+${this.weekOffset} săpt.` : `${this.weekOffset} săpt.`}</span>
-                `}
-              </div>
-            </div>
+          <div class="flex flex-col items-center justify-center text-center px-2 min-w-0">
+            <span class="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white whitespace-nowrap tracking-tight">
+              ${weekInfo.rangeStr}
+            </span>
             ${!weekInfo.isCurrentWeek ? `
-              <button id="btn-week-today" class="btn-pill btn-pill-primary text-[11px] !py-1 !px-2.5 font-bold shadow-xs whitespace-nowrap cursor-pointer hover:scale-[1.02] transition" title="Revino la săptămâna curentă">
+              <button id="btn-week-today" class="text-[10px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] hover:underline cursor-pointer transition mt-0.5" title="Revino la săptămâna curentă">
                 Azi ↩
               </button>
             ` : ''}
           </div>
 
-          <button id="btn-week-next" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer shadow-2xs" title="Săptămâna următoare (sau apasă săgeata dreapta a zilelor)">
+          <button id="btn-week-next" class="w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer transition flex-shrink-0 active:scale-95" title="Săptămâna următoare">
             <span class="hidden sm:inline">Săpt. Următoare</span>
-            <span class="sm:hidden">Săpt →</span>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
 
@@ -922,31 +924,24 @@ class NutriApp {
 
       <div class="p-4 sm:p-5 space-y-3 max-h-[75vh] overflow-y-auto">
         <!-- Week navigation toolbar in modal -->
-        <div class="p-2.5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-1.5 shadow-2xs">
-          <button id="btn-modal-week-prev" class="btn-pill btn-pill-outline text-[11px] !py-1 !px-2.5 font-bold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
-            <span class="hidden xs:inline">Săpt. Anterioară</span>
-            <span class="xs:hidden">←</span>
+        <div class="p-2 bg-slate-50 dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 flex items-center justify-between shadow-2xs">
+          <button id="btn-modal-week-prev" class="w-7 h-7 sm:w-auto sm:px-2.5 sm:py-1 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer text-slate-700 dark:text-slate-200" title="Săptămâna anterioară">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            <span class="hidden sm:inline">Săpt. Anterioară</span>
           </button>
 
-          <div class="text-center min-w-0 px-1">
-            <div class="text-xs font-black text-slate-900 dark:text-white truncate">
-              📅 ${weekInfo.rangeStr}
-            </div>
-            <div class="flex items-center justify-center gap-1 mt-0.5">
-              ${weekInfo.isCurrentWeek ? `
-                <span class="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded-full">În Curs</span>
-              ` : `
-                <span class="text-[9px] font-black uppercase text-[#6D4AE8] dark:text-[#C4B5FD] bg-[#6D4AE8]/15 px-1.5 py-0.2 rounded-full">${this.weekOffset > 0 ? `+${this.weekOffset} săpt.` : `${this.weekOffset} săpt.`}</span>
-                <button id="btn-modal-week-today" class="text-[10px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white underline cursor-pointer ml-1">Azi ↩</button>
-              `}
-            </div>
+          <div class="flex flex-col items-center justify-center text-center px-1 min-w-0">
+            <span class="text-xs font-black text-slate-900 dark:text-white whitespace-nowrap">
+              ${weekInfo.rangeStr}
+            </span>
+            ${!weekInfo.isCurrentWeek ? `
+              <button id="btn-modal-week-today" class="text-[10px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] hover:underline cursor-pointer mt-0.5">Azi ↩</button>
+            ` : ''}
           </div>
 
-          <button id="btn-modal-week-next" class="btn-pill btn-pill-outline text-[11px] !py-1 !px-2.5 font-bold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
-            <span class="hidden xs:inline">Săpt. Următoare</span>
-            <span class="xs:hidden">→</span>
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          <button id="btn-modal-week-next" class="w-7 h-7 sm:w-auto sm:px-2.5 sm:py-1 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer text-slate-700 dark:text-slate-200" title="Săptămâna următoare">
+            <span class="hidden sm:inline">Săpt. Următoare</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
 
