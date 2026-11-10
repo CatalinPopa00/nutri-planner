@@ -2,6 +2,7 @@
 class NutriApp {
   constructor() {
     this.currentTab = 'planner'; // 'planner' | 'recipes' | 'ingredients' | 'scan' | 'analytics' | 'total'
+    this.weekOffset = 0; // 0 = current week, +1 = next week, -1 = prev week, etc.
     this.activeDay = this.getTodayRomanianName();
     this.totalSubTab = 'recipes'; // 'recipes' | 'planner' | 'summary'
     this.scanSubTab = 'ean'; // 'ean' | 'receipt'
@@ -26,7 +27,7 @@ class NutriApp {
     return daysMap[now.getDay()] || 'Luni';
   }
 
-  getCurrentWeekDayDefinitions() {
+  getWeekDefinitions(offset = this.weekOffset) {
     const dayNames = [
       { id: 'Luni', short: 'Lun' },
       { id: 'Marți', short: 'Mar' },
@@ -45,13 +46,16 @@ class NutriApp {
     const dayIndexInWeek = jsDay === 0 ? 6 : jsDay - 1;
 
     const monday = new Date(now);
-    monday.setDate(now.getDate() - dayIndexInWeek);
+    monday.setDate(now.getDate() - dayIndexInWeek + (offset * 7));
     monday.setHours(0, 0, 0, 0);
 
-    return dayNames.map((d, idx) => {
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const days = dayNames.map((d, idx) => {
       const dayDate = new Date(monday);
       dayDate.setDate(monday.getDate() + idx);
-      const isToday = idx === dayIndexInWeek;
+      const isToday = (offset === 0) && (idx === dayIndexInWeek);
       return {
         id: d.id,
         short: d.short,
@@ -62,6 +66,57 @@ class NutriApp {
         fullDateStr: `${dayDate.getDate()} ${monthsFull[dayDate.getMonth()]}`
       };
     });
+
+    const mYear = monday.getFullYear();
+    const sYear = sunday.getFullYear();
+    const yearStr = mYear === sYear ? `${mYear}` : `${mYear} / ${sYear}`;
+    const rangeStr = `${monday.getDate()} ${monthsShort[monday.getMonth()]} - ${sunday.getDate()} ${monthsShort[sunday.getMonth()]} ${yearStr}`;
+
+    const mMonth = String(monday.getMonth() + 1).padStart(2, '0');
+    const mDay = String(monday.getDate()).padStart(2, '0');
+    const weekKey = `${monday.getFullYear()}-${mMonth}-${mDay}`;
+
+    return {
+      mondayDate: monday,
+      sundayDate: sunday,
+      weekKey,
+      rangeStr,
+      days,
+      isCurrentWeek: offset === 0,
+      offset
+    };
+  }
+
+  getCurrentWeekDayDefinitions() {
+    return this.getWeekDefinitions(this.weekOffset).days;
+  }
+
+  goToPrevWeek() {
+    this.weekOffset -= 1;
+    const weekInfo = this.getWeekDefinitions(this.weekOffset);
+    if (window.store && window.store.setWeek) {
+      window.store.setWeek(weekInfo.weekKey);
+    }
+    this.renderCurrentView();
+  }
+
+  goToNextWeek() {
+    this.weekOffset += 1;
+    const weekInfo = this.getWeekDefinitions(this.weekOffset);
+    if (window.store && window.store.setWeek) {
+      window.store.setWeek(weekInfo.weekKey);
+    }
+    this.renderCurrentView();
+  }
+
+  goToCurrentWeek() {
+    this.weekOffset = 0;
+    this.activeDay = this.getTodayRomanianName();
+    const weekInfo = this.getWeekDefinitions(0);
+    if (window.store && window.store.setWeek) {
+      window.store.setWeek(weekInfo.weekKey);
+    }
+    this.renderCurrentView();
   }
 
   init() {
@@ -259,8 +314,12 @@ class NutriApp {
   // 1. WEEKLY PLANNER VIEW
   // ==========================================
   renderPlannerView() {
+    const weekInfo = this.getWeekDefinitions(this.weekOffset);
+    if (window.store && window.store.setWeek && window.store.currentWeekKey !== weekInfo.weekKey) {
+      window.store.setWeek(weekInfo.weekKey);
+    }
     const weekData = window.store.calculateWeek();
-    const dayDefinitions = this.getCurrentWeekDayDefinitions();
+    const dayDefinitions = weekInfo.days;
     const activeDayDef = dayDefinitions.find(d => d.id === this.activeDay) || dayDefinitions[0];
     const activeDayData = weekData.days[this.activeDay] || { items: [], totals: { cost: 0, calories: 0, protein: 0, carbs: 0, fat: 0 } };
     const targets = window.store.getTargets();
@@ -316,7 +375,7 @@ class NutriApp {
               Cost & Macronutrienți Săptămână
             </h2>
             <p class="text-xs sm:text-sm mt-1 opacity-85 text-[#121319] dark:text-white font-medium max-w-md">
-              Atinge targetul tău de proteine și calorii menținând bugetul optimizat per porție.
+              Atinge targetul tău de proteine și calorii menținând bugetul optimizat per porție • <span class="font-bold underline">${weekInfo.rangeStr}</span>
             </p>
 
             <!-- 4 Bento Metric Pills inside Hero Card -->
@@ -351,6 +410,39 @@ class NutriApp {
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Week Switcher Bar (Past / Current / Future Week Navigation) -->
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-2.5 sm:p-3 rounded-2xl flex items-center justify-between gap-2 shadow-2xs">
+          <button id="btn-week-prev" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer shadow-2xs" title="Săptămâna anterioară (sau apasă săgeata stânga a zilelor)">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            <span class="hidden sm:inline">Săpt. Anterioară</span>
+            <span class="sm:hidden">← Săpt</span>
+          </button>
+
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="text-center">
+              <div class="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white flex items-center justify-center gap-1.5 flex-wrap">
+                <span>📅 Săptămâna: ${weekInfo.rangeStr}</span>
+                ${weekInfo.isCurrentWeek ? `
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">În Curs</span>
+                ` : `
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#6D4AE8]/15 text-[#6D4AE8] dark:text-[#C4B5FD] border border-[#6D4AE8]/25">${this.weekOffset > 0 ? `+${this.weekOffset} săpt.` : `${this.weekOffset} săpt.`}</span>
+                `}
+              </div>
+            </div>
+            ${!weekInfo.isCurrentWeek ? `
+              <button id="btn-week-today" class="btn-pill btn-pill-primary text-[11px] !py-1 !px-2.5 font-bold shadow-xs whitespace-nowrap cursor-pointer hover:scale-[1.02] transition" title="Revino la săptămâna curentă">
+                Azi ↩
+              </button>
+            ` : ''}
+          </div>
+
+          <button id="btn-week-next" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer shadow-2xs" title="Săptămâna următoare (sau apasă săgeata dreapta a zilelor)">
+            <span class="hidden sm:inline">Săpt. Următoare</span>
+            <span class="sm:hidden">Săpt →</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </button>
         </div>
 
         <!-- Dynamic Floating Day Island (Sticky on Scroll) -->
@@ -679,6 +771,7 @@ class NutriApp {
   }
 
   renderAllDaysOverview(weekData) {
+    const dayDefinitions = this.getCurrentWeekDayDefinitions();
     const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
     return `
       <div class="space-y-4">
@@ -708,9 +801,13 @@ class NutriApp {
               <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                 ${days.map(day => {
                   const d = weekData.days[day];
+                  const def = dayDefinitions.find(x => x.id === day);
                   return `
                     <tr class="hover:bg-slate-50/80 dark:hover:bg-white/5 transition">
-                      <td class="py-3.5 px-3.5 font-extrabold text-slate-900 dark:text-white">${day}</td>
+                      <td class="py-3.5 px-3.5 font-extrabold text-slate-900 dark:text-white">
+                        <span>${day}</span>
+                        ${def ? `<span class="ml-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500">(${def.dateNum} ${def.monthShort})</span>` : ''}
+                      </td>
                       <td class="py-3.5 px-3.5 text-slate-600 dark:text-slate-400">${d.items.length}</td>
                       <td class="py-3.5 px-3.5 font-extrabold text-[#218352] dark:text-[#70D6A3]">${d.totals.cost.toFixed(2)} RON</td>
                       <td class="py-3.5 px-3.5 font-semibold text-slate-700 dark:text-slate-300">${Math.round(d.totals.calories)} kcal</td>
@@ -718,7 +815,7 @@ class NutriApp {
                       <td class="py-3.5 px-3.5 text-[#D97706] dark:text-[#FFC480] font-bold">${d.totals.carbs.toFixed(1)}g</td>
                       <td class="py-3.5 px-3.5 text-[#0284C7] dark:text-[#98DDFE] font-bold">${d.totals.fat.toFixed(1)}g</td>
                       <td class="py-3.5 px-3.5 text-right">
-                        <button data-switch-day="${day}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3">
+                        <button data-switch-day="${day}" class="btn-pill btn-pill-dark text-xs py-1.5 px-3 cursor-pointer">
                           Deschide
                         </button>
                       </td>
@@ -759,23 +856,54 @@ class NutriApp {
     const dayOrder = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
     let idx = dayOrder.indexOf(this.activeDay);
     if (idx === -1) idx = 0;
-    idx = (idx - 1 + dayOrder.length) % dayOrder.length;
-    this.activeDay = dayOrder[idx];
-    this.renderCurrentView();
+    if (idx === 0) {
+      // Step back from Monday into Sunday of previous week
+      this.weekOffset -= 1;
+      const weekInfo = this.getWeekDefinitions(this.weekOffset);
+      if (window.store && window.store.setWeek) {
+        window.store.setWeek(weekInfo.weekKey);
+      }
+      this.activeDay = 'Duminică';
+      this.renderCurrentView();
+    } else {
+      this.activeDay = dayOrder[idx - 1];
+      this.renderCurrentView();
+    }
   }
 
   goToNextDay() {
     const dayOrder = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
     let idx = dayOrder.indexOf(this.activeDay);
     if (idx === -1) idx = 0;
-    idx = (idx + 1) % dayOrder.length;
-    this.activeDay = dayOrder[idx];
-    this.renderCurrentView();
+    if (idx === 6) {
+      // Advance from Sunday into Monday of next week
+      this.weekOffset += 1;
+      const weekInfo = this.getWeekDefinitions(this.weekOffset);
+      if (window.store && window.store.setWeek) {
+        window.store.setWeek(weekInfo.weekKey);
+      }
+      this.activeDay = 'Luni';
+      this.renderCurrentView();
+    } else {
+      this.activeDay = dayOrder[idx + 1];
+      this.renderCurrentView();
+    }
   }
 
   openDayPickerModal() {
-    const dayDefinitions = this.getCurrentWeekDayDefinitions();
+    const weekInfo = this.getWeekDefinitions(this.weekOffset);
+    if (window.store && window.store.setWeek && window.store.currentWeekKey !== weekInfo.weekKey) {
+      window.store.setWeek(weekInfo.weekKey);
+    }
+    const dayDefinitions = weekInfo.days;
     const weekData = window.store.calculateWeek();
+
+    // Check if current week has meals and if previous week has meals
+    const totalMealsInWeek = Object.values(window.store.data.weeklyPlan || {}).reduce((acc, list) => acc + (list || []).length, 0);
+    const prevWeekInfo = this.getWeekDefinitions(this.weekOffset - 1);
+    const prevWeekPlan = window.store.getPlanForWeek(prevWeekInfo.weekKey);
+    const totalMealsInPrevWeek = Object.values(prevWeekPlan || {}).reduce((acc, list) => acc + (list || []).length, 0);
+
     const html = `
       <div class="p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
@@ -784,22 +912,59 @@ class NutriApp {
           </div>
           <div>
             <h3 class="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white font-display">Alege Ziua din Plan</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Poți naviga și prin swipe stânga / dreapta pe ecran</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Navighează între zile sau comută săptămâna</p>
           </div>
         </div>
-        <button data-modal-close="true" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400">
+        <button data-modal-close="true" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 cursor-pointer">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
 
-      <div class="p-4 sm:p-5 space-y-2.5 max-h-[70vh] overflow-y-auto">
+      <div class="p-4 sm:p-5 space-y-3 max-h-[75vh] overflow-y-auto">
+        <!-- Week navigation toolbar in modal -->
+        <div class="p-2.5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-[#E5E0F5] dark:border-white/10 flex items-center justify-between gap-1.5 shadow-2xs">
+          <button id="btn-modal-week-prev" class="btn-pill btn-pill-outline text-[11px] !py-1 !px-2.5 font-bold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            <span class="hidden xs:inline">Săpt. Anterioară</span>
+            <span class="xs:hidden">←</span>
+          </button>
+
+          <div class="text-center min-w-0 px-1">
+            <div class="text-xs font-black text-slate-900 dark:text-white truncate">
+              📅 ${weekInfo.rangeStr}
+            </div>
+            <div class="flex items-center justify-center gap-1 mt-0.5">
+              ${weekInfo.isCurrentWeek ? `
+                <span class="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded-full">În Curs</span>
+              ` : `
+                <span class="text-[9px] font-black uppercase text-[#6D4AE8] dark:text-[#C4B5FD] bg-[#6D4AE8]/15 px-1.5 py-0.2 rounded-full">${this.weekOffset > 0 ? `+${this.weekOffset} săpt.` : `${this.weekOffset} săpt.`}</span>
+                <button id="btn-modal-week-today" class="text-[10px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white underline cursor-pointer ml-1">Azi ↩</button>
+              `}
+            </div>
+          </div>
+
+          <button id="btn-modal-week-next" class="btn-pill btn-pill-outline text-[11px] !py-1 !px-2.5 font-bold flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer">
+            <span class="hidden xs:inline">Săpt. Următoare</span>
+            <span class="xs:hidden">→</span>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        ${(totalMealsInWeek === 0 && totalMealsInPrevWeek > 0) ? `
+          <!-- Quick Action to Copy Prev Week -->
+          <button id="btn-modal-copy-prev-week" class="w-full p-2.5 rounded-xl border border-dashed border-[#6D4AE8]/40 hover:border-[#6D4AE8] bg-[#6D4AE8]/5 hover:bg-[#6D4AE8]/10 text-[#6D4AE8] dark:text-[#C4B5FD] text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-2xs">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+            <span>Copiază automat cele ${totalMealsInPrevWeek} mese din săptămâna anterioară</span>
+          </button>
+        ` : ''}
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           ${dayDefinitions.map(d => {
             const isSelected = this.activeDay === d.id;
             const totals = weekData.days[d.id]?.totals || { cost: 0, calories: 0 };
             const itemsCount = (window.store.data.weeklyPlan[d.id] || []).length;
             return `
-              <button data-select-day="${d.id}" class="p-3.5 rounded-2xl border text-left transition flex items-center justify-between ${isSelected ? 'border-[#6D4AE8] bg-brand-lilac/10 font-bold ring-2 ring-[#6D4AE8]/20' : 'border-[#E5E0F5] dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-[#181924]'}">
+              <button data-select-day="${d.id}" class="p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${isSelected ? 'border-[#6D4AE8] bg-brand-lilac/10 font-bold ring-2 ring-[#6D4AE8]/20' : 'border-[#E5E0F5] dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-[#181924]'}">
                 <div>
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-extrabold text-slate-900 dark:text-white">${d.id}</span>
@@ -816,13 +981,54 @@ class NutriApp {
           }).join('')}
         </div>
 
-        <button data-select-day="ALL" class="w-full p-3.5 rounded-2xl border text-center transition flex items-center justify-center gap-2 ${this.activeDay === 'ALL' ? 'border-[#6D4AE8] bg-brand-lilac/10 font-bold ring-2 ring-[#6D4AE8]/20' : 'border-[#E5E0F5] dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-[#181924]'}">
+        <button data-select-day="ALL" class="w-full p-3.5 rounded-2xl border text-center transition flex items-center justify-center gap-2 cursor-pointer ${this.activeDay === 'ALL' ? 'border-[#6D4AE8] bg-brand-lilac/10 font-bold ring-2 ring-[#6D4AE8]/20' : 'border-[#E5E0F5] dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-[#181924]'}">
           <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           <span class="text-sm font-extrabold text-slate-900 dark:text-white">Toată Săptămâna (Tabel & Prezentare Generală)</span>
         </button>
       </div>
     `;
     this.openModal(html, { maxWidth: 'max-w-lg', position: 'center' });
+
+    // Modal week navigation
+    const modalPrevWeekBtn = document.getElementById('btn-modal-week-prev');
+    if (modalPrevWeekBtn) {
+      modalPrevWeekBtn.addEventListener('click', () => {
+        this.goToPrevWeek();
+        this.closeModal();
+        this.openDayPickerModal();
+      });
+    }
+
+    const modalNextWeekBtn = document.getElementById('btn-modal-week-next');
+    if (modalNextWeekBtn) {
+      modalNextWeekBtn.addEventListener('click', () => {
+        this.goToNextWeek();
+        this.closeModal();
+        this.openDayPickerModal();
+      });
+    }
+
+    const modalTodayBtn = document.getElementById('btn-modal-week-today');
+    if (modalTodayBtn) {
+      modalTodayBtn.addEventListener('click', () => {
+        this.goToCurrentWeek();
+        this.closeModal();
+        this.openDayPickerModal();
+      });
+    }
+
+    const copyPrevWeekBtn = document.getElementById('btn-modal-copy-prev-week');
+    if (copyPrevWeekBtn) {
+      copyPrevWeekBtn.addEventListener('click', () => {
+        const success = window.store.copyWeekPlan(prevWeekInfo.weekKey, weekInfo.weekKey);
+        if (success) {
+          this.showToast('Mesele au fost copiate din săptămâna anterioară!', 'success');
+          this.closeModal();
+          this.renderCurrentView();
+        }
+      });
+    }
+
     document.querySelectorAll('[data-select-day]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const day = e.currentTarget.getAttribute('data-select-day');
@@ -885,6 +1091,22 @@ class NutriApp {
   }
 
   bindPlannerEvents() {
+    // Week Switcher Controls (Prev / Next / Today)
+    const weekPrevBtn = document.getElementById('btn-week-prev');
+    if (weekPrevBtn) {
+      weekPrevBtn.addEventListener('click', () => this.goToPrevWeek());
+    }
+
+    const weekNextBtn = document.getElementById('btn-week-next');
+    if (weekNextBtn) {
+      weekNextBtn.addEventListener('click', () => this.goToNextWeek());
+    }
+
+    const weekTodayBtn = document.getElementById('btn-week-today');
+    if (weekTodayBtn) {
+      weekTodayBtn.addEventListener('click', () => this.goToCurrentWeek());
+    }
+
     // Floating day navigator controls
     const prevBtn = document.getElementById('btn-day-prev');
     if (prevBtn) {
@@ -7580,6 +7802,8 @@ class NutriApp {
   }
 }
 
+
+window.NutriApp = NutriApp;
 
 // Bootstrap app on DOM load
 document.addEventListener('DOMContentLoaded', () => {

@@ -3,7 +3,32 @@ class NutriStore {
   constructor() {
     this.STORAGE_KEY = 'nutri_planner_v1';
     this.listeners = [];
+    this.currentWeekKey = this.getMondayDateString(new Date());
     this.data = this.loadState();
+  }
+
+  getMondayDateString(date = new Date()) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Monday as 1st day of week
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${dayOfMonth}`;
+  }
+
+  createEmptyWeekPlan() {
+    return {
+      'Luni': [],
+      'Marți': [],
+      'Miercuri': [],
+      'Joi': [],
+      'Vineri': [],
+      'Sâmbătă': [],
+      'Duminică': []
+    };
   }
 
   loadState() {
@@ -51,21 +76,18 @@ class NutriStore {
             parsed.activeProfileId = 'prof_default';
           }
 
-          // Ensure plansByProfile exists and isolates weekly plans per profile
-          const createEmptyWeekPlan = () => ({
-            'Luni': [],
-            'Marți': [],
-            'Miercuri': [],
-            'Joi': [],
-            'Vineri': [],
-            'Sâmbătă': [],
-            'Duminică': []
-          });
+          // Ensure plansByProfile and weeksByProfile exist and isolate weekly plans per profile
+          const currentMondayKey = this.getMondayDateString(new Date());
+          this.currentWeekKey = currentMondayKey;
 
           if (!parsed.plansByProfile || typeof parsed.plansByProfile !== 'object') {
             parsed.plansByProfile = {};
             const defaultId = (parsed.profiles && parsed.profiles[0]?.id) || 'prof_default';
-            parsed.plansByProfile[defaultId] = JSON.parse(JSON.stringify(parsed.weeklyPlan || createEmptyWeekPlan()));
+            parsed.plansByProfile[defaultId] = JSON.parse(JSON.stringify(parsed.weeklyPlan || this.createEmptyWeekPlan()));
+          }
+
+          if (!parsed.weeksByProfile || typeof parsed.weeksByProfile !== 'object') {
+            parsed.weeksByProfile = {};
           }
 
           // Ensure every profile has its own isolated plan
@@ -73,17 +95,31 @@ class NutriStore {
             parsed.profiles.forEach((p, idx) => {
               if (!parsed.plansByProfile[p.id]) {
                 parsed.plansByProfile[p.id] = (idx === 0)
-                  ? JSON.parse(JSON.stringify(parsed.weeklyPlan || createEmptyWeekPlan()))
-                  : createEmptyWeekPlan();
+                  ? JSON.parse(JSON.stringify(parsed.weeklyPlan || this.createEmptyWeekPlan()))
+                  : this.createEmptyWeekPlan();
+              }
+              if (!parsed.weeksByProfile[p.id]) {
+                parsed.weeksByProfile[p.id] = {};
+              }
+              if (!parsed.weeksByProfile[p.id][currentMondayKey]) {
+                parsed.weeksByProfile[p.id][currentMondayKey] = JSON.parse(JSON.stringify(parsed.plansByProfile[p.id]));
               }
             });
           }
 
           const currentActive = parsed.activeProfileId || (parsed.profiles && parsed.profiles[0]?.id) || 'prof_default';
-          if (!parsed.plansByProfile[currentActive]) {
-            parsed.plansByProfile[currentActive] = createEmptyWeekPlan();
+          if (!parsed.weeksByProfile[currentActive]) {
+            parsed.weeksByProfile[currentActive] = {};
           }
-          parsed.weeklyPlan = parsed.plansByProfile[currentActive];
+          if (!parsed.weeksByProfile[currentActive][currentMondayKey]) {
+            parsed.weeksByProfile[currentActive][currentMondayKey] = 
+              (parsed.plansByProfile && parsed.plansByProfile[currentActive])
+                ? JSON.parse(JSON.stringify(parsed.plansByProfile[currentActive]))
+                : this.createEmptyWeekPlan();
+          }
+          parsed.weeklyPlan = parsed.weeksByProfile[currentActive][currentMondayKey];
+          if (!parsed.plansByProfile) parsed.plansByProfile = {};
+          parsed.plansByProfile[currentActive] = parsed.weeklyPlan;
 
           // If corrupted items were purged or recipes/profiles updated, save cleaned state
           try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsed)); } catch(e) {}
@@ -111,18 +147,34 @@ class NutriStore {
       }
     ];
     initial.activeProfileId = 'prof_default';
+    const initMondayKey = this.getMondayDateString(new Date());
     initial.plansByProfile = {
-      'prof_default': JSON.parse(JSON.stringify(initial.weeklyPlan || {}))
+      'prof_default': JSON.parse(JSON.stringify(initial.weeklyPlan || this.createEmptyWeekPlan()))
+    };
+    initial.weeksByProfile = {
+      'prof_default': {
+        [initMondayKey]: initial.plansByProfile['prof_default']
+      }
     };
     return initial;
   }
 
   saveState() {
     try {
+      const activeId = this.data.activeProfileId || 'prof_default';
+      if (!this.data.weeksByProfile) {
+        this.data.weeksByProfile = {};
+      }
+      if (!this.data.weeksByProfile[activeId]) {
+        this.data.weeksByProfile[activeId] = {};
+      }
+      if (this.currentWeekKey && this.data.weeklyPlan) {
+        this.data.weeksByProfile[activeId][this.currentWeekKey] = this.data.weeklyPlan;
+      }
+
       if (!this.data.plansByProfile) {
         this.data.plansByProfile = {};
       }
-      const activeId = this.data.activeProfileId || 'prof_default';
       this.data.plansByProfile[activeId] = this.data.weeklyPlan;
 
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
@@ -488,6 +540,74 @@ class NutriStore {
   // --- WEEKLY PLANNER ---
   getWeeklyPlan() {
     return this.data.weeklyPlan;
+  }
+
+  setWeek(weekKey) {
+    if (!weekKey) {
+      weekKey = this.getMondayDateString(new Date());
+    }
+    const activeId = this.data.activeProfileId || 'prof_default';
+
+    // 1. Save current active plan for previous week before switching
+    if (this.currentWeekKey && this.data.weeklyPlan) {
+      if (!this.data.weeksByProfile) this.data.weeksByProfile = {};
+      if (!this.data.weeksByProfile[activeId]) this.data.weeksByProfile[activeId] = {};
+      this.data.weeksByProfile[activeId][this.currentWeekKey] = this.data.weeklyPlan;
+    }
+
+    this.currentWeekKey = weekKey;
+
+    // 2. Ensure target week exists for active profile
+    if (!this.data.weeksByProfile) this.data.weeksByProfile = {};
+    if (!this.data.weeksByProfile[activeId]) this.data.weeksByProfile[activeId] = {};
+    if (!this.data.weeksByProfile[activeId][weekKey]) {
+      this.data.weeksByProfile[activeId][weekKey] = this.createEmptyWeekPlan();
+    }
+
+    // 3. Point weeklyPlan to target week
+    this.data.weeklyPlan = this.data.weeksByProfile[activeId][weekKey];
+
+    // 4. Mirror to plansByProfile for backwards compatibility
+    if (!this.data.plansByProfile) this.data.plansByProfile = {};
+    this.data.plansByProfile[activeId] = this.data.weeklyPlan;
+
+    this.saveState();
+    return this.data.weeklyPlan;
+  }
+
+  getPlanForWeek(weekKey, profileId = null) {
+    const pId = profileId || this.data.activeProfileId || 'prof_default';
+    if (!this.data.weeksByProfile || !this.data.weeksByProfile[pId]) {
+      return this.createEmptyWeekPlan();
+    }
+    return this.data.weeksByProfile[pId][weekKey] || this.createEmptyWeekPlan();
+  }
+
+  copyWeekPlan(sourceWeekKey, targetWeekKey, profileId = null) {
+    const pId = profileId || this.data.activeProfileId || 'prof_default';
+    if (!this.data.weeksByProfile) this.data.weeksByProfile = {};
+    if (!this.data.weeksByProfile[pId]) this.data.weeksByProfile[pId] = {};
+
+    const sourcePlan = this.data.weeksByProfile[pId][sourceWeekKey];
+    if (!sourcePlan) return false;
+
+    const newPlan = this.createEmptyWeekPlan();
+    const now = Date.now();
+    let counter = 0;
+    Object.keys(sourcePlan).forEach(day => {
+      newPlan[day] = (sourcePlan[day] || []).map(item => ({
+        ...item,
+        id: 'plan_' + (now + (++counter)) + '_' + Math.random().toString(36).substr(2, 4)
+      }));
+    });
+
+    this.data.weeksByProfile[pId][targetWeekKey] = newPlan;
+    if (this.currentWeekKey === targetWeekKey && (!profileId || profileId === this.data.activeProfileId)) {
+      this.data.weeklyPlan = newPlan;
+      if (this.data.plansByProfile) this.data.plansByProfile[pId] = newPlan;
+    }
+    this.saveState();
+    return true;
   }
 
   addPlanItem(day, meal, recipeId, servings = 1.0, isIngredient = false) {
@@ -858,32 +978,30 @@ class NutriStore {
     if (!found) return null;
 
     // 1. Save current active plan before switching
-    if (!this.data.plansByProfile) {
-      this.data.plansByProfile = {};
-    }
     const currentId = this.data.activeProfileId || 'prof_default';
-    if (this.data.weeklyPlan) {
-      this.data.plansByProfile[currentId] = JSON.parse(JSON.stringify(this.data.weeklyPlan));
+    if (!this.data.weeksByProfile) this.data.weeksByProfile = {};
+    if (!this.data.weeksByProfile[currentId]) this.data.weeksByProfile[currentId] = {};
+    if (this.currentWeekKey && this.data.weeklyPlan) {
+      this.data.weeksByProfile[currentId][this.currentWeekKey] = this.data.weeklyPlan;
     }
+    if (!this.data.plansByProfile) this.data.plansByProfile = {};
+    this.data.plansByProfile[currentId] = this.data.weeklyPlan;
 
     // 2. Set new active profile id
     this.data.activeProfileId = profileId;
 
-    // 3. Switch weeklyPlan to new profile's plan
-    const createEmptyWeekPlan = () => ({
-      'Luni': [],
-      'Marți': [],
-      'Miercuri': [],
-      'Joi': [],
-      'Vineri': [],
-      'Sâmbătă': [],
-      'Duminică': []
-    });
-
-    if (!this.data.plansByProfile[profileId]) {
-      this.data.plansByProfile[profileId] = createEmptyWeekPlan();
+    // 3. Switch weeklyPlan to new profile's plan for this.currentWeekKey
+    if (!this.data.weeksByProfile[profileId]) {
+      this.data.weeksByProfile[profileId] = {};
     }
-    this.data.weeklyPlan = this.data.plansByProfile[profileId];
+    if (!this.data.weeksByProfile[profileId][this.currentWeekKey]) {
+      this.data.weeksByProfile[profileId][this.currentWeekKey] = 
+        (this.data.plansByProfile && this.data.plansByProfile[profileId])
+          ? JSON.parse(JSON.stringify(this.data.plansByProfile[profileId]))
+          : this.createEmptyWeekPlan();
+    }
+    this.data.weeklyPlan = this.data.weeksByProfile[profileId][this.currentWeekKey];
+    this.data.plansByProfile[profileId] = this.data.weeklyPlan;
 
     // Synchronize daily targets with active profile
     this.updateTargets({
@@ -1209,9 +1327,10 @@ class NutriStore {
     };
   }
 
-  calculateWeekForProfile(profileId) {
+  calculateWeekForProfile(profileId, weekKey = this.currentWeekKey) {
     const defaultId = (this.data.profiles && this.data.profiles[0]?.id) || 'prof_default';
-    const plan = (this.data.plansByProfile && this.data.plansByProfile[profileId]) ||
+    const plan = (this.data.weeksByProfile && this.data.weeksByProfile[profileId] && this.data.weeksByProfile[profileId][weekKey]) ||
+                 (this.data.plansByProfile && this.data.plansByProfile[profileId]) ||
                  (this.data.activeProfileId === profileId ? this.data.weeklyPlan : null) || {};
 
     const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
@@ -1341,13 +1460,13 @@ class NutriStore {
     };
   }
 
-  calculateAllProfilesTotal() {
+  calculateAllProfilesTotal(weekKey = this.currentWeekKey) {
     const profiles = this.getProfiles();
     const defaultProfileId = (profiles && profiles[0]?.id) || 'prof_default';
 
     // 1. Weekly plans calculated per profile
     const profilesPlanData = profiles.map(p => {
-      const weekCalc = this.calculateWeekForProfile(p.id);
+      const weekCalc = this.calculateWeekForProfile(p.id, weekKey);
       return {
         profile: p,
         ...weekCalc
