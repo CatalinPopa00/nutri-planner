@@ -1,8 +1,9 @@
 // Main Application Controller & UI Logic
 class NutriApp {
   constructor() {
-    this.currentTab = 'planner'; // 'planner' | 'recipes' | 'ingredients' | 'scan' | 'analytics'
-    this.activeDay = 'Luni';
+    this.currentTab = 'planner'; // 'planner' | 'recipes' | 'ingredients' | 'scan' | 'analytics' | 'total'
+    this.activeDay = this.getTodayRomanianName();
+    this.totalSubTab = 'recipes'; // 'recipes' | 'planner' | 'summary'
     this.scanSubTab = 'ean'; // 'ean' | 'receipt'
     this.recipeFilterCategory = 'Toate';
     this.recipeSearch = '';
@@ -17,6 +18,50 @@ class NutriApp {
     this.activeModal = null;
 
     this.init();
+  }
+
+  getTodayRomanianName() {
+    const daysMap = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
+    const now = new Date();
+    return daysMap[now.getDay()] || 'Luni';
+  }
+
+  getCurrentWeekDayDefinitions() {
+    const dayNames = [
+      { id: 'Luni', short: 'Lun' },
+      { id: 'Marți', short: 'Mar' },
+      { id: 'Miercuri', short: 'Mie' },
+      { id: 'Joi', short: 'Joi' },
+      { id: 'Vineri', short: 'Vin' },
+      { id: 'Sâmbătă', short: 'Sâm' },
+      { id: 'Duminică', short: 'Dum' }
+    ];
+    const monthsShort = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
+    const monthsFull = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];
+
+    const now = new Date();
+    const jsDay = now.getDay();
+    // Monday is index 0:
+    const dayIndexInWeek = jsDay === 0 ? 6 : jsDay - 1;
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayIndexInWeek);
+    monday.setHours(0, 0, 0, 0);
+
+    return dayNames.map((d, idx) => {
+      const dayDate = new Date(monday);
+      dayDate.setDate(monday.getDate() + idx);
+      const isToday = idx === dayIndexInWeek;
+      return {
+        id: d.id,
+        short: d.short,
+        dateNum: String(dayDate.getDate()),
+        monthShort: monthsShort[dayDate.getMonth()],
+        monthFull: monthsFull[dayDate.getMonth()],
+        isToday,
+        fullDateStr: `${dayDate.getDate()} ${monthsFull[dayDate.getMonth()]}`
+      };
+    });
   }
 
   init() {
@@ -200,6 +245,10 @@ class NutriApp {
         main.innerHTML = this.renderAnalyticsView();
         this.bindAnalyticsEvents();
         break;
+      case 'total':
+        main.innerHTML = this.renderTotalView();
+        this.bindTotalEvents();
+        break;
       default:
         main.innerHTML = this.renderPlannerView();
     }
@@ -210,15 +259,7 @@ class NutriApp {
   // ==========================================
   renderPlannerView() {
     const weekData = window.store.calculateWeek();
-    const dayDefinitions = [
-      { id: 'Luni', short: 'Lun', dateNum: '24' },
-      { id: 'Marți', short: 'Mar', dateNum: '25' },
-      { id: 'Miercuri', short: 'Mie', dateNum: '26' },
-      { id: 'Joi', short: 'Joi', dateNum: '27' },
-      { id: 'Vineri', short: 'Vin', dateNum: '28' },
-      { id: 'Sâmbătă', short: 'Sâm', dateNum: '29' },
-      { id: 'Duminică', short: 'Dum', dateNum: '30' }
-    ];
+    const dayDefinitions = this.getCurrentWeekDayDefinitions();
     const activeDayDef = dayDefinitions.find(d => d.id === this.activeDay) || dayDefinitions[0];
     const activeDayData = weekData.days[this.activeDay] || { items: [], totals: { cost: 0, calories: 0, protein: 0, carbs: 0, fat: 0 } };
     const targets = window.store.getTargets();
@@ -334,7 +375,7 @@ class NutriApp {
                 </span>
               ` : `
                 <span class="text-[11px] font-bold text-[#6D4AE8] dark:text-[#C4B5FD] bg-[#6D4AE8]/10 dark:bg-[#C4B5FD]/15 px-2.5 py-0.5 rounded-full border border-[#6D4AE8]/20 dark:border-[#C4B5FD]/25">
-                  ${activeDayDef ? `${activeDayDef.dateNum} Noi` : ''}
+                  ${activeDayDef ? `${activeDayDef.dateNum} ${activeDayDef.monthShort}${activeDayDef.isToday ? ' • Azi' : ''}` : ''}
                 </span>
               `}
               <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
@@ -573,7 +614,10 @@ class NutriApp {
                         <div class="bg-white/95 dark:bg-[#181924]/95 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 p-2.5 sm:p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                           <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-1.5 min-w-0">
-                              <span class="font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug">${item.recipeName}</span>
+                              <button type="button" data-open-plan-recipe="${item.recipeId}" data-is-ing="${item.isIngredient ? 'true' : 'false'}" class="text-left font-extrabold text-sm text-slate-900 dark:text-white truncate leading-snug hover:text-[#6D4AE8] dark:hover:text-[#C4B5FD] transition cursor-pointer flex items-center gap-1.5 group" title="Apasă pentru detalii și editare ingrediente">
+                                <span class="truncate group-hover:underline">${item.recipeName}</span>
+                                <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-[#6D4AE8] dark:group-hover:text-[#C4B5FD] flex-shrink-0 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                              </button>
                               ${item.isIngredient ? `
                                 <span class="px-1.5 py-0.2 rounded-md text-[9px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex-shrink-0">
                                   Aliment
@@ -609,6 +653,9 @@ class NutriApp {
                               </button>
                             </div>
                             <div class="flex items-center gap-1">
+                              <button data-edit-plan-recipe="${item.recipeId}" data-is-ing="${item.isIngredient ? 'true' : 'false'}" class="p-1.5 text-slate-400 hover:text-[#6D4AE8] dark:hover:text-[#C4B5FD] rounded-full hover:bg-brand-lilac/15 transition" title="${item.isIngredient ? 'Editează alimentul' : 'Editează ingredientele rețetei'}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                              </button>
                               <button data-copy-plan-item="${item.id}" class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition" title="Copiază acest preparat în altă zi/masă">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
                               </button>
@@ -726,15 +773,7 @@ class NutriApp {
   }
 
   openDayPickerModal() {
-    const dayDefinitions = [
-      { id: 'Luni', short: 'Lun', dateNum: '24' },
-      { id: 'Marți', short: 'Mar', dateNum: '25' },
-      { id: 'Miercuri', short: 'Mie', dateNum: '26' },
-      { id: 'Joi', short: 'Joi', dateNum: '27' },
-      { id: 'Vineri', short: 'Vin', dateNum: '28' },
-      { id: 'Sâmbătă', short: 'Sâm', dateNum: '29' },
-      { id: 'Duminică', short: 'Dum', dateNum: '30' }
-    ];
+    const dayDefinitions = this.getCurrentWeekDayDefinitions();
     const weekData = window.store.calculateWeek();
     const html = `
       <div class="p-4 sm:p-5 border-b border-[#E5E0F5] dark:border-white/10 flex items-center justify-between">
@@ -763,7 +802,8 @@ class NutriApp {
                 <div>
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-extrabold text-slate-900 dark:text-white">${d.id}</span>
-                    <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500">${d.dateNum} Noiembrie</span>
+                    <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500">${d.dateNum} ${d.monthFull}</span>
+                    ${d.isToday ? '<span class="text-[9px] bg-brand-lilac/30 text-[#6D4AE8] dark:text-[#C4B5FD] px-1.5 py-0.5 rounded-full font-black uppercase">Azi</span>' : ''}
                   </div>
                   <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     ${itemsCount > 0 ? `${itemsCount} prep. • ${Math.round(totals.calories)} kcal • ${totals.cost.toFixed(1)} RON` : '<span class="italic text-slate-400">Nicio masă adăugată</span>'}
@@ -977,6 +1017,52 @@ class NutriApp {
       btn.addEventListener('click', (e) => {
         const itemId = e.currentTarget.getAttribute('data-copy-plan-item');
         this.openCopyPlanItemModal(this.activeDay, itemId);
+      });
+    });
+
+    // Open recipe or ingredient details modal from plan
+    document.querySelectorAll('[data-open-plan-recipe]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const recipeId = e.currentTarget.getAttribute('data-open-plan-recipe');
+        const isIng = e.currentTarget.getAttribute('data-is-ing') === 'true';
+        if (isIng) {
+          const ing = window.store.getIngredientById(recipeId);
+          if (ing) {
+            this.openIngredientModal(ing);
+          } else {
+            this.showToast('Alimentul nu a fost găsit.', 'warning');
+          }
+        } else {
+          const rec = window.store.getRecipeById(recipeId);
+          if (rec) {
+            this.openRecipeDetailsModal(recipeId);
+          } else {
+            this.showToast('Rețeta nu a fost găsită.', 'warning');
+          }
+        }
+      });
+    });
+
+    // Directly open edit builder for recipe or ingredient from plan
+    document.querySelectorAll('[data-edit-plan-recipe]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const recipeId = e.currentTarget.getAttribute('data-edit-plan-recipe');
+        const isIng = e.currentTarget.getAttribute('data-is-ing') === 'true';
+        if (isIng) {
+          const ing = window.store.getIngredientById(recipeId);
+          if (ing) {
+            this.openIngredientModal(ing);
+          } else {
+            this.showToast('Alimentul nu a fost găsit.', 'warning');
+          }
+        } else {
+          const rec = window.store.getRecipeById(recipeId);
+          if (rec) {
+            this.openRecipeBuilderModal(rec);
+          } else {
+            this.showToast('Rețeta nu a fost găsită.', 'warning');
+          }
+        }
       });
     });
 
@@ -2412,6 +2498,493 @@ class NutriApp {
           this.renderCurrentView();
         }
       });
+    });
+  }
+
+  // ==========================================
+  // 6. TOTAL PROFILE / CONSOLIDATED VIEW
+  // ==========================================
+  renderTotalView() {
+    const data = window.store.calculateAllProfilesTotal();
+    const activeSubTab = this.totalSubTab || 'recipes';
+
+    return `
+      <div class="space-y-6 pb-24">
+        <!-- Top Hero Bento Card: Consolidated Overview -->
+        <div class="bento-lilac-hero p-6 sm:p-7 bento-card relative">
+          <!-- 3D Clay Aesthetic Background Art -->
+          <div class="absolute right-3 -top-2 sm:right-6 sm:top-2 pointer-events-none opacity-90 clay-3d-element hidden xs:block">
+            <svg width="150" height="150" viewBox="0 0 160 160" fill="none" class="w-24 h-24 sm:w-36 sm:h-36">
+              <defs>
+                <radialGradient id="clayTotalGold" cx="35%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#FFE082"/>
+                  <stop offset="45%" stop-color="#FFB300"/>
+                  <stop offset="100%" stop-color="#E65100"/>
+                </radialGradient>
+                <radialGradient id="clayTotalPurple" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stop-color="#C4B5FD"/>
+                  <stop offset="60%" stop-color="#8B5CF6"/>
+                  <stop offset="100%" stop-color="#5B21B6"/>
+                </radialGradient>
+                <filter id="clayTotalShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.25"/>
+                </filter>
+              </defs>
+              <circle cx="85" cy="55" r="34" fill="url(#clayTotalPurple)" filter="url(#clayTotalShadow)"/>
+              <circle cx="85" cy="55" r="16" fill="#F3E8FF"/>
+              <rect x="30" y="65" width="48" height="48" rx="16" fill="url(#clayTotalGold)" transform="rotate(-12 30 65)" filter="url(#clayTotalShadow)"/>
+            </svg>
+          </div>
+
+          <div class="relative z-10 max-w-xl">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-black/30 backdrop-blur-md text-[11px] font-black tracking-wider uppercase text-[#6D4AE8] dark:text-[#C4B5FD] mb-2.5 border border-white/60 dark:border-white/10 shadow-2xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Profil de Total & Costuri Consolidate
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-white tracking-tight leading-tight">
+              Sinteză Rețete & Costuri per Profil
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 mt-1.5 leading-relaxed font-medium">
+              Vizualizează toate rețetele introduse pe fiecare profil de membru, costurile totale per profil și costul consolidat al planificării săptămânale.
+            </p>
+          </div>
+
+          <!-- Top Bento KPI Metrics -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 mt-5 relative z-10">
+            <!-- Metric 1: Cost Rețete Proprii -->
+            <div class="p-3.5 sm:p-4 rounded-2xl bg-white/90 dark:bg-[#181924]/90 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-2xs">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Total Rețete Proprii</div>
+              <div class="text-lg sm:text-2xl font-black text-[#218352] dark:text-[#70D6A3] mt-1 font-display">
+                ${data.totals.grandTotalCreatedRecipesCost.toFixed(2)} <span class="text-xs sm:text-sm font-extrabold">RON</span>
+              </div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                ${data.totals.grandTotalCreatedRecipesCount} rețete pe ${data.profiles.length} profiluri
+              </div>
+            </div>
+
+            <!-- Metric 2: Cost Plan Săptămânal Consolidat -->
+            <div class="p-3.5 sm:p-4 rounded-2xl bg-white/90 dark:bg-[#181924]/90 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-2xs">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Plan Săptămânal Menaj</div>
+              <div class="text-lg sm:text-2xl font-black text-[#6D4AE8] dark:text-[#C4B5FD] mt-1 font-display">
+                ${data.totals.grandTotalWeeklyCost.toFixed(2)} <span class="text-xs sm:text-sm font-extrabold">RON</span>
+              </div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                ${data.totals.grandTotalWeeklyItems} mese planificate pe 7 zile
+              </div>
+            </div>
+
+            <!-- Metric 3: Medie Zilnică Menaj -->
+            <div class="p-3.5 sm:p-4 rounded-2xl bg-white/90 dark:bg-[#181924]/90 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-2xs">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Medie / Zi Menaj</div>
+              <div class="text-lg sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 font-display">
+                ${(data.totals.grandTotalWeeklyCost / 7).toFixed(2)} <span class="text-xs sm:text-sm font-extrabold">RON/zi</span>
+              </div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Consolidat toți membrii
+              </div>
+            </div>
+
+            <!-- Metric 4: Profiluri Active -->
+            <div class="p-3.5 sm:p-4 rounded-2xl bg-white/90 dark:bg-[#181924]/90 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-2xs">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Profiluri Înregistrate</div>
+              <div class="text-lg sm:text-2xl font-black text-slate-800 dark:text-white mt-1 font-display">
+                ${data.profiles.length} <span class="text-xs sm:text-sm font-extrabold">profiluri</span>
+              </div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                ${data.commonRecipes.length} rețete comune în catalog
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-Tab Navigation Bar -->
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div class="inline-flex items-center p-1 rounded-2xl bg-slate-200/70 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 backdrop-blur-md shadow-2xs">
+            <button data-total-tab="recipes" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${activeSubTab === 'recipes' ? 'bg-white dark:bg-[#181924] text-[#121319] dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+              <span>Rețete per Profil (${data.totals.grandTotalCreatedRecipesCount})</span>
+            </button>
+            <button data-total-tab="planner" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${activeSubTab === 'planner' ? 'bg-white dark:bg-[#181924] text-[#121319] dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Plan Săptămânal Menaj (${data.totals.grandTotalWeeklyCost.toFixed(0)} RON)</span>
+            </button>
+            <button data-total-tab="summary" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${activeSubTab === 'summary' ? 'bg-white dark:bg-[#181924] text-[#121319] dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <span>Tabel Comparativ</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-total-export-json" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 shadow-2xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>Export Date</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sub-Tab Content -->
+        ${activeSubTab === 'recipes' ? this.renderTotalRecipesTab(data) : ''}
+        ${activeSubTab === 'planner' ? this.renderTotalPlannerTab(data) : ''}
+        ${activeSubTab === 'summary' ? this.renderTotalSummaryTab(data) : ''}
+      </div>
+    `;
+  }
+
+  renderTotalRecipesTab(data) {
+    return `
+      <div class="space-y-6">
+        ${data.recipesByProfile.map(pData => {
+          const p = pData.profile;
+          const recipeCount = pData.recipes.length;
+          const totalCost = pData.totalCost;
+
+          return `
+            <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm space-y-4">
+              <!-- Profile Header Row -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E5E0F5] dark:border-white/10">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-[#B8A9FD] via-[#FFB259] to-[#FF6FA4] p-0.5 shadow-sm flex-shrink-0">
+                    <div class="w-full h-full rounded-full bg-[#121319] dark:bg-white flex items-center justify-center overflow-hidden">
+                      ${p.photo ? `
+                        <img src="${p.photo}" alt="${p.name}" class="w-full h-full object-cover">
+                      ` : `
+                        <span class="text-sm font-black text-white dark:text-[#121319]">${p.name ? p.name.slice(0, 2).toUpperCase() : 'NP'}</span>
+                      `}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h3 class="text-lg font-extrabold font-display text-slate-900 dark:text-white">${p.name}</h3>
+                      <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD]">
+                        ${p.gender === 'feminin' ? '♀ Feminin' : '♂ Masculin'}
+                      </span>
+                    </div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      ${p.calories} kcal/zi țintă • ${p.protein}g P • ${p.carbs}g C • ${p.fat}g G
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subtotal Cost Pill & Add Recipe Action -->
+                <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                  <div class="px-3.5 py-1.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 flex items-center gap-2">
+                    <span class="text-xs text-emerald-800 dark:text-emerald-300 font-bold">Subtotal Profil:</span>
+                    <span class="text-sm sm:text-base font-black text-[#218352] dark:text-[#70D6A3] font-display">
+                      ${totalCost.toFixed(2)} RON
+                    </span>
+                  </div>
+
+                  <button data-create-recipe-for-profile="${p.id}" class="btn-pill btn-pill-primary text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <span>+ Rețetă Proprie</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Recipes List / Grid for this Profile -->
+              ${recipeCount === 0 ? `
+                <div class="text-center py-8 border-2 border-dashed border-[#E5E0F5] dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-white/5 space-y-2">
+                  <div class="w-10 h-10 rounded-full bg-brand-lilac/15 text-[#6D4AE8] dark:text-[#C4B5FD] flex items-center justify-center mx-auto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  </div>
+                  <p class="text-xs font-bold text-slate-700 dark:text-slate-300">Nu există încă rețete create exclusiv pe profilul „${p.name}”.</p>
+                  <p class="text-[11px] text-slate-400 dark:text-slate-500">Apasă pe butonul „+ Rețetă Proprie” de mai sus pentru a adăuga prima rețetă cu calcul automat de cost.</p>
+                </div>
+              ` : `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  ${pData.recipes.map(r => `
+                    <div class="p-3.5 sm:p-4 rounded-2xl border border-[#E5E0F5] dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 hover:border-brand-lilac/50 transition shadow-2xs space-y-2.5">
+                      <!-- Title & Category -->
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                          <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-brand-lilac/20 text-[#6D4AE8] dark:text-[#C4B5FD]">
+                            ${r.category || 'Rețetă'}
+                          </span>
+                          <button type="button" data-recipe-details="${r.id}" class="text-left font-extrabold text-sm sm:text-base text-slate-900 dark:text-white truncate block hover:text-[#6D4AE8] dark:hover:text-[#C4B5FD] transition mt-1" title="Apasă pentru detalii și editare ingrediente">
+                            ${r.name}
+                          </button>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                          <div class="text-sm sm:text-base font-black text-[#218352] dark:text-[#70D6A3] font-display">
+                            ${r.perServing.cost.toFixed(2)} lei
+                          </div>
+                          <div class="text-[10px] text-slate-400 dark:text-slate-500">per porție</div>
+                        </div>
+                      </div>
+
+                      <!-- Cost breakdown & Servings badge -->
+                      <div class="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-white/70 dark:bg-white/5 border border-slate-200/60 dark:border-white/5">
+                        <span class="text-slate-600 dark:text-slate-300 font-semibold">${r.servings} porții • ${Math.round(r.totals.weight)}g total</span>
+                        <span class="font-extrabold text-[#218352] dark:text-[#70D6A3] text-xs">Total Rețetă: ${r.totals.cost.toFixed(2)} lei</span>
+                      </div>
+
+                      <!-- Nutritional Macros per Serving -->
+                      <div class="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-300 whitespace-nowrap overflow-hidden">
+                        <span class="font-bold text-slate-800 dark:text-white">${Math.round(r.perServing.calories)} kcal</span>
+                        <span class="text-slate-300 dark:text-slate-600">•</span>
+                        <span class="text-[#E02868] dark:text-[#FFA4CD] font-bold">${r.perServing.protein.toFixed(1)}g P</span>
+                        <span class="text-slate-300 dark:text-slate-600">•</span>
+                        <span class="text-[#D97706] dark:text-[#FFC480] font-bold">${r.perServing.carbs.toFixed(1)}g C</span>
+                        <span class="text-slate-300 dark:text-slate-600">•</span>
+                        <span class="text-[#0284C7] dark:text-[#98DDFE] font-bold">${r.perServing.fat.toFixed(1)}g G</span>
+                      </div>
+
+                      <!-- Action Buttons -->
+                      <div class="flex items-center gap-1.5 pt-1 border-t border-slate-200/50 dark:border-white/5">
+                        <button type="button" data-recipe-details="${r.id}" class="flex-1 py-1.5 px-2.5 text-center rounded-xl bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 border border-slate-200/70 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-200 transition">
+                          Detalii Ingrediente
+                        </button>
+                        <button type="button" data-recipe-edit="${r.id}" class="py-1.5 px-3 rounded-xl bg-[#121319] dark:bg-white text-white dark:text-[#121319] text-xs font-bold hover:opacity-90 transition flex items-center gap-1">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                          <span>Editează</span>
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+          `;
+        }).join('')}
+
+        <!-- Grand Total Summary Banner for Recipes -->
+        <div class="bento-card bento-lilac p-4 sm:p-5 rounded-3xl border border-brand-lilac/30 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#6D4AE8] dark:text-[#C4B5FD]">
+              TOTAL GENERAL REȚETE PROPRII (TOATE PROFILURILE)
+            </div>
+            <div class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+              Costul cumulat al tuturor celor ${data.totals.grandTotalCreatedRecipesCount} rețete înregistrate
+            </div>
+          </div>
+          <div class="text-xl sm:text-2xl font-black text-[#218352] dark:text-[#70D6A3] font-display">
+            ${data.totals.grandTotalCreatedRecipesCost.toFixed(2)} RON
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderTotalPlannerTab(data) {
+    const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+
+    return `
+      <div class="space-y-6">
+        ${data.profilesPlanData.map(pPlan => {
+          const p = pPlan.profile;
+          return `
+            <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E5E0F5] dark:border-white/10">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
+                    ${p.photo ? `
+                      <img src="${p.photo}" alt="${p.name}" class="w-full h-full object-cover">
+                    ` : `
+                      <span class="text-xs font-black text-slate-800 dark:text-white">${p.name ? p.name.slice(0, 2).toUpperCase() : 'NP'}</span>
+                    `}
+                  </div>
+                  <div>
+                    <h3 class="text-base font-extrabold text-slate-900 dark:text-white">${p.name}</h3>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">
+                      ${pPlan.totalItems} preparate planificate • Medie: ${pPlan.totals.avgDailyCost.toFixed(2)} RON/zi
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <div class="px-3.5 py-1.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 text-right">
+                    <div class="text-[10px] font-bold text-emerald-800 dark:text-emerald-300">Cost Săptămânal</div>
+                    <div class="text-base font-black text-[#218352] dark:text-[#70D6A3] font-display">
+                      ${pPlan.totals.cost.toFixed(2)} RON
+                    </div>
+                  </div>
+                  <button data-switch-to-profile="${p.id}" class="btn-pill btn-pill-outline text-xs !py-1.5 !px-3 font-bold">
+                    Deschide Plan 📅
+                  </button>
+                </div>
+              </div>
+
+              <!-- 7 Days Grid for this Profile -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                ${days.map(d => {
+                  const dayData = pPlan.days[d] || { items: [], totals: { cost: 0, calories: 0 } };
+                  const count = dayData.items.length;
+                  return `
+                    <div class="p-2.5 rounded-xl border border-slate-200/70 dark:border-white/10 bg-[#FAF9FD] dark:bg-white/5 space-y-1 text-center">
+                      <div class="text-[11px] font-extrabold text-slate-900 dark:text-white">${d}</div>
+                      <div class="text-xs font-black text-[#218352] dark:text-[#70D6A3]">${dayData.totals.cost.toFixed(1)} lei</div>
+                      <div class="text-[10px] text-slate-500 dark:text-slate-400">${Math.round(dayData.totals.calories)} kcal • ${count} prep.</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+
+        <!-- Grand Total Weekly Plan Banner -->
+        <div class="bento-card bento-lilac p-4 sm:p-5 rounded-3xl border border-brand-lilac/30 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-[#6D4AE8] dark:text-[#C4B5FD]">
+              TOTAL GENERAL PLAN SĂPTĂMÂNAL MENAJ (TOATE PROFILURILE)
+            </div>
+            <div class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+              Bugetul total de alimente planificate pe 7 zile pentru toți membrii
+            </div>
+          </div>
+          <div class="text-xl sm:text-2xl font-black text-[#6D4AE8] dark:text-[#C4B5FD] font-display">
+            ${data.totals.grandTotalWeeklyCost.toFixed(2)} RON
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderTotalSummaryTab(data) {
+    return `
+      <div class="space-y-4">
+        <div class="bento-card bento-white border border-[#E5E0F5] dark:border-white/10 p-5 sm:p-6 shadow-sm overflow-hidden">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-xl font-extrabold font-display text-slate-900 dark:text-white">Tabel Comparativ per Profil</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Comparație detaliată a costurilor și rețetelor între toate profilurile din cont</p>
+            </div>
+            <span class="pill-badge pill-badge-translucent">${data.profiles.length} Profiluri</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 text-slate-600 dark:text-slate-400">
+                  <th class="py-3 px-3.5 font-bold rounded-l-xl">Membru Profil</th>
+                  <th class="py-3 px-3.5 font-bold">Țintă Calorii</th>
+                  <th class="py-3 px-3.5 font-bold">Rețete Proprii</th>
+                  <th class="py-3 px-3.5 font-bold text-[#218352] dark:text-[#70D6A3]">Cost Rețete</th>
+                  <th class="py-3 px-3.5 font-bold">Mese Săpt.</th>
+                  <th class="py-3 px-3.5 font-bold text-[#6D4AE8] dark:text-[#C4B5FD]">Cost Săptămână</th>
+                  <th class="py-3 px-3.5 font-bold">Medie Zilnică</th>
+                  <th class="py-3 px-3.5 font-bold text-right rounded-r-xl">Acțiuni</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                ${data.profiles.map(p => {
+                  const pRec = data.recipesByProfile.find(item => item.profile.id === p.id);
+                  const pPlan = data.profilesPlanData.find(item => item.profile.id === p.id);
+                  const recCount = pRec ? pRec.recipes.length : 0;
+                  const recCost = pRec ? pRec.totalCost : 0;
+                  const planItems = pPlan ? pPlan.totalItems : 0;
+                  const planCost = pPlan ? pPlan.totals.cost : 0;
+                  const avgDaily = pPlan ? pPlan.totals.avgDailyCost : 0;
+
+                  return `
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-white/5 transition">
+                      <td class="py-3.5 px-3.5 font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                          ${p.name ? p.name.slice(0, 2).toUpperCase() : 'NP'}
+                        </div>
+                        <span>${p.name}</span>
+                      </td>
+                      <td class="py-3.5 px-3.5 text-slate-600 dark:text-slate-400 font-medium">${Math.round(p.calories)} kcal</td>
+                      <td class="py-3.5 px-3.5 text-slate-700 dark:text-slate-300 font-bold">${recCount}</td>
+                      <td class="py-3.5 px-3.5 font-black text-[#218352] dark:text-[#70D6A3]">${recCost.toFixed(2)} RON</td>
+                      <td class="py-3.5 px-3.5 text-slate-700 dark:text-slate-300">${planItems}</td>
+                      <td class="py-3.5 px-3.5 font-black text-[#6D4AE8] dark:text-[#C4B5FD]">${planCost.toFixed(2)} RON</td>
+                      <td class="py-3.5 px-3.5 text-amber-600 dark:text-amber-400 font-bold">${avgDaily.toFixed(2)} RON/zi</td>
+                      <td class="py-3.5 px-3.5 text-right">
+                        <button data-switch-to-profile="${p.id}" class="btn-pill btn-pill-dark text-xs py-1.5 px-2.5">
+                          Deschide
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+              <tfoot>
+                <tr class="bg-slate-100/90 dark:bg-white/10 font-bold border-t-2 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
+                  <td class="py-3.5 px-3.5 font-black">TOTAL CONSOLIDAT</td>
+                  <td class="py-3.5 px-3.5">-</td>
+                  <td class="py-3.5 px-3.5 font-black">${data.totals.grandTotalCreatedRecipesCount}</td>
+                  <td class="py-3.5 px-3.5 font-black text-[#218352] dark:text-[#70D6A3]">${data.totals.grandTotalCreatedRecipesCost.toFixed(2)} RON</td>
+                  <td class="py-3.5 px-3.5 font-black">${data.totals.grandTotalWeeklyItems}</td>
+                  <td class="py-3.5 px-3.5 font-black text-[#6D4AE8] dark:text-[#C4B5FD]">${data.totals.grandTotalWeeklyCost.toFixed(2)} RON</td>
+                  <td class="py-3.5 px-3.5 font-black text-amber-600 dark:text-amber-400">${(data.totals.grandTotalWeeklyCost / 7).toFixed(2)} RON/zi</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  bindTotalEvents() {
+    // Total sub-tabs switcher
+    document.querySelectorAll('[data-total-tab]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.totalSubTab = e.currentTarget.getAttribute('data-total-tab');
+        this.renderCurrentView();
+      });
+    });
+
+    // Recipe details modal
+    document.querySelectorAll('[data-recipe-details]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-recipe-details');
+        this.openRecipeDetailsModal(id);
+      });
+    });
+
+    // Recipe edit builder modal
+    document.querySelectorAll('[data-recipe-edit]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-recipe-edit');
+        const raw = window.store.getRecipeById(id);
+        if (raw) {
+          this.openRecipeBuilderModal(raw);
+        }
+      });
+    });
+
+    // Create recipe for specific profile
+    document.querySelectorAll('[data-create-recipe-for-profile]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const profId = e.currentTarget.getAttribute('data-create-recipe-for-profile');
+        if (profId) {
+          window.store.setActiveProfile(profId);
+          this.updateHeaderProfile();
+        }
+        this.openRecipeBuilderModal(null);
+      });
+    });
+
+    // Switch to profile and open planner
+    document.querySelectorAll('[data-switch-to-profile]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const profId = e.currentTarget.getAttribute('data-switch-to-profile');
+        const switched = window.store.setActiveProfile(profId);
+        if (switched) {
+          this.dailyCalorieTarget = switched.calories;
+          this.updateHeaderProfile();
+          this.switchTab('planner');
+          this.showToast(`Comutat pe profilul "${switched.name}".`, 'success');
+        }
+      });
+    });
+
+    // Export data JSON button
+    document.getElementById('btn-total-export-json')?.addEventListener('click', () => {
+      const json = window.store.exportDataJson();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nutriplanner_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.showToast('Baza de date a fost exportată!', 'success');
     });
   }
 
@@ -4689,6 +5262,19 @@ class NutriApp {
     const nameEl = document.getElementById('header-user-name');
     const subEl = document.getElementById('header-user-sub');
 
+    if (this.currentTab === 'total') {
+      if (avatarCircle) {
+        avatarCircle.innerHTML = '<span class="text-xs sm:text-sm font-black tracking-tight text-white dark:text-[#121319]">Σ</span>';
+      }
+      if (nameEl) {
+        nameEl.textContent = 'Profil Total 📊';
+      }
+      if (subEl) {
+        subEl.textContent = 'Consolidat • Toate Profilurile';
+      }
+      return;
+    }
+
     if (avatarCircle) {
       if (profile.photo && profile.photo.trim() !== '') {
         avatarCircle.innerHTML = `<img src="${profile.photo}" alt="${profile.name}" class="w-full h-full object-cover">`;
@@ -4945,6 +5531,27 @@ class NutriApp {
             </div>
           </div>
 
+          <!-- Consolidated Total Profile Shortcut -->
+          <div class="p-3.5 bg-gradient-to-r from-brand-lilac/15 via-[#6D4AE8]/10 to-brand-pink/15 rounded-2xl border border-brand-lilac/30 flex items-center justify-between gap-3 shadow-2xs">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-[#6D4AE8] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                  <span>Profil de Total & Costuri</span>
+                  <span class="text-[9px] px-1.5 py-0.2 rounded-full bg-[#6D4AE8]/20 text-[#6D4AE8] dark:text-[#C4B5FD] font-black uppercase">Consolidat</span>
+                </div>
+                <div class="text-[10.5px] text-slate-600 dark:text-slate-300 truncate">
+                  Vezi toate rețetele per profil și totalul costurilor calculate
+                </div>
+              </div>
+            </div>
+            <button id="btn-open-total-profile-from-modal" type="button" class="btn-pill btn-pill-primary text-xs !py-1.5 !px-3 font-bold whitespace-nowrap shadow-xs flex-shrink-0">
+              Deschide 📊
+            </button>
+          </div>
+
           <!-- Cloud Sync Card in Profile Modal -->
           <div class="p-3 bg-brand-lilac/10 dark:bg-brand-lilac/15 rounded-2xl border border-brand-lilac/30 flex items-center justify-between gap-3">
             <div class="flex items-center gap-2.5 min-w-0">
@@ -4980,6 +5587,11 @@ class NutriApp {
       this.openModal(html, { position: 'center', maxWidth: 'max-w-xl' });
 
       // Event handlers for view mode
+      document.getElementById('btn-open-total-profile-from-modal')?.addEventListener('click', () => {
+        this.closeModal();
+        this.switchTab('total');
+      });
+
       document.getElementById('btn-edit-active-profile')?.addEventListener('click', () => {
         this.openProfileModal('edit', activeProfile.id);
       });

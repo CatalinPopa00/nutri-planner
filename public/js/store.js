@@ -1209,6 +1209,208 @@ class NutriStore {
     };
   }
 
+  calculateWeekForProfile(profileId) {
+    const defaultId = (this.data.profiles && this.data.profiles[0]?.id) || 'prof_default';
+    const plan = (this.data.plansByProfile && this.data.plansByProfile[profileId]) ||
+                 (this.data.activeProfileId === profileId ? this.data.weeklyPlan : null) || {};
+
+    const days = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+    const daysData = {};
+    let weekCost = 0;
+    let weekCalories = 0;
+    let weekProtein = 0;
+    let weekCarbs = 0;
+    let weekFat = 0;
+    let totalItems = 0;
+
+    days.forEach(day => {
+      const items = plan[day] || [];
+      let dayCost = 0;
+      let dayCalories = 0;
+      let dayProtein = 0;
+      let dayCarbs = 0;
+      let dayFat = 0;
+
+      const computedItems = items.map(it => {
+        totalItems++;
+        const rawRecipe = this.getRecipeById(it.recipeId);
+        if (rawRecipe) {
+          const calc = this.calculateRecipe(rawRecipe);
+          const portions = parseFloat(it.servings) || 1.0;
+          const cost = calc.perServing.cost * portions;
+          const cals = calc.perServing.calories * portions;
+          const prot = calc.perServing.protein * portions;
+          const carbs = calc.perServing.carbs * portions;
+          const fat = calc.perServing.fat * portions;
+
+          dayCost += cost;
+          dayCalories += cals;
+          dayProtein += prot;
+          dayCarbs += carbs;
+          dayFat += fat;
+
+          return {
+            ...it,
+            recipeName: rawRecipe.name,
+            category: rawRecipe.category,
+            portions,
+            cost,
+            calories: cals,
+            protein: prot,
+            carbs,
+            fat,
+            calc
+          };
+        }
+
+        const rawIng = this.getIngredientById(it.recipeId);
+        if (rawIng) {
+          const portions = parseFloat(it.servings) || 1.0;
+          const cost = rawIng.pricePer100g * portions;
+          const cals = rawIng.calories * portions;
+          const prot = rawIng.protein * portions;
+          const carbs = rawIng.carbs * portions;
+          const fat = rawIng.fat * portions;
+
+          dayCost += cost;
+          dayCalories += cals;
+          dayProtein += prot;
+          dayCarbs += carbs;
+          dayFat += fat;
+
+          return {
+            ...it,
+            recipeName: rawIng.name,
+            category: rawIng.category,
+            portions,
+            cost,
+            calories: cals,
+            protein: prot,
+            carbs,
+            fat,
+            isIngredient: true
+          };
+        }
+
+        return {
+          ...it,
+          recipeName: 'Articol șters',
+          cost: 0,
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0
+        };
+      });
+
+      daysData[day] = {
+        day,
+        items: computedItems,
+        totals: {
+          cost: dayCost,
+          calories: dayCalories,
+          protein: dayProtein,
+          carbs: dayCarbs,
+          fat: dayFat
+        }
+      };
+
+      weekCost += dayCost;
+      weekCalories += dayCalories;
+      weekProtein += dayProtein;
+      weekCarbs += dayCarbs;
+      weekFat += dayFat;
+    });
+
+    return {
+      profileId,
+      days: daysData,
+      totalItems,
+      totals: {
+        cost: weekCost,
+        calories: weekCalories,
+        protein: weekProtein,
+        carbs: weekCarbs,
+        fat: weekFat,
+        avgDailyCost: weekCost / 7,
+        avgDailyCalories: weekCalories / 7,
+        avgDailyProtein: weekProtein / 7,
+        avgDailyCarbs: weekCarbs / 7,
+        avgDailyFat: weekFat / 7
+      }
+    };
+  }
+
+  calculateAllProfilesTotal() {
+    const profiles = this.getProfiles();
+    const defaultProfileId = (profiles && profiles[0]?.id) || 'prof_default';
+
+    // 1. Weekly plans calculated per profile
+    const profilesPlanData = profiles.map(p => {
+      const weekCalc = this.calculateWeekForProfile(p.id);
+      return {
+        profile: p,
+        ...weekCalc
+      };
+    });
+
+    // 2. Custom recipes entered per profile
+    const allRecipes = this.data.recipes || [];
+    const knownProfileIds = new Set(profiles.map(p => p.id));
+
+    const recipesByProfile = profiles.map(p => {
+      const pRecipes = allRecipes.filter(r => {
+        if (!r.isCustom) return false;
+        const ownerId = this.getRecipeOwnerId(r);
+        if (ownerId === p.id) return true;
+        if (!knownProfileIds.has(ownerId) && p.id === defaultProfileId) return true;
+        return false;
+      });
+      const computedRecipes = pRecipes.map(r => this.calculateRecipe(r));
+      const totalCost = computedRecipes.reduce((sum, r) => sum + (r?.totals?.cost || 0), 0);
+      const totalCalories = computedRecipes.reduce((sum, r) => sum + (r?.totals?.calories || 0), 0);
+      const totalProtein = computedRecipes.reduce((sum, r) => sum + (r?.totals?.protein || 0), 0);
+      const totalWeight = computedRecipes.reduce((sum, r) => sum + (r?.totals?.weight || 0), 0);
+
+      return {
+        profile: p,
+        recipes: computedRecipes,
+        totalCost,
+        totalCalories,
+        totalProtein,
+        totalWeight
+      };
+    });
+
+    // Common/catalog recipes
+    const commonRecipes = allRecipes.filter(r => !r.isCustom).map(r => this.calculateRecipe(r));
+    const commonCost = commonRecipes.reduce((sum, r) => sum + r.totals.cost, 0);
+
+    const grandTotalWeeklyCost = profilesPlanData.reduce((sum, item) => sum + item.totals.cost, 0);
+    const grandTotalWeeklyCalories = profilesPlanData.reduce((sum, item) => sum + item.totals.calories, 0);
+    const grandTotalWeeklyProtein = profilesPlanData.reduce((sum, item) => sum + item.totals.protein, 0);
+    const grandTotalWeeklyItems = profilesPlanData.reduce((sum, item) => sum + item.totalItems, 0);
+
+    const grandTotalCreatedRecipesCost = recipesByProfile.reduce((sum, item) => sum + item.totalCost, 0);
+    const grandTotalCreatedRecipesCount = recipesByProfile.reduce((sum, item) => sum + item.recipes.length, 0);
+
+    return {
+      profiles,
+      profilesPlanData,
+      recipesByProfile,
+      commonRecipes,
+      commonCost,
+      totals: {
+        grandTotalWeeklyCost,
+        grandTotalWeeklyCalories,
+        grandTotalWeeklyProtein,
+        grandTotalWeeklyItems,
+        grandTotalCreatedRecipesCost,
+        grandTotalCreatedRecipesCount
+      }
+    };
+  }
+
   exportDataJson() {
     return JSON.stringify(this.data, null, 2);
   }
